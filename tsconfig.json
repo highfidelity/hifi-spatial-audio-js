@@ -25,6 +25,7 @@
         "readme": "./tsdocIndexPage.md",
         "theme": "./typedoc-theme",
         "hideGenerator": true,
-        "disableSources": true
+        "disableSources": true,
+        "excludeExternals": true,
     }
 }
