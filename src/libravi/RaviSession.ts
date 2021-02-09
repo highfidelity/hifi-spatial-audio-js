@@ -81,9 +81,9 @@ export class RaviSession {
     // swappable in the code here.)
     this._raviImplementation = new RaviWebRTCImplementation(this);
     // When someone sets an input audio stream on the stream controller,
-    // pass that along to the implementation's _addInputStream method.
+    // pass that along to the implementation's _addAudioInputStream method.
     const raviImpl = this._raviImplementation;
-    this._streamController.setInputAudioChangeHandler(raviImpl._addInputStream.bind(raviImpl));
+    this._streamController.setInputAudioChangeHandler(raviImpl._addAudioInputStream.bind(raviImpl));
     this._streamController.setInputVideoChangeHandler(raviImpl._addVideoInputStream.bind(raviImpl));
   }
   
@@ -582,7 +582,8 @@ methods when it has data channel and track channels ready.
   Expected methods:
   constructor(raviSession);
   _assignSignalingConnection();
-  _addInputStream(inputStream);
+  _addAudioInputStream(inputStream);
+  _addVideoInputStream(inputStream);
   _open(); 
   _close();
 */
@@ -625,7 +626,8 @@ class RaviWebRTCImplementation {
   _negotiator: any;
   _statsWatcher: RaviWebRTCStatsWatcher;
   _rtcConnection: typeof crossPlatformRTCPeerConnection;
-  _raviSenders: any;
+  _raviAudioSenders: any;
+  _raviVideoSenders: any;
   _signalingConnection: RaviSignalingConnection;
   
   /**
@@ -670,7 +672,8 @@ class RaviWebRTCImplementation {
     senders.forEach((sender: any) => {
       sender.replaceTrack(null);
     });
-    this._raviSenders = [];
+    this._raviAudioSenders = [];
+    this._raviVideoSenders = [];
     
     // This new RTCConnection's state change events will just
     // call back up to the main RaviSession's 
@@ -719,7 +722,7 @@ class RaviWebRTCImplementation {
    * gets an input stream. 
    * @protected
    */
-  _addInputStream(stream: MediaStream) {
+  _addAudioInputStream(stream: MediaStream) {
     const rtcConnection = this._rtcConnection;
     const that = this;
     var retval = false;
@@ -729,7 +732,7 @@ class RaviWebRTCImplementation {
       // separately from the list of senders on the RTC connection,
       // because we want to make sure we're only working with 
       // senders that match our own parameters.
-      const currentSenders = this._raviSenders;
+      const currentSenders = this._raviAudioSenders;
       
       // List of new tracks in the passed stream
       const newAudioTracks = stream.getAudioTracks();
@@ -743,12 +746,12 @@ class RaviWebRTCImplementation {
         // but on the plus side, does not trigger a renegotiation. The latency
         // tends to dissipate over time.)
         if (i < numNewTracks) {
-          RaviUtils.log("Replacing track in rtcConnection", "RaviWebRTCImplementation");
+          RaviUtils.log("Replacing audio track #" + i + "  in rtcConnection", "RaviWebRTCImplementation");
           currentSenders[i].replaceTrack(newAudioTracks[i]);
         } else {
           // If there are more tracks in the old stream than
           // in the new one, set the extras to null 
-          RaviUtils.log("Setting sender to null", "RaviWebRTCImplementation");
+          RaviUtils.log("Setting audio sender #" + i + " to null", "RaviWebRTCImplementation");
           currentSenders[i].replaceTrack(null);
         }
       }
@@ -756,18 +759,18 @@ class RaviWebRTCImplementation {
       // If there are more tracks in the new stream then
       // in the old, add them
       for (i; i < numNewTracks; i++) {
-        RaviUtils.log("Adding local track to rtcConnection", "RaviWebRTCImplementation");
+        RaviUtils.log("Adding local audio track #" + i + " to rtcConnection", "RaviWebRTCImplementation");
         currentSenders.push(rtcConnection.addTrack(newAudioTracks[i]));
         // We expect the 'negotiationneeded' event to fire
       }
     } else {
         // the stream assigned is null meaning we want to kill any input audio stream
-        const currentSenders = this._raviSenders;
+        const currentSenders = this._raviAudioSenders;
 
         // simply set all the existing senders to null track.
         let i=0;
         for (i; i < currentSenders.length; i++) {
-          RaviUtils.log("Setting sender to null", "RaviWebRTCImplementation");
+          RaviUtils.log("Setting audio sender #" + i + " to null", "RaviWebRTCImplementation");
           currentSenders[i].replaceTrack(null);
         }
     }
@@ -784,47 +787,38 @@ class RaviWebRTCImplementation {
       // separately from the list of senders on the RTC connection,
       // because we want to make sure we're only working with 
       // senders that match our own parameters.
-      const currentSenders = this._raviSenders;
+      const currentSenders = this._raviVideoSenders;
       
       // List of new tracks in the passed stream
-      const newAudioTracks = stream.getVideoTracks();
-      const numNewTracks = newAudioTracks.length;
+      const newVideoTracks = stream.getVideoTracks();
+      const numNewTracks = newVideoTracks.length;
+      
+      // At the moment, ravi client session only support one outbound video track
+      if (numNewTracks > 0) {
+        // If current video sender exists already, just replace track
+        if (currentSenders.length > 0) {
+          RaviUtils.log("Replacing video track #0 in rtcConnection", "RaviWebRTCImplementation");
+          currentSenders[0].replaceTrack(newVideoTracks[0]);
+        } else {
+          // else just add the new track to the PeerConnection.
+          RaviUtils.log("Adding video track #0 to rtcConnection", "RaviWebRTCImplementation");
+          currentSenders.push(rtcConnection.addTrack(newVideoTracks[0]));
+          // We expect the 'negotiationneeded' event to fire
+        }
+        retval = true;
+      } else {
+        RaviUtils.log("Assigned video stream doesn't contain vidoe track", "RaviWebRTCImplementation");
+      }             
+    } else {
+      // the stream assigned is null meaning we want to kill any input video stream
+      const currentSenders = this._raviVideoSenders;
 
+      // simply set all the existing senders to null track.
       let i=0;
       for (i; i < currentSenders.length; i++) {
-        // For each of the tracks that we already know about,
-        // replace them with a track from the new stream.
-        // (Note: this seems to add a little latency when it gets called,
-        // but on the plus side, does not trigger a renegotiation. The latency
-        // tends to dissipate over time.)
-        if (i < numNewTracks) {
-          RaviUtils.log("Replacing track in rtcConnection", "RaviWebRTCImplementation");
-          currentSenders[i].replaceTrack(newAudioTracks[i]);
-        } else {
-          // If there are more tracks in the old stream than
-          // in the new one, set the extras to null 
-          RaviUtils.log("Setting sender to null", "RaviWebRTCImplementation");
-          currentSenders[i].replaceTrack(null);
-        }
+        RaviUtils.log("Setting video sender #" + i + " to null", "RaviWebRTCImplementation");
+        currentSenders[i].replaceTrack(null);
       }
-
-      // If there are more tracks in the new stream then
-      // in the old, add them
-      for (i; i < numNewTracks; i++) {
-        RaviUtils.log("Adding local track to rtcConnection", "RaviWebRTCImplementation");
-        currentSenders.push(rtcConnection.addTrack(newAudioTracks[i]));
-        // We expect the 'negotiationneeded' event to fire
-      }
-    } else {
-        // the stream assigned is null meaning we want to kill any input audio stream
-        const currentSenders = this._raviSenders;
-
-        // simply set all the existing senders to null track.
-        let i=0;
-        for (i; i < currentSenders.length; i++) {
-          RaviUtils.log("Setting sender to null", "RaviWebRTCImplementation");
-          currentSenders[i].replaceTrack(null);
-        }
     }
     return retval;
   }
