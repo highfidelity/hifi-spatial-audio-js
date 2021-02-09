@@ -27,5 +27,6 @@
         "hideGenerator": true,
         "disableSources": true,
         "excludeExternals": true,
+        "exclude": ["dist"]
     }
 }
