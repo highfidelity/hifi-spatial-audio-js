@@ -104,32 +104,14 @@ export class OrientationQuat3D {
  * Member data of this class that is sent to the Server will affect the final mixed spatial audio for all listeners in the server's virtual space.
  */
 export class HiFiAudioAPIData {
-    providedUserID: string;
-    hashedVisitID: string;
     position: Point3D;
     orientationEuler: OrientationEuler3D;
     orientationQuat: OrientationQuat3D;
     hiFiGain: number;
-    volumeDecibels: number;
 
     /**
      * 
      * @param __namedParameters
-     * @param providedUserID This User ID is an arbitrary string provided by an application developer which can be used to identify the user associated with a client.
-     * We recommend that this `providedUserID` is unique across all users, but the High Fidelity API will not enforce uniqueness across clients for this value.
-     * 
-     * ✔ The client sends this `providedUserID` to the server via the JWT that is the argument to `connectToHiFiAudioAPIServer()`.
-     * 
-     * ✔ The server sends this `providedUserID` to all clients connected to a server during "peer updates".
-     * @param hashedVisitID This string is a hashed version of the random UUID that is generated automatically.
-     * A connecting client sends this value as the `session` key inside the argument to the `audionet.init` command.
-     * It is used to identify a given client across a cloud of mixers and is guaranteed ("guaranteed" given the context of random UUIDS) to be unique.
-     * Application developers should not need to interact with or make use of this value, unless they want to use it internally for tracking or other purposes.
-     * This value cannot be set by the application developer.
-     * 
-     * ✔ The client sends the unhashed Visit ID to the server when the `audionet.init` command is sent.
-     * 
-     * ✔ The server sends this `hashedVisitID` to all clients connected to a server during "peer updates".
      * @param position If you don't supply a `position` when constructing instantiations of this class, `position` will be `null`.
      * 
      * ✔ The client sends `position` data to the server when `_transmitHiFiAudioAPIDataToServer()` is called.
@@ -154,14 +136,11 @@ export class HiFiAudioAPIData {
      * 
      * ✔ The server sends `hiFiGain` data to all clients connected to a server during "peer updates".
      */
-    constructor({ providedUserID = null, hashedVisitID = null, position = null, orientationEuler = null, orientationQuat = null, hiFiGain = null, volumeDecibels = null }: { providedUserID?: string, hashedVisitID?: string, position?: Point3D, orientationEuler?: OrientationEuler3D, orientationQuat?: OrientationQuat3D, hiFiGain?: number, volumeDecibels?: number } = {}) {
-        this.providedUserID = providedUserID;
-        this.hashedVisitID = hashedVisitID;
+    constructor({ position = null, orientationEuler = null, orientationQuat = null, hiFiGain = null }: { position?: Point3D, orientationEuler?: OrientationEuler3D, orientationQuat?: OrientationQuat3D, hiFiGain?: number } = {}) {
         this.position = position;
         this.orientationQuat = orientationQuat;
         this.orientationEuler = orientationEuler;
         this.hiFiGain = hiFiGain;
-        this.volumeDecibels = volumeDecibels;
     }
 
     /**
@@ -178,12 +157,6 @@ export class HiFiAudioAPIData {
         if (this.hiFiGain) {
             currentHiFiAudioAPIDataObj["hiFiGain"] = this.hiFiGain;
         }
-        if (this.providedUserID) {
-            currentHiFiAudioAPIDataObj["providedUserID"] = this.providedUserID;
-        }
-        if (this.hashedVisitID) {
-            currentHiFiAudioAPIDataObj["hashedVisitID"] = this.hashedVisitID;
-        }
 
         let otherHiFiDataObj: any = {
             "position": Object.assign({}, otherHiFiData.position),
@@ -192,12 +165,6 @@ export class HiFiAudioAPIData {
         };
         if (typeof (otherHiFiData.hiFiGain) === "number") {
             otherHiFiDataObj["hiFiGain"] = otherHiFiData.hiFiGain;
-        }
-        if (typeof (otherHiFiData.providedUserID) === "string") {
-            otherHiFiDataObj["providedUserID"] = otherHiFiData.providedUserID;
-        }
-        if (typeof (otherHiFiData.hashedVisitID) === "string") {
-            otherHiFiDataObj["hashedVisitID"] = otherHiFiData.hashedVisitID;
         }
 
 
@@ -224,14 +191,6 @@ export class HiFiAudioAPIData {
             returnValue.hiFiGain = diffObject.hiFiGain;
         }
 
-        if (typeof (diffObject.providedUserID) === "string") {
-            returnValue.providedUserID = diffObject.providedUserID;
-        }
-
-        if (typeof (diffObject.hashedVisitID) === "string") {
-            returnValue.hashedVisitID = diffObject.hashedVisitID;
-        }
-
         return returnValue;
     }
 }
@@ -243,17 +202,28 @@ export class HiFiAudioAPIData {
  * See {@link HiFiAudioAPIData} for data that can both be sent to and received from the Server (i.e. `position`).
  */
 export class ReceivedHiFiAudioAPIData extends HiFiAudioAPIData {
+    providedUserID: string;
+    hashedVisitID: string;
     volumeDecibels: number;
     
     /**
      * 
      * @param params 
+     * @param params.providedUserID This User ID is an arbitrary string provided by an application developer which can be used to identify the user associated with a client.
+     * We recommend that this `providedUserID` is unique across all users, but the High Fidelity API will not enforce uniqueness across clients for this value.
+     * @param params.hashedVisitID This string is a hashed version of the random UUID that is generated automatically.
+     * A connecting client sends this value as the `session` key inside the argument to the `audionet.init` command.
+     * It is used to identify a given client across a cloud of mixers and is guaranteed ("guaranteed" given the context of random UUIDS) to be unique.
+     * Application developers should not need to interact with or make use of this value, unless they want to use it internally for tracking or other purposes.
+     * This value cannot be set by the application developer.
      * @param params.volumeDecibels The current volume of the user in decibels.
      * ❌ The client never sends `volumeDecibels` data to the server.
      * ✔ The server sends `volumeDecibels` data to all clients connected to a server during "peer updates".
      */
-    constructor(params: { volumeDecibels?: number } = {}) {
+    constructor(params: { providedUserID?: string, hashedVisitID?: string, volumeDecibels?: number, position?: Point3D, orientationEuler?: OrientationEuler3D, orientationQuat?: OrientationQuat3D, hiFiGain?: number } = {}) {
         super(params);
+        this.providedUserID = params.providedUserID;
+        this.hashedVisitID = params.hashedVisitID;
         this.volumeDecibels = params.volumeDecibels;
     }
 }
