@@ -1,0 +1,53 @@
+{
+  "name": "hifi-spatial-audio",
+  "version": "0.2.2",
+  "description": "hifi-spatial-audio allows developers to integrate High Fidelity's spatial audio technology into their JavaScript projects.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "private": false,
+  "scripts": {
+    "build:node": "npm run clean && tsc --declaration true && npm pack",
+    "build": "echo \"No target defined. Did you mean 'npm run build:web' or 'npm run build:node' ?\" && exit 1",
+    "build:web": "npm run clean && webpack --env buildEnv=dev",
+    "build:web:dev": "npm run clean && webpack --env buildEnv=dev",
+    "build:web:prod": "npm run clean && webpack --env buildEnv=prod",
+    "clean": "node ./utilities/cleanDistDir.js",
+    "docs": "typedoc",
+    "docs:buildAndUpload": "typedoc && node ./utilities/uploadDocsToS3AndInvalidate.js",
+    "test": "jest --reporters default jest-stare",
+    "publishNewRelease": "npm run clean && npm run docs:buildAndUpload && npm run build:node && npm publish && npm run build:web:prod"
+  },
+  "repository": "git://github.com/highfidelity/hifi-spatial-audio-js.git",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
+  "author": "High Fidelity",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/highfidelity/hifi-spatial-audio-js/issues"
+  },
+  "homepage": "https://highfidelity.com/",
+  "devDependencies": {
+    "@types/jest": "^26.0.20",
+    "aws-sdk": "^2.831.0",
+    "clean-webpack-plugin": "^3.0.0",
+    "git-revision-webpack-plugin": "^3.0.6",
+    "jest": "^26.6.3",
+    "jest-stare": "^2.0.1",
+    "ts-jest": "^26.4.4",
+    "ts-loader": "^8.0.14",
+    "typedoc": "^0.20.16",
+    "typescript": "^4.1.3",
+    "webpack": "^5.17.0",
+    "webpack-cli": "^4.4.0"
+  },
+  "dependencies": {
+    "pako": "^2.0.3",
+    "wrtc": "^0.4.7",
+    "ws": "^7.4.2"
+  }
+}

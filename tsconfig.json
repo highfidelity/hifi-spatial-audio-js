@@ -1,0 +1,30 @@
+{
+    "compilerOptions": {
+        "outDir": "./dist/",
+        "noImplicitAny": true,
+        "module": "commonjs",
+        "target": "es6",
+        "removeComments": true,
+        "preserveConstEnums": true,
+        "sourceMap": true,
+        "moduleResolution": "node",
+    },
+    "exclude": ["**/*.test.ts"],
+    "typedocOptions": {
+        "entryPoints": [
+            "src/classes/HiFiAudioAPIData.ts",
+            "src/classes/HiFiAxisConfiguration.ts",
+            "src/classes/HiFiCommunicator.ts",
+            "src/classes/HiFiUserDataSubscription.ts",
+            "src/controls/HiFiControls.ts",
+            "src/constants/HiFiConstants.ts",
+            "src/utilities/HiFiLogger.ts",
+            "src/utilities/HiFiUtilities.ts",
+        ],
+        "out": "docs",
+        "readme": "./tsdocIndexPage.md",
+        "theme": "./typedoc-theme",
+        "hideGenerator": true,
+        "disableSources": true
+    }
+}
