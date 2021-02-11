@@ -7,6 +7,7 @@
  */
 
 declare var BUILD_ENVIRONMENT: string;
+declare var HIFI_API_VERSION: string;
 
 import { HiFiConstants } from "../constants/HiFiConstants";
 import { HiFiLogger } from "../utilities/HiFiLogger";
@@ -96,6 +97,8 @@ export class HiFiCommunicator {
             "onConnectionStateChanged": onConnectionStateChanged
         });
 
+        this._inputAudioMediaStream = undefined;
+
         this._currentHiFiAudioAPIData = initialHiFiAudioAPIData;
 
         this._lastTransmittedHiFiAudioAPIData = new HiFiAudioAPIData();
@@ -177,7 +180,7 @@ export class HiFiCommunicator {
         try {
             // TODO: Revisit this chunk of code later. We almost certainly don't want this to stay in the API code,
             // but it's _very_ convenient for sample apps for right now.
-            let params = URLSearchParams && (typeof(location) !== 'undefined') && new URLSearchParams(location.search);
+            let params = URLSearchParams && (typeof (location) !== 'undefined') && new URLSearchParams(location.search);
             if (params && params.has("token") && (!hifiAuthJWT || hifiAuthJWT.length === 0)) {
                 hifiAuthJWT = params.get("token");
             }
@@ -288,6 +291,28 @@ export class HiFiCommunicator {
     }
 
     /**
+     * @returns A bunch of info about this `HiFiCommunicator` instantiation, including Server Version.
+     */
+    getCommunicatorInfo(): any {
+        let retval: any = {
+            "clientInfo": {
+                "inputAudioStreamSet": !!this._inputAudioMediaStream,
+            }
+        };
+
+        let isBrowserContext = typeof self !== 'undefined';
+        if (isBrowserContext && HIFI_API_VERSION) {
+            retval.clientInfo["apiVersion"] = HIFI_API_VERSION;
+        }
+
+        if (this._mixerSession && this._mixerSession.mixerInfo) {
+            retval["serverInfo"] = this._mixerSession.mixerInfo;
+        }
+
+        return retval;
+    }
+
+    /**
      * Updates the internal copy of the User Data associated with the user associated with this client. Does **NOT** update
      * the user data on the High Fidelity Audio API server. There are no good reasons for a client to call this function
      * and _not_ update the server User Data, and thus this function is `private`.
@@ -316,7 +341,7 @@ export class HiFiCommunicator {
             if (!this._currentHiFiAudioAPIData.orientationEuler) {
                 this._currentHiFiAudioAPIData.orientationEuler = new OrientationEuler3D();
             }
-            
+
             this._currentHiFiAudioAPIData.orientationEuler.pitchDegrees = orientationEuler.pitchDegrees ?? this._currentHiFiAudioAPIData.orientationEuler.pitchDegrees;
             this._currentHiFiAudioAPIData.orientationEuler.yawDegrees = orientationEuler.yawDegrees ?? this._currentHiFiAudioAPIData.orientationEuler.yawDegrees;
             this._currentHiFiAudioAPIData.orientationEuler.rollDegrees = orientationEuler.rollDegrees ?? this._currentHiFiAudioAPIData.orientationEuler.rollDegrees;
@@ -438,7 +463,7 @@ export class HiFiCommunicator {
                 // Now we have to update our "last transmitted" `HiFiAudioAPIData` object
                 // to contain the data that we just transmitted.
                 this._updateLastTransmittedHiFiAudioAPIData(delta);
-    
+
                 return {
                     success: true,
                     rawDataTransmitted: transmitRetval.stringifiedDataForMixer
@@ -522,7 +547,7 @@ export class HiFiCommunicator {
 
                 for (let componentItr = 0; componentItr < currentSubscription.components.length; componentItr++) {
                     let currentComponent = currentSubscription.components[componentItr];
-    
+
                     switch (currentComponent) {
                         case AvailableUserDataSubscriptionComponents.Position:
                             if (currentDataFromServer.position) {
@@ -530,28 +555,28 @@ export class HiFiCommunicator {
                                 shouldPushNewCallbackData = true;
                             }
                             break;
-        
+
                         case AvailableUserDataSubscriptionComponents.OrientationEuler:
                             if (currentDataFromServer.orientationEuler) {
                                 newCallbackData.orientationEuler = currentDataFromServer.orientationEuler;
                                 shouldPushNewCallbackData = true;
                             }
                             break;
-        
+
                         case AvailableUserDataSubscriptionComponents.OrientationQuat:
                             if (currentDataFromServer.orientationQuat) {
                                 newCallbackData.orientationQuat = currentDataFromServer.orientationQuat;
                                 shouldPushNewCallbackData = true;
                             }
                             break;
-        
+
                         case AvailableUserDataSubscriptionComponents.VolumeDecibels:
                             if (typeof (currentDataFromServer.volumeDecibels) === "number") {
                                 newCallbackData.volumeDecibels = currentDataFromServer.volumeDecibels;
                                 shouldPushNewCallbackData = true;
                             }
                             break;
-        
+
                         case AvailableUserDataSubscriptionComponents.HiFiGain:
                             if (typeof (currentDataFromServer.hiFiGain) === "number") {
                                 newCallbackData.hiFiGain = currentDataFromServer.hiFiGain;
