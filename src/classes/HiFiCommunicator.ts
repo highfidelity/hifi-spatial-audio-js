@@ -93,6 +93,7 @@ export class HiFiCommunicator {
         this._mixerSession = new HiFiMixerSession({
             "serverShouldSendUserData": serverShouldSendUserData,
             "onUserDataUpdated": (data: Array<ReceivedHiFiAudioAPIData>) => { this._handleUserDataUpdates(data); },
+            "onUsersDisconnected": (data: Array<ReceivedHiFiAudioAPIData>) => { this._onUsersDisconnected(data); },
             "onConnectionStateChanged": onConnectionStateChanged
         });
 
@@ -570,6 +571,10 @@ export class HiFiCommunicator {
                 currentSubscription.callback(currentSubscriptionCallbackData);
             }
         }
+    }
+
+    private _onUsersDisconnected(usersDisconnected: Array<ReceivedHiFiAudioAPIData>): void {
+
     }
 
     /**

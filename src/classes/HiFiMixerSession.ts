@@ -92,6 +92,10 @@ export class HiFiMixerSession {
      */
     onUserDataUpdated: Function;
     /**
+     * This function is called when a Peer disconnects from the Server.
+     */
+    onUsersDisconnected: Function;
+    /**
      * This function is called when the "connection state" changes.
      * Right now, this is called when the the RAVI session state changes to
      * `RaviSessionStates.CONNECTED`, `RaviSessionStates.DISCONNECTED`, and `RaviSessionStates.FAILED`.
@@ -106,11 +110,13 @@ export class HiFiMixerSession {
      * 
      * If set to `false`, User Data Subscriptions will serve no purpose.
      * @param onUserDataUpdated - The function to call when the server sends user data to the client. Irrelevant if `serverShouldSendUserData` is `false`.
+     * @param onUsersDisconnected - The function to call when the server sends user data about peers who just disconnected to the client.
      */
-    constructor({ serverShouldSendUserData = true, onUserDataUpdated, onConnectionStateChanged }: { serverShouldSendUserData?: boolean, onUserDataUpdated?: Function, onConnectionStateChanged?: Function }) {
+    constructor({ serverShouldSendUserData = true, onUserDataUpdated, onUsersDisconnected, onConnectionStateChanged }: { serverShouldSendUserData?: boolean, onUserDataUpdated?: Function, onUsersDisconnected?: Function, onConnectionStateChanged?: Function }) {
         this.webRTCAddress = undefined;
         this.serverShouldSendUserData = serverShouldSendUserData;
         this.onUserDataUpdated = onUserDataUpdated;
+        this.onUsersDisconnected = onUsersDisconnected;
         this._mixerPeerKeyToProvidedUserIDDict = {};
         this._mixerPeerKeyToHashedVisitIDDict = {};
 
@@ -193,127 +199,139 @@ export class HiFiMixerSession {
         let unGZippedData = pako.ungzip(data, { to: 'string' });
         let jsonData = JSON.parse(unGZippedData);
 
-        // TODO: We might want to handle `jsonData.deleted_peers` here.
-        // We might want to forward a list of users who have disconnected to the mixer to API consumers.
-        // `deleted_peers` contains "client IDs"; the GUIDs that the streaming data sends back in the 'i' parameter.
-        // We don't currently do anything with the `i` parameter in the API code, so this'll take some thought...
+        // Wait for merge and deploy of https://github.com/highfidelity/audionet-hifi/pull/258
+        if (jsonData.deleted_visit_ids) {
+            console.log(jsonData.deleted_visit_ids);
+            
+            // let allDeletedUserData: Array<ReceivedHiFiAudioAPIData> = [];
 
-        if (!jsonData.peers) {
-            return;
+            // let deletedPeersKeys = Object.keys(jsonData.deleted_peers);
+            // for (let itr = 0; itr < deletedPeersKeys.length; itr++) {
+            //     let peerDataFromMixer = jsonData.deleted_peers[deletedPeersKeys[itr]];
+
+            //     let deletedUserData = new ReceivedHiFiAudioAPIData();
+            // }
+
+            // if (this.onUsersDisconnected && allDeletedPeers.length > 0) {
+            //     this.onUsersDisconnected(allDeletedPeers);
+            // }
         }
 
-        let allNewUserData: Array<ReceivedHiFiAudioAPIData> = [];
 
-        let peerKeys = Object.keys(jsonData.peers);
-        for (let itr = 0; itr < peerKeys.length; itr++) {
-            let peerDataFromMixer = jsonData.peers[peerKeys[itr]];
+        if (jsonData.peers) {
+            let allNewUserData: Array<ReceivedHiFiAudioAPIData> = [];
 
-            let newUserData = new ReceivedHiFiAudioAPIData();
+            let peerKeys = Object.keys(jsonData.peers);
+            for (let itr = 0; itr < peerKeys.length; itr++) {
+                let peerDataFromMixer = jsonData.peers[peerKeys[itr]];
 
-            // See {@link this._mixerPeerKeyToProvidedUserIDDict}.
-            if (this._mixerPeerKeyToProvidedUserIDDict[peerKeys[itr]]) {
-                newUserData.providedUserID = this._mixerPeerKeyToProvidedUserIDDict[peerKeys[itr]];
-            } else if (typeof (peerDataFromMixer.J) === "string") {
-                newUserData.providedUserID = peerDataFromMixer.J;
-                this._mixerPeerKeyToProvidedUserIDDict[peerKeys[itr]] = newUserData.providedUserID;
-            }
+                let newUserData = new ReceivedHiFiAudioAPIData();
 
-            // `.e` is the `hashedVisitID`, which is a hashed version of the random UUID that a connecting client
-            // sends as the `session` key inside the argument to the `audionet.init` command.
-            // It is used to identify a given client across a cloud of mixers.
-            if (this._mixerPeerKeyToHashedVisitIDDict[peerKeys[itr]]) {
-                newUserData.hashedVisitID = this._mixerPeerKeyToHashedVisitIDDict[peerKeys[itr]];
-            } else if (typeof (peerDataFromMixer.e) === "string") {
-                newUserData.hashedVisitID = peerDataFromMixer.e;
-                this._mixerPeerKeyToHashedVisitIDDict[peerKeys[itr]] = newUserData.hashedVisitID;
-            }
-
-            let serverSentNewUserData = false;
-
-            // `ReceivedHiFiAudioAPIData.position.x`
-            if (typeof (peerDataFromMixer.x) === "number") {
-                if (!newUserData.position) {
-                    newUserData.position = new Point3D();
+                // See {@link this._mixerPeerKeyToProvidedUserIDDict}.
+                if (this._mixerPeerKeyToProvidedUserIDDict[peerKeys[itr]]) {
+                    newUserData.providedUserID = this._mixerPeerKeyToProvidedUserIDDict[peerKeys[itr]];
+                } else if (typeof (peerDataFromMixer.J) === "string") {
+                    newUserData.providedUserID = peerDataFromMixer.J;
+                    this._mixerPeerKeyToProvidedUserIDDict[peerKeys[itr]] = newUserData.providedUserID;
                 }
-                // Mixer sends position data in millimeters
-                newUserData.position.x = peerDataFromMixer.x / 1000;
-                serverSentNewUserData = true;
-            }
-            // `ReceivedHiFiAudioAPIData.position.y`
-            if (typeof (peerDataFromMixer.y) === "number") {
-                if (!newUserData.position) {
-                    newUserData.position = new Point3D();
+
+                // `.e` is the `hashedVisitID`, which is a hashed version of the random UUID that a connecting client
+                // sends as the `session` key inside the argument to the `audionet.init` command.
+                // It is used to identify a given client across a cloud of mixers.
+                if (this._mixerPeerKeyToHashedVisitIDDict[peerKeys[itr]]) {
+                    newUserData.hashedVisitID = this._mixerPeerKeyToHashedVisitIDDict[peerKeys[itr]];
+                } else if (typeof (peerDataFromMixer.e) === "string") {
+                    newUserData.hashedVisitID = peerDataFromMixer.e;
+                    this._mixerPeerKeyToHashedVisitIDDict[peerKeys[itr]] = newUserData.hashedVisitID;
                 }
-                // Mixer sends position data in millimeters
-                newUserData.position.y = peerDataFromMixer.y / 1000;
-                serverSentNewUserData = true;
-            }
-            // `ReceivedHiFiAudioAPIData.position.z`
-            if (typeof (peerDataFromMixer.z) === "number") {
-                if (!newUserData.position) {
-                    newUserData.position = new Point3D();
+
+                let serverSentNewUserData = false;
+
+                // `ReceivedHiFiAudioAPIData.position.x`
+                if (typeof (peerDataFromMixer.x) === "number") {
+                    if (!newUserData.position) {
+                        newUserData.position = new Point3D();
+                    }
+                    // Mixer sends position data in millimeters
+                    newUserData.position.x = peerDataFromMixer.x / 1000;
+                    serverSentNewUserData = true;
                 }
-                // Mixer sends position data in millimeters
-                newUserData.position.z = peerDataFromMixer.z / 1000;
-                serverSentNewUserData = true;
-            }
-
-            // `ReceivedHiFiAudioAPIData.orientationEuler.pitchDegrees`
-            if (typeof (peerDataFromMixer.k) === "number") {
-                if (!newUserData.orientationEuler) {
-                    newUserData.orientationEuler = new OrientationEuler3D();
+                // `ReceivedHiFiAudioAPIData.position.y`
+                if (typeof (peerDataFromMixer.y) === "number") {
+                    if (!newUserData.position) {
+                        newUserData.position = new Point3D();
+                    }
+                    // Mixer sends position data in millimeters
+                    newUserData.position.y = peerDataFromMixer.y / 1000;
+                    serverSentNewUserData = true;
                 }
-                newUserData.orientationEuler.pitchDegrees = peerDataFromMixer.k;
-                serverSentNewUserData = true;
-            }
-            // `ReceivedHiFiAudioAPIData.orientationEuler.yawDegrees`
-            if (typeof (peerDataFromMixer.o) === "number") {
-                if (!newUserData.orientationEuler) {
-                    newUserData.orientationEuler = new OrientationEuler3D();
+                // `ReceivedHiFiAudioAPIData.position.z`
+                if (typeof (peerDataFromMixer.z) === "number") {
+                    if (!newUserData.position) {
+                        newUserData.position = new Point3D();
+                    }
+                    // Mixer sends position data in millimeters
+                    newUserData.position.z = peerDataFromMixer.z / 1000;
+                    serverSentNewUserData = true;
                 }
-                newUserData.orientationEuler.yawDegrees = peerDataFromMixer.o;
-                serverSentNewUserData = true;
-            }
-            // `ReceivedHiFiAudioAPIData.orientationEuler.rollDegrees`
-            if (typeof (peerDataFromMixer.l) === "number") {
-                if (!newUserData.orientationEuler) {
-                    newUserData.orientationEuler = new OrientationEuler3D();
+
+                // `ReceivedHiFiAudioAPIData.orientationEuler.pitchDegrees`
+                if (typeof (peerDataFromMixer.k) === "number") {
+                    if (!newUserData.orientationEuler) {
+                        newUserData.orientationEuler = new OrientationEuler3D();
+                    }
+                    newUserData.orientationEuler.pitchDegrees = peerDataFromMixer.k;
+                    serverSentNewUserData = true;
                 }
-                newUserData.orientationEuler.rollDegrees = peerDataFromMixer.l;
-                serverSentNewUserData = true;
+                // `ReceivedHiFiAudioAPIData.orientationEuler.yawDegrees`
+                if (typeof (peerDataFromMixer.o) === "number") {
+                    if (!newUserData.orientationEuler) {
+                        newUserData.orientationEuler = new OrientationEuler3D();
+                    }
+                    newUserData.orientationEuler.yawDegrees = peerDataFromMixer.o;
+                    serverSentNewUserData = true;
+                }
+                // `ReceivedHiFiAudioAPIData.orientationEuler.rollDegrees`
+                if (typeof (peerDataFromMixer.l) === "number") {
+                    if (!newUserData.orientationEuler) {
+                        newUserData.orientationEuler = new OrientationEuler3D();
+                    }
+                    newUserData.orientationEuler.rollDegrees = peerDataFromMixer.l;
+                    serverSentNewUserData = true;
+                }
+
+                // `ReceivedHiFiAudioAPIData.orientationQuat.*`
+                if (typeof (peerDataFromMixer.W) === "number" && typeof (peerDataFromMixer.X) === "number" && typeof (peerDataFromMixer.Y) === "number" && typeof (peerDataFromMixer.Z) === "number") {
+                    newUserData.orientationQuat = new OrientationQuat3D({
+                        // Mixer sends Quaternion component data multiplied by 1000
+                        w: peerDataFromMixer.W / 1000,
+                        x: peerDataFromMixer.X / 1000,
+                        y: peerDataFromMixer.Y / 1000,
+                        z: peerDataFromMixer.Z / 1000
+                    });
+                    serverSentNewUserData = true;
+                }
+
+                // `ReceivedHiFiAudioAPIData.hiFiGain`
+                if (typeof (peerDataFromMixer.g) === "number") {
+                    newUserData.hiFiGain = peerDataFromMixer.g;
+                    serverSentNewUserData = true;
+                }
+
+                // `ReceivedHiFiAudioAPIData.volumeDecibels`
+                if (typeof (peerDataFromMixer.v) === "number") {
+                    newUserData.volumeDecibels = peerDataFromMixer.v;
+                    serverSentNewUserData = true;
+                }
+
+                if (serverSentNewUserData) {
+                    allNewUserData.push(newUserData);
+                }
             }
 
-            // `ReceivedHiFiAudioAPIData.orientationQuat.*`
-            if (typeof (peerDataFromMixer.W) === "number" && typeof (peerDataFromMixer.X) === "number" && typeof (peerDataFromMixer.Y) === "number" && typeof (peerDataFromMixer.Z) === "number") {
-                newUserData.orientationQuat = new OrientationQuat3D({
-                    // Mixer sends Quaternion component data multiplied by 1000
-                    w: peerDataFromMixer.W / 1000,
-                    x: peerDataFromMixer.X / 1000,
-                    y: peerDataFromMixer.Y / 1000,
-                    z: peerDataFromMixer.Z / 1000
-                });
-                serverSentNewUserData = true;
+            if (this.onUserDataUpdated && allNewUserData.length > 0) {
+                this.onUserDataUpdated(allNewUserData);
             }
-
-            // `ReceivedHiFiAudioAPIData.hiFiGain`
-            if (typeof (peerDataFromMixer.g) === "number") {
-                newUserData.hiFiGain = peerDataFromMixer.g;
-                serverSentNewUserData = true;
-            }
-
-            // `ReceivedHiFiAudioAPIData.volumeDecibels`
-            if (typeof (peerDataFromMixer.v) === "number") {
-                newUserData.volumeDecibels = peerDataFromMixer.v;
-                serverSentNewUserData = true;
-            }
-
-            if (serverSentNewUserData) {
-                allNewUserData.push(newUserData);
-            }
-        }
-
-        if (this.onUserDataUpdated && allNewUserData.length > 0) {
-            this.onUserDataUpdated(allNewUserData);
         }
     }
 
@@ -327,7 +345,7 @@ export class HiFiMixerSession {
             this.disconnect();
             return Promise.reject(errMsg);
         }
-        
+
         this._currentHiFiConnectionState = undefined;
 
         try {
@@ -453,9 +471,9 @@ export class HiFiMixerSession {
         let streamController = this._raviSession.getStreamController();
         if (this._raviSession && streamController) {
             let hasMicPermission = false;
-            
+
             if (navigator.permissions && navigator.permissions.query) {
-                let result:PermissionStatus = await navigator.permissions.query({ name: 'microphone' });
+                let result: PermissionStatus = await navigator.permissions.query({ name: 'microphone' });
                 if (result.state === "granted") {
                     hasMicPermission = true;
                 }
@@ -566,7 +584,7 @@ export class HiFiMixerSession {
             case RaviSessionStates.CONNECTED:
                 this._mixerPeerKeyToProvidedUserIDDict = {};
                 this._mixerPeerKeyToHashedVisitIDDict = {};
-                
+
                 this._currentHiFiConnectionState = HiFiConnectionStates.Connected;
 
                 if (this.onConnectionStateChanged) {
