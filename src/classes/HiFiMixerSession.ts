@@ -71,6 +71,11 @@ export class HiFiMixerSession {
     private _inputAudioMediaStreamIsStereo: boolean;
 
     /**
+     * The WebRTC Stats Observer callback
+     */
+    private _statsObserverCallback: Function;
+
+    /**
      * If set to `true`, the `streaming_scope` argument to the `audionet.init` command will be set to `"all"`, which ensures that the Server sends all User Data updates
      * to the client. If set to `false`, the `streaming_scope` argument will be set to `none`, which ensures that the Server will not send _any_ User Data updates to the client.
      * 
@@ -600,6 +605,32 @@ export class HiFiMixerSession {
                 }
                 break;
         }
+    }    
+
+    startCollectingWebRTCStats(callback: Function) {
+        if (!this._raviSession) {
+            HiFiLogger.error(`Couldn't start collecting WebRTC stats: No \`_raviSession\`!`);
+            return;
+        }
+
+        if (this._statsObserverCallback) {
+            this.stopCollectingWebRTCStats();
+        }
+
+        this._statsObserverCallback = callback;
+
+        this._raviSession.addStatsObserver(this._statsObserverCallback);
+    }
+
+    stopCollectingWebRTCStats() {
+        if (!this._raviSession) {
+            HiFiLogger.error(`Couldn't stop collecting WebRTC stats: No \`_raviSession\`!`);
+            return;
+        }
+
+        this._raviSession.removeStatsObserver(this._statsObserverCallback);
+
+        this._statsObserverCallback = undefined;
     }
 
     /**

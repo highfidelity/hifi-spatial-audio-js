@@ -313,6 +313,34 @@ export class HiFiCommunicator {
     }
 
     /**
+     * Start collecting data about the WebRTC connection between Client and Server.
+     * Note that the data inside the reports pertains only to payload data internal to the WebRTC connection
+     * and does not include _total_ data sent over the wire or received over the wire in your application.
+     * 
+     * @param callback Callback functions will be provided two Array arguments: `stats` and `prevStats`.
+     * Each of those Array items contains one or more Objects, which are reports of WebRTC stats data,
+     * including data such as "a timestamp", "the number of bytes received since the last report" and "current jitter buffer delay".
+     */
+    startCollectingWebRTCStats(callback: Function) {
+        if (!this._mixerSession) {
+            HiFiLogger.error(`Couldn't start collecting WebRTC Stats: No \`_mixerSession\`!`);
+        }
+
+        this._mixerSession.startCollectingWebRTCStats(callback);
+    }
+
+    /**
+     * Stop collecting data about the WebRTC connection between Client and Server.
+     */
+    stopCollectingWebRTCStats() {
+        if (!this._mixerSession) {
+            HiFiLogger.error(`Couldn't stop collecting WebRTC Stats: No \`_mixerSession\`!`);
+        }
+
+        this._mixerSession.stopCollectingWebRTCStats();
+    }
+
+    /**
      * Updates the internal copy of the User Data associated with the user associated with this client. Does **NOT** update
      * the user data on the High Fidelity Audio API server. There are no good reasons for a client to call this function
      * and _not_ update the server User Data, and thus this function is `private`.
