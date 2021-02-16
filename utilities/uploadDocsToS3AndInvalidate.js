@@ -23,55 +23,66 @@ async function* getPathsRelativesToDocsFolder(dir) {
 async function uploadCurrentVersionDocs() {
     return new Promise((resolve, reject) => {
         console.log(`Uploading HiFi Spatial Audio API Docs version \`v${VERSION}\` to S3...`);
-    
+
         (async () => {
             let docsFilenamesRelativeToDocsFolder = [];
 
             for await (const f of getPathsRelativesToDocsFolder('./docs')) {
                 docsFilenamesRelativeToDocsFolder.push(f);
             }
-    
-            let numFilesUploaded = 0;
+
+            let folderInfo = [
+                {
+                    "name": `v${VERSION}`,
+                    "numFilesUploaded": 0
+                }, {
+                    "name": `latest`,
+                    "numFilesUploaded": 0
+                }
+            ];
 
             for (const filename of docsFilenamesRelativeToDocsFolder) {
-                let uploadParams = { Bucket: 'hifi-spatial-audio-api-docs', Key: '', Body: '', ACL: 'public-read' };
-        
-                let extension = path.extname(filename);
-                if (extension === ".html") {
-                    uploadParams["ContentType"] = 'text/html';
-                } else if (extension === ".js") {
-                    uploadParams["ContentType"] = 'text/javascript';
-                } else if (extension === ".css") {
-                    uploadParams["ContentType"] = 'text/css';
-                }
-        
-        
-                let fileStream = fs.createReadStream(path.join(`./docs`, filename));
-                fileStream.on('error', (err) => {
-                    console.error(`File Error:\n${err}`);
-                    process.exit();
-                    return reject(err);
-                });
-                uploadParams.Body = fileStream;
-                let key = path.join(`v${VERSION}`, filename);
-                key = key.replace(/\\/g, '/');
-                uploadParams.Key = key;
-        
-                s3.upload(uploadParams, (err, data) => {
-                    if (err) {
-                        console.log(`Error uploading file to S3:\n${err}`);
+                for (const currentFolderInfo of folderInfo) {
+                    let uploadParams = { Bucket: 'hifi-spatial-audio-api-docs', Key: '', Body: '', ACL: 'public-read' };
+    
+                    let extension = path.extname(filename);
+                    if (extension === ".html") {
+                        uploadParams["ContentType"] = 'text/html';
+                    } else if (extension === ".js") {
+                        uploadParams["ContentType"] = 'text/javascript';
+                    } else if (extension === ".css") {
+                        uploadParams["ContentType"] = 'text/css';
+                    }
+    
+    
+                    let fileStream = fs.createReadStream(path.join(`./docs`, filename));
+                    fileStream.on('error', (err) => {
+                        console.error(`File Error:\n${err}`);
                         process.exit();
                         return reject(err);
-                    } if (data) {
-                        numFilesUploaded++;
-                        console.log(`Uploaded ${numFilesUploaded}/${docsFilenamesRelativeToDocsFolder.length} docs files...`);
+                    });
+                    uploadParams.Body = fileStream;
 
-                        if (numFilesUploaded === docsFilenamesRelativeToDocsFolder.length) {
-                            console.log(`Successfully uploaded docs!`);
-                            return resolve();
+                    let key = path.join(currentFolderInfo.name, filename);
+                    key = key.replace(/\\/g, '/');
+                    uploadParams.Key = key;
+
+                    s3.upload(uploadParams, (err, data) => {
+                        if (err) {
+                            console.log(`Error uploading file to S3:\n${err}`);
+                            process.exit();
+                            return reject(err);
+                        } if (data) {
+                            currentFolderInfo.numFilesUploaded++;
+                            console.log(`(${currentFolderInfo.numFilesUploaded}/${docsFilenamesRelativeToDocsFolder.length}) Uploaded ${key} to \`/${currentFolderInfo.name}/\`...`);
+
+                            if (currentFolderInfo.numFilesUploaded === docsFilenamesRelativeToDocsFolder.length) {
+                                console.log(`Successfully uploaded docs!`);
+                                return resolve();
+                            }
                         }
-                    }
-                });
+                    });
+                }
             }
         })();
     });
@@ -79,32 +90,12 @@ async function uploadCurrentVersionDocs() {
 
 async function uploadDefaultRootObject() {
     return new Promise((resolve, reject) => {
-        console.log(`Creating and uploading default root object to redirect to Docs version \`v${VERSION}\`...`);
-    
-        let redirectURL;
-        let securityThruObscurity = false;
+        console.log(`Creating and uploading default root object to redirect to Docs version \`latest\`...`);
+
         let uploadBody;
-        if (securityThruObscurity) {
-            redirectURL = `https://highfidelity.com/`;
-            uploadBody = `<!DOCTYPE html>
-        <html>
-            <head>
-                <script>
-                    window.onload = () => {
-                        window.location.href = "${redirectURL}";
-                    }
-                </script>
-                <meta http-equiv="refresh" content="time; URL=${redirectURL}" />
-            </head>
-            <body>
-                <p>Please continue to <a href="https://highfidelity.com/">highfidelity.com</a>.</p>
-            </body>
-        </html>`;
+        let redirectURL = `https://docs.highfidelity.com/latest/index.html`;
 
-        } else {
-            redirectURL = `https://docs.highfidelity.com/v${VERSION}/index.html`;
-
-            uploadBody = `<!DOCTYPE html>
+        uploadBody = `<!DOCTYPE html>
         <html>
             <head>
                 <script>
@@ -118,8 +109,7 @@ async function uploadDefaultRootObject() {
                 <p>Redirecting you to the latest version of the API documentation at <a href="${redirectURL}">${redirectURL}</a>...</p>
             </body>
         </html>`;
-        }
-    
+
         let uploadParams = {
             Bucket: 'hifi-spatial-audio-api-docs',
             ContentType: 'text/html',
@@ -128,7 +118,7 @@ async function uploadDefaultRootObject() {
             CacheControl: 'no-cache',
             ACL: 'public-read'
         };
-    
+
         s3.upload(uploadParams, (err, data) => {
             if (err) {
                 console.log(`Error uploading file to S3:\n${err}`);
@@ -145,25 +135,28 @@ async function uploadDefaultRootObject() {
 function invalidateOldDocs() {
     return new Promise((resolve, reject) => {
         console.log(`Invaliding old documentation for version \`v${VERSION}\`on CloudFront...`);
-        
+
         let cloudfront = new AWS.CloudFront();
-    
+
+        let paths = [
+            '/index.html',
+            `/v${VERSION}/*`,
+            `/latest/*`
+        ];
+
         let params = {
             DistributionId: 'EEI57NTZLJD4E',
             InvalidationBatch: {
                 CallerReference: new Date().toString(),
                 Paths: {
-                    Quantity: 2,
-                    Items: [
-                        '/index.html',
-                        `/v${VERSION}/*`
-                    ]
+                    Quantity: paths.length,
+                    Items: paths
                 }
             }
         };
 
         console.log(`Invalidation paths:\n${JSON.stringify(params.InvalidationBatch.Paths.Items)}`);
-    
+
         cloudfront.createInvalidation(params, (err, data) => {
             if (err) {
                 console.error(`Error creating documentation invalidation:\n${err}`);

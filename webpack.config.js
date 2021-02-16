@@ -1,9 +1,6 @@
 const path = require('path');
 const webpack = require('webpack');
 const { CleanWebpackPlugin } = require('clean-webpack-plugin');
-const GitRevisionPlugin = require('git-revision-webpack-plugin');
-const gitRevisionPlugin = new GitRevisionPlugin();
-const gitVersion = gitRevisionPlugin.version();
 
 module.exports = ({ buildEnv }) => {
     let config = {
@@ -13,9 +10,7 @@ module.exports = ({ buildEnv }) => {
         },
         plugins: [
             new webpack.DefinePlugin({
-                'VERSION': gitVersion,
-                'COMMITHASH': JSON.stringify(gitRevisionPlugin.commithash()),
-                'BRANCH': JSON.stringify(gitRevisionPlugin.branch()),
+                'HIFI_API_VERSION': JSON.stringify(`v${require('./package.json').version}`),
                 'BUILD_ENVIRONMENT': JSON.stringify(buildEnv)
             }),
             new CleanWebpackPlugin(),
