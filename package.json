@@ -1,6 +1,6 @@
 {
   "name": "hifi-spatial-audio",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "description": "hifi-spatial-audio allows developers to integrate High Fidelity's spatial audio technology into their JavaScript projects.",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -16,7 +16,7 @@
     "build:web:prod": "npm run clean && webpack --env buildEnv=prod",
     "clean": "node ./utilities/cleanDistDir.js",
     "docs": "typedoc",
-    "docs:buildAndUpload": "typedoc && node ./utilities/uploadDocsToS3AndInvalidate.js",
+    "docs:buildAndUpload": "npm run clean && typedoc && node ./utilities/uploadDocsToS3AndInvalidate.js",
     "test": "jest",
     "test:generateReport": "jest --reporters default jest-stare",
     "publishNewRelease": "npm run clean && npm run docs:buildAndUpload && npm run build:node && npm publish && npm run build:web:prod"
