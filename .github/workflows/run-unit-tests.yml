@@ -6,7 +6,7 @@ on:
       - main
 
 jobs:
-  build:
+  Run-Jest-Unit-Tests:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2

@@ -17,7 +17,8 @@
     "clean": "node ./utilities/cleanDistDir.js",
     "docs": "typedoc",
     "docs:buildAndUpload": "typedoc && node ./utilities/uploadDocsToS3AndInvalidate.js",
-    "test": "jest --reporters default jest-stare",
+    "test": "jest",
+    "test:generateReport": "jest --reporters default jest-stare",
     "publishNewRelease": "npm run clean && npm run docs:buildAndUpload && npm run build:node && npm publish && npm run build:web:prod"
   },
   "repository": "git://github.com/highfidelity/hifi-spatial-audio-js.git",
