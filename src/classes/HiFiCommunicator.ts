@@ -185,6 +185,14 @@ export class HiFiCommunicator {
                 hifiAuthJWT = params.get("token");
             }
 
+            if (!hifiAuthJWT || hifiAuthJWT.length === 0) {
+                let errMsg = `Can't connect to API Server: No JWT.\nSee this guide for information about obtaining a JWT:\nhttps://www.highfidelity.com/api/guides/misc/getAJWT`;
+                return Promise.reject({
+                    success: false,
+                    error: errMsg
+                });
+            }
+
             let webRTCSignalingAddress = "wss://loadbalancer-$STACKNAME.highfidelity.io:8001/?token=";
             let isBrowserContext = typeof self !== 'undefined';
             if (params && params.has("stack")) {

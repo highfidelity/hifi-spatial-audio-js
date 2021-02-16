@@ -48,8 +48,9 @@ Here's a super basic version of how to use the High Fidelity Spatial Audio Clien
     // `audioMediaStream` is obtained from a separate `getUserMedia()` call.
     await hifiCommunicator.setInputAudioMediaStream(audioMediaStream);
 
-    // Connect to the HiFi Audio API server!
-    // Supply your own JWT here.
+    // Connect to the High Fidelity Audio Spatial API Server by supplying your own JWT here.
+    // Follow this guide to get a JWT: https://www.highfidelity.com/api/guides/misc/getAJWT
+    // If you don't need a guide, obtain JWT credentials after signing up for a developer account at https://account.highfidelity.com/dev/account
     const HIFI_AUDIO_JWT = "";
     try {
         await hifiCommunicator.connectToHiFiAudioAPIServer(HIFI_AUDIO_JWT);
