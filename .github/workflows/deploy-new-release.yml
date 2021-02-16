@@ -35,12 +35,15 @@ jobs:
       if: steps.publish.outputs.type != 'none'
       run: npm run docs:buildAndUpload
       env:
+        INPUT_TOKEN: 'empty'
         AWS_ACCESS_KEY_ID: ${{ secrets.iam_speakeasy_key }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.iam_speakeasy_secret }}
 
     - name: Maybe Build WebJS Version of Library
       if: steps.publish.outputs.type != 'none'
       run: npm run build:web:prod
+      env:
+        INPUT_TOKEN: 'empty'
 
     - name: Create WebJS Release ZIP
       if: steps.publish.outputs.type == 'none'
@@ -48,6 +51,8 @@ jobs:
       with:
         files: dist/ 
         dest: dist/highfidelity-hifi-audio-web.zip
+      env:
+        INPUT_TOKEN: 'empty'
 
     - name: Maybe Upload WebJS Version to Latest S3 Folder
       if: steps.publish.outputs.type != 'none'
@@ -55,6 +60,7 @@ jobs:
       with:
         args: --follow-symlinks --delete
       env:
+        INPUT_TOKEN: 'empty'
         AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
         AWS_ACCESS_KEY_ID: ${{ secrets.IAM_SPATIAL_AUDIO_JS_KEY }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.IAM_SPATIAL_AUDIO_JS_SECRET }}
@@ -68,6 +74,7 @@ jobs:
       with:
         args: --follow-symlinks --delete
       env:
+        INPUT_TOKEN: 'empty'
         AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
         AWS_ACCESS_KEY_ID: ${{ secrets.IAM_SPATIAL_AUDIO_JS_KEY }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.IAM_SPATIAL_AUDIO_JS_SECRET }}
@@ -78,3 +85,5 @@ jobs:
     - name: Alert about manually-updating website
       if: steps.publish.outputs.type != 'none'
       run: echo "Job complete. This Action does not automatically update https://www.highfidelity.com/api/download - please update the website now."
+      env:
+        INPUT_TOKEN: 'empty'
