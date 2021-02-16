@@ -55,7 +55,7 @@ jobs:
         AWS_SECRET_ACCESS_KEY: ${{ secrets.IAM_SPATIAL_AUDIO_JS_SECRET }}
         AWS_REGION: 'us-west-2'   # optional: defaults to us-east-1
         SOURCE_DIR: ${{runner.workspace}}/hifi-spatial-audio-js/dist
-        DEST_DIR: releases/v${{ steps.publish.outputs.version}}
+        DEST_DIR: releases/${{ github.event.release.tag_name }}
 
     - name: Alert about manually-updating website
       run: echo "New library files uploaded to S3. This Action does not automatically update links on https://www.highfidelity.com/api/download - please update the website now."
@@ -68,3 +68,4 @@ jobs:
       uses: JS-DevTools/npm-publish@v1
       with:
         token: ${{ secrets.NPM_TOKEN }}
+        
