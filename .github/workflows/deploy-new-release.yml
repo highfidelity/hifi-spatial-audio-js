@@ -36,8 +36,8 @@ jobs:
       run: npm run docs:buildAndUpload
       env:
         INPUT_TOKEN: 'empty'
-        AWS_ACCESS_KEY_ID: ${{ secrets.iam_speakeasy_key }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.iam_speakeasy_secret }}
+        AWS_ACCESS_KEY_ID: ${{ secrets.IAM_SPATIAL_AUDIO_JS_KEY }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.IAM_SPATIAL_AUDIO_JS_SECRET }}
 
     - name: Maybe Build WebJS Version of Library
       if: steps.publish.outputs.type != 'none'
@@ -46,7 +46,7 @@ jobs:
         INPUT_TOKEN: 'empty'
 
     - name: Create WebJS Release ZIP
-      if: steps.publish.outputs.type == 'none'
+      if: steps.publish.outputs.type != 'none'
       uses: papeloto/action-zip@v1
       with:
         files: dist/ 
@@ -65,7 +65,7 @@ jobs:
         AWS_ACCESS_KEY_ID: ${{ secrets.IAM_SPATIAL_AUDIO_JS_KEY }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.IAM_SPATIAL_AUDIO_JS_SECRET }}
         AWS_REGION: 'us-west-2'   # optional: defaults to us-east-1
-        SOURCE_DIR: ${{runner.workspace}}/dist
+        SOURCE_DIR: ${{runner.workspace}}/hifi-spatial-audio-js/dist
         DEST_DIR: releases/latest
 
     - name: Maybe Upload WebJS Version to Versioned S3 Folder
@@ -79,7 +79,7 @@ jobs:
         AWS_ACCESS_KEY_ID: ${{ secrets.IAM_SPATIAL_AUDIO_JS_KEY }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.IAM_SPATIAL_AUDIO_JS_SECRET }}
         AWS_REGION: 'us-west-2'   # optional: defaults to us-east-1
-        SOURCE_DIR: ${{runner.workspace}}/dist
+        SOURCE_DIR: ${{runner.workspace}}/hifi-spatial-audio-js/dist
         DEST_DIR: releases/v${{ steps.publish.outputs.version}}
 
     - name: Alert about manually-updating website
