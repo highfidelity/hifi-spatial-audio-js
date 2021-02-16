@@ -1,7 +1,7 @@
 name: Run-Jest-Unit-Tests
 
 on:
-  push
+  push:
     branches:
       - main
 
