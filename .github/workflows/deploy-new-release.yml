@@ -18,21 +18,7 @@ jobs:
     - name: Install Modules
       run: npm i
 
-    - name: Build NodeJS Version of Library
-      run: npm run build:node
-
-    - id: publish
-      name: Maybe Publish to NPM
-      uses: JS-DevTools/npm-publish@v1
-      with:
-        token: ${{ secrets.NPM_TOKEN }}
-
-    - name: Alert that version did not change
-      if: steps.publish.outputs.type == 'none'
-      run: echo "Package version didn't change from ${{ steps.publish.outputs.old-version }}! We won't take any further actions."
-
     - name: Maybe Build and Publish New Documentation
-      if: steps.publish.outputs.type != 'none'
       run: npm run docs:buildAndUpload
       env:
         INPUT_TOKEN: 'empty'
@@ -40,13 +26,11 @@ jobs:
         AWS_SECRET_ACCESS_KEY: ${{ secrets.IAM_SPATIAL_AUDIO_JS_SECRET }}
 
     - name: Maybe Build WebJS Version of Library
-      if: steps.publish.outputs.type != 'none'
       run: npm run build:web:prod
       env:
         INPUT_TOKEN: 'empty'
 
     - name: Create WebJS Release ZIP
-      if: steps.publish.outputs.type != 'none'
       uses: papeloto/action-zip@v1
       with:
         files: dist/ 
@@ -55,7 +39,6 @@ jobs:
         INPUT_TOKEN: 'empty'
 
     - name: Maybe Upload WebJS Version to Latest S3 Folder
-      if: steps.publish.outputs.type != 'none'
       uses: highfidelity/s3-sync-action@master
       with:
         args: --follow-symlinks --delete
@@ -69,7 +52,6 @@ jobs:
         DEST_DIR: releases/latest
 
     - name: Maybe Upload WebJS Version to Versioned S3 Folder
-      if: steps.publish.outputs.type != 'none'
       uses: highfidelity/s3-sync-action@master
       with:
         args: --follow-symlinks --delete
@@ -83,7 +65,15 @@ jobs:
         DEST_DIR: releases/v${{ steps.publish.outputs.version}}
 
     - name: Alert about manually-updating website
-      if: steps.publish.outputs.type != 'none'
-      run: echo "Job complete. This Action does not automatically update https://www.highfidelity.com/api/download - please update the website now."
+      run: echo "New library files uploaded to S3. This Action does not automatically update links on https://www.highfidelity.com/api/download - please update the website now."
       env:
         INPUT_TOKEN: 'empty'
+
+    - name: Build NodeJS Version of Library
+      run: npm run build:node
+
+    - id: publish
+      name: Maybe Publish to NPM
+      uses: JS-DevTools/npm-publish@v1
+      with:
+        token: ${{ secrets.NPM_TOKEN }}

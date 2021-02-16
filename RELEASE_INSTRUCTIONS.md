@@ -22,12 +22,11 @@ After you click "Publish release", [this GitHub Action](./.github/workflows/depl
 1. Check out the code.
 2. Setup a NodeJS `v14.y.z` environment.
 3. Install the NodeJS modules required to build the Client Library.
-4. Build the NodeJS version of the library.
-5. Publish the NodeJS library module to [npmjs.com/package/hifi-spatial-audio](https://www.npmjs.com/package/hifi-spatial-audio).
-    - If the GitHub action detects that the version of the module we were about to upload to NPMJS.com is older or the same version as the one already up there, we echo a message to the GHA logs and _stop here_.
-6. Build the library's TypeDoc documentation, then upload that documentation to S3.
-7. Build the WebJS version of the Client Library.
-8. Create a `.zip` file containing the two Client Library files (base "Audio" library and optional "Controls" library)
-9. Upload the `.zip` file and the two Client Library files to the `latest` folder inside the releases S3 bucket.
-10. Upload the `.zip` file and the two Client Library files to a folder corresponding to the current version of the Library inside the releases S3 bucket.
-11. Echo a message to the GHA logs about the fact that the Action does not automatically update `https://www.highfidelity.com/api/download`, which must be updated manually.
+4. Build the library's TypeDoc documentation, then upload that documentation to S3.
+5. Build the WebJS version of the Client Library.
+6. Create a `.zip` file containing the two Client Library files (base "Audio" library and optional "Controls" library)
+7. Upload the `.zip` file and the two Client Library files to the `latest` folder inside the releases S3 bucket.
+8. Upload the `.zip` file and the two Client Library files to a folder corresponding to the current version of the Library inside the releases S3 bucket.
+9. Echo a message to the GHA logs about the fact that the Action does not automatically update `https://www.highfidelity.com/api/download`, which must be updated manually.
+10. Build the NodeJS version of the library.
+11. Publish the NodeJS library module to [npmjs.com/package/hifi-spatial-audio](https://www.npmjs.com/package/hifi-spatial-audio).
