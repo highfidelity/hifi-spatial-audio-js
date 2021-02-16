@@ -21,29 +21,23 @@ jobs:
     - name: Maybe Build and Publish New Documentation
       run: npm run docs:buildAndUpload
       env:
-        INPUT_TOKEN: 'empty'
         AWS_ACCESS_KEY_ID: ${{ secrets.IAM_SPATIAL_AUDIO_JS_KEY }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.IAM_SPATIAL_AUDIO_JS_SECRET }}
 
     - name: Maybe Build WebJS Version of Library
       run: npm run build:web:prod
-      env:
-        INPUT_TOKEN: 'empty'
 
     - name: Create WebJS Release ZIP
       uses: papeloto/action-zip@v1
       with:
         files: dist/ 
         dest: dist/highfidelity-hifi-audio-web.zip
-      env:
-        INPUT_TOKEN: 'empty'
 
     - name: Maybe Upload WebJS Version to Latest S3 Folder
       uses: highfidelity/s3-sync-action@master
       with:
         args: --follow-symlinks --delete
       env:
-        INPUT_TOKEN: 'empty'
         AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
         AWS_ACCESS_KEY_ID: ${{ secrets.IAM_SPATIAL_AUDIO_JS_KEY }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.IAM_SPATIAL_AUDIO_JS_SECRET }}
@@ -56,7 +50,6 @@ jobs:
       with:
         args: --follow-symlinks --delete
       env:
-        INPUT_TOKEN: 'empty'
         AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
         AWS_ACCESS_KEY_ID: ${{ secrets.IAM_SPATIAL_AUDIO_JS_KEY }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.IAM_SPATIAL_AUDIO_JS_SECRET }}
@@ -66,8 +59,6 @@ jobs:
 
     - name: Alert about manually-updating website
       run: echo "New library files uploaded to S3. This Action does not automatically update links on https://www.highfidelity.com/api/download - please update the website now."
-      env:
-        INPUT_TOKEN: 'empty'
 
     - name: Build NodeJS Version of Library
       run: npm run build:node
