@@ -33,10 +33,6 @@ export class HiFiMixerSession {
      * The RAVI Session associated with this Mixer Session.
      */
     private _raviSession: RaviSession;
-    /**
-     * `true` if we are currently connected to the Mixer; `false` otherwise. Gets set to `true` when the `audionet.init` command response returns.
-     */
-    private _connectedToMixer: boolean = false;
 
     /**
      * Stores the current HiFi Connection State, which is an abstraction separate from the RAVI Session State and RAVI Signaling State.
@@ -75,6 +71,11 @@ export class HiFiMixerSession {
     private _inputAudioMediaStreamIsStereo: boolean;
 
     /**
+     * The WebRTC Stats Observer callback
+     */
+    private _statsObserverCallback: Function;
+
+    /**
      * If set to `true`, the `streaming_scope` argument to the `audionet.init` command will be set to `"all"`, which ensures that the Server sends all User Data updates
      * to the client. If set to `false`, the `streaming_scope` argument will be set to `none`, which ensures that the Server will not send _any_ User Data updates to the client.
      * 
@@ -103,6 +104,11 @@ export class HiFiMixerSession {
     onConnectionStateChanged: Function;
 
     /**
+     * Contains information about the mixer to which we are currently connected.
+     */
+    mixerInfo: any;
+
+    /**
      * 
      * @param __namedParameters
      * @param serverShouldSendUserData - If set to `true`, the `streaming_scope` argument to the `audionet.init` command will be set to `"all"`, which ensures that the Server sends all User Data updates
@@ -119,22 +125,22 @@ export class HiFiMixerSession {
         this.onUsersDisconnected = onUsersDisconnected;
         this._mixerPeerKeyToProvidedUserIDDict = {};
         this._mixerPeerKeyToHashedVisitIDDict = {};
-
+        
         RaviUtils.setDebug(false);
-
+        
         this._raviSignalingConnection = new RaviSignalingConnection();
         this._raviSignalingConnection.addStateChangeHandler((event: any) => {
             this.onRAVISignalingStateChanged(event);
         });
-
+        
         this._raviSession = new RaviSession();
         this._raviSession.addStateChangeHandler((event: any) => {
             this.onRAVISessionStateChanged(event);
         });
-
+        
         this.onConnectionStateChanged = onConnectionStateChanged;
-
-        this._connectedToMixer = false;
+        
+        this._resetMixerInfo();
     }
 
     /**
@@ -172,10 +178,14 @@ export class HiFiMixerSession {
 
             commandController.queueCommand("audionet.init", initData, async (response: string) => {
                 clearTimeout(initTimeout);
-                this._connectedToMixer = true;
                 let parsedResponse: any;
                 try {
                     parsedResponse = JSON.parse(response);
+                    this.mixerInfo["connected"] = true;
+                    this.mixerInfo["build_number"] = parsedResponse.build_number;
+                    this.mixerInfo["build_type"] = parsedResponse.build_type;
+                    this.mixerInfo["build_version"] = parsedResponse.build_version;
+                    this.mixerInfo["visit_id_hash"] = parsedResponse.visit_id_hash;
                     parsedResponse["unhashedVisitID"] = this._raviSession.getUUID();
                     resolve({
                         success: true,
@@ -406,7 +416,7 @@ export class HiFiMixerSession {
         await close(this._raviSignalingConnection, "Signaling Connection", SignalingStates.CLOSED);
         await close(this._raviSession, "Session", RaviSessionStates.CLOSED);
 
-        this._connectedToMixer = false;
+        this._resetMixerInfo();
 
         return Promise.resolve(`Successfully disconnected.`);
     }
@@ -528,7 +538,6 @@ export class HiFiMixerSession {
                     HiFiLogger.log(`Successfully set mute state to \`false\` by enabling all tracks on \`_raviSession.streamController._inputAudioStream\`!`);
                     return true;
                 } else {
-                    console.warn(`ZRF: raviAudioStream:\n${raviAudioStream}\nnewMutedValue:\n${newMutedValue}`)
                     HiFiLogger.warn(`Couldn't set mute state: No \`_inputAudioStream\` on \`_raviSession.streamController\`.`);
                 }
             }
@@ -614,6 +623,32 @@ export class HiFiMixerSession {
                 }
                 break;
         }
+    }    
+
+    startCollectingWebRTCStats(callback: Function) {
+        if (!this._raviSession) {
+            HiFiLogger.error(`Couldn't start collecting WebRTC stats: No \`_raviSession\`!`);
+            return;
+        }
+
+        if (this._statsObserverCallback) {
+            this.stopCollectingWebRTCStats();
+        }
+
+        this._statsObserverCallback = callback;
+
+        this._raviSession.addStatsObserver(this._statsObserverCallback);
+    }
+
+    stopCollectingWebRTCStats() {
+        if (!this._raviSession) {
+            HiFiLogger.error(`Couldn't stop collecting WebRTC stats: No \`_raviSession\`!`);
+            return;
+        }
+
+        this._raviSession.removeStatsObserver(this._statsObserverCallback);
+
+        this._statsObserverCallback = undefined;
     }
 
     /**
@@ -621,7 +656,7 @@ export class HiFiMixerSession {
      * `{ success: false, error: <an error message> }`.
      */
     _transmitHiFiAudioAPIDataToServer(hifiAudioAPIData: HiFiAudioAPIData): any {
-        if (!this._connectedToMixer || !this._raviSession) {
+        if (!this.mixerInfo["connected"] || !this._raviSession) {
             return {
                 success: false,
                 error: `Can't transmit data to mixer; not connected to mixer.`
@@ -702,5 +737,14 @@ export class HiFiMixerSession {
                 };
             }
         }
+    }
+
+    /**
+     * Resets our "Mixer Info". Happens upon instantiation and when disconnecting from the mixer.
+     */
+    private _resetMixerInfo(): void {
+        this.mixerInfo = {
+            "connected": false,
+        };
     }
 }

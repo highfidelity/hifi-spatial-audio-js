@@ -1,0 +1,71 @@
+name: Deploy-New-Release
+
+on:
+  release:
+    types: [released]
+
+jobs:
+  Deploy-New-Release:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - uses: actions/setup-node@v2
+      with:
+        node-version: '14'
+
+    - name: Install Modules
+      run: npm i
+
+    - name: Maybe Build and Publish New Documentation
+      run: npm run docs:buildAndUpload
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.IAM_SPATIAL_AUDIO_JS_KEY }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.IAM_SPATIAL_AUDIO_JS_SECRET }}
+
+    - name: Maybe Build WebJS Version of Library
+      run: npm run build:web:prod
+
+    - name: Create WebJS Release ZIP
+      uses: papeloto/action-zip@v1
+      with:
+        files: dist/ 
+        dest: dist/highfidelity-hifi-audio-web.zip
+
+    - name: Maybe Upload WebJS Version to Latest S3 Folder
+      uses: highfidelity/s3-sync-action@master
+      with:
+        args: --follow-symlinks --delete
+      env:
+        AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
+        AWS_ACCESS_KEY_ID: ${{ secrets.IAM_SPATIAL_AUDIO_JS_KEY }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.IAM_SPATIAL_AUDIO_JS_SECRET }}
+        AWS_REGION: 'us-west-2'   # optional: defaults to us-east-1
+        SOURCE_DIR: ${{runner.workspace}}/hifi-spatial-audio-js/dist
+        DEST_DIR: releases/latest
+
+    - name: Maybe Upload WebJS Version to Versioned S3 Folder
+      uses: highfidelity/s3-sync-action@master
+      with:
+        args: --follow-symlinks --delete
+      env:
+        AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
+        AWS_ACCESS_KEY_ID: ${{ secrets.IAM_SPATIAL_AUDIO_JS_KEY }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.IAM_SPATIAL_AUDIO_JS_SECRET }}
+        AWS_REGION: 'us-west-2'   # optional: defaults to us-east-1
+        SOURCE_DIR: ${{runner.workspace}}/hifi-spatial-audio-js/dist
+        DEST_DIR: releases/${{ github.event.release.tag_name }}
+
+    - name: Alert about manually-updating website
+      run: echo "New library files uploaded to S3. This Action does not automatically update links on https://www.highfidelity.com/api/download - please update the website now."
+
+    - name: Build NodeJS Version of Library
+      run: npm run build:node
+
+    - id: publish
+      name: Maybe Publish to NPM
+      uses: JS-DevTools/npm-publish@v1
+      with:
+        token: ${{ secrets.NPM_TOKEN }}
+        
