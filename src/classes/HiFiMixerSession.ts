@@ -6,7 +6,7 @@
 
 import { HiFiAudioAPIData, OrientationEuler3D, OrientationQuat3D, Point3D, ReceivedHiFiAudioAPIData } from "./HiFiAudioAPIData";
 import { HiFiLogger } from "../utilities/HiFiLogger";
-import { HiFiConnectionStates } from "./HiFiCommunicator";
+import { HiFiConnectionStates, HiFiUserDataStreamingScopes } from "./HiFiCommunicator";
 
 // We use @ts-ignore here so TypeScript doesn't complain about importing these plain JS modules.
 // @ts-ignore
@@ -76,12 +76,9 @@ export class HiFiMixerSession {
     private _statsObserverCallback: Function;
 
     /**
-     * If set to `true`, the `streaming_scope` argument to the `audionet.init` command will be set to `"all"`, which ensures that the Server sends all User Data updates
-     * to the client. If set to `false`, the `streaming_scope` argument will be set to `none`, which ensures that the Server will not send _any_ User Data updates to the client.
-     * 
-     * If set to `false`, User Data Subscriptions will serve no purpose.
+     * See {@link HiFiUserDataStreamingScopes}.
      */
-    serverShouldSendUserData: boolean;
+    userDataStreamingScope: HiFiUserDataStreamingScopes;
 
     /**
      * The WebRTC Address to which we want to connect as a part of this Session. This WebRTC Address is obtained from the Mixer Discovery Address during
@@ -107,15 +104,14 @@ export class HiFiMixerSession {
     /**
      * 
      * @param __namedParameters
-     * @param serverShouldSendUserData - If set to `true`, the `streaming_scope` argument to the `audionet.init` command will be set to `"all"`, which ensures that the Server sends all User Data updates
-     * to the client. If set to `false`, the `streaming_scope` argument will be set to `none`, which ensures that the Server will not send _any_ User Data updates to the client.
+     * @param userDataStreamingScope - See {@link HiFiUserDataStreamingScopes}.
      * 
      * If set to `false`, User Data Subscriptions will serve no purpose.
-     * @param onUserDataUpdated - The function to call when the server sends user data to the client. Irrelevant if `serverShouldSendUserData` is `false`.
+     * @param onUserDataUpdated - The function to call when the server sends user data to the client. Irrelevant if `userDataStreamingScope` is `HiFiUserDataStreamingScopes.None`.
      */
-    constructor({ serverShouldSendUserData = true, onUserDataUpdated, onConnectionStateChanged }: { serverShouldSendUserData?: boolean, onUserDataUpdated?: Function, onConnectionStateChanged?: Function }) {
+    constructor({ userDataStreamingScope = HiFiUserDataStreamingScopes.All, onUserDataUpdated, onConnectionStateChanged }: { userDataStreamingScope?: HiFiUserDataStreamingScopes, onUserDataUpdated?: Function, onConnectionStateChanged?: Function }) {
         this.webRTCAddress = undefined;
-        this.serverShouldSendUserData = serverShouldSendUserData;
+        this.userDataStreamingScope = userDataStreamingScope;
         this.onUserDataUpdated = onUserDataUpdated;
         this._mixerPeerKeyToProvidedUserIDDict = {};
         this._mixerPeerKeyToHashedVisitIDDict = {};
@@ -150,8 +146,7 @@ export class HiFiMixerSession {
                 // The mixer will hash this randomly-generated UUID, then disseminate it to all clients via `peerData.e`.
                 visit_id: this._raviSession.getUUID(),
                 session: this._raviSession.getUUID(), // Still required for old mixers. Will eventually go away.
-                // Accepts "none", "peers", or "all".
-                streaming_scope: this.serverShouldSendUserData ? "all" : "none",
+                streaming_scope: this.userDataStreamingScope,
                 is_input_stream_stereo: this._inputAudioMediaStreamIsStereo
             };
             let commandController = this._raviSession.getCommandController();

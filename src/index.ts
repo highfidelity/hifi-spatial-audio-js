@@ -1,7 +1,7 @@
 declare var HIFI_API_VERSION: string;
 
 import { HiFiAudioAPIData, ReceivedHiFiAudioAPIData, OrientationEuler3D, OrientationQuat3D, Point3D } from "./classes/HiFiAudioAPIData";
-import { HiFiCommunicator, HiFiConnectionStates } from "./classes/HiFiCommunicator";
+import { HiFiCommunicator, HiFiConnectionStates, HiFiUserDataStreamingScopes } from "./classes/HiFiCommunicator";
 import { AvailableUserDataSubscriptionComponents, UserDataSubscription } from "./classes/HiFiUserDataSubscription";
 import { HiFiLogLevel, HiFiLogger } from "./utilities/HiFiLogger";
 import { getBestAudioConstraints, preciseInterval } from "./utilities/HiFiUtilities";
@@ -15,6 +15,7 @@ if (isBrowserContext) {
 
 exports.HiFiCommunicator = HiFiCommunicator;
 exports.HiFiConnectionStates = HiFiConnectionStates;
+exports.HiFiUserDataStreamingScopes = HiFiUserDataStreamingScopes;
 
 exports.AvailableUserDataSubscriptionComponents = AvailableUserDataSubscriptionComponents;
 exports.UserDataSubscription = UserDataSubscription;
