@@ -181,7 +181,7 @@ export class HiFiAudioAPIData {
             returnValue.orientationEuler = new OrientationEuler3D(diffObject.orientationEuler);
         }
 
-        if (diffObject.orientationQuat && typeof (diffObject.orientationQuat.w) === "number" || typeof (diffObject.orientationQuat.x) === "number" || typeof (diffObject.orientationQuat.y) === "number" || typeof (diffObject.orientationQuat.z) === "number") {
+        if (diffObject.orientationQuat && (typeof (diffObject.orientationQuat.w) === "number" || typeof (diffObject.orientationQuat.x) === "number" || typeof (diffObject.orientationQuat.y) === "number" || typeof (diffObject.orientationQuat.z) === "number")) {
             returnValue.orientationQuat = new OrientationQuat3D(diffObject.orientationQuat);
         }
 
