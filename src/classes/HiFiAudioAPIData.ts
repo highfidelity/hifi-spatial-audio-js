@@ -87,7 +87,7 @@ export class OrientationQuat3D {
     /**
      * Construct a new `OrientationQuat3D` object. All parameters are required.
      */
-    constructor({ w = 1, x = 0, y = 0, z = 0 }: { w?: number, x?: number, y?: number, z?: number }) {
+    constructor({ w = 1, x = 0, y = 0, z = 0 }: { w?: number, x?: number, y?: number, z?: number } = {}) {
         this.w = w;
         this.x = x;
         this.y = y;
