@@ -154,7 +154,7 @@ export class HiFiAudioAPIData {
             "orientationEuler": Object.assign({}, this.orientationEuler),
             "orientationQuat": Object.assign({}, this.orientationQuat),
         };
-        if (this.hiFiGain) {
+        if (typeof (this.hiFiGain) === "number") {
             currentHiFiAudioAPIDataObj["hiFiGain"] = this.hiFiGain;
         }
 
