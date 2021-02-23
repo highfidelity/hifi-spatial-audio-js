@@ -87,7 +87,7 @@ export class OrientationQuat3D {
     /**
      * Construct a new `OrientationQuat3D` object. All parameters are required.
      */
-    constructor({ w, x, y, z }: { w: number, x: number, y: number, z: number }) {
+    constructor({ w = 1, x = 0, y = 0, z = 0 }: { w?: number, x?: number, y?: number, z?: number } = {}) {
         this.w = w;
         this.x = x;
         this.y = y;
@@ -154,7 +154,7 @@ export class HiFiAudioAPIData {
             "orientationEuler": Object.assign({}, this.orientationEuler),
             "orientationQuat": Object.assign({}, this.orientationQuat),
         };
-        if (this.hiFiGain) {
+        if (typeof (this.hiFiGain) === "number") {
             currentHiFiAudioAPIDataObj["hiFiGain"] = this.hiFiGain;
         }
 
@@ -167,9 +167,7 @@ export class HiFiAudioAPIData {
             otherHiFiDataObj["hiFiGain"] = otherHiFiData.hiFiGain;
         }
 
-
         let diffObject = recursivelyDiffObjects(currentHiFiAudioAPIDataObj, otherHiFiDataObj);
-
 
         let returnValue = new HiFiAudioAPIData();
 
@@ -183,7 +181,7 @@ export class HiFiAudioAPIData {
             returnValue.orientationEuler = new OrientationEuler3D(diffObject.orientationEuler);
         }
 
-        if (diffObject.orientationQuat && typeof (diffObject.orientationQuat.w) === "number" && typeof (diffObject.orientationQuat.x) === "number" && typeof (diffObject.orientationQuat.y) === "number" && typeof (diffObject.orientationQuat.z) === "number") {
+        if (diffObject.orientationQuat && (typeof (diffObject.orientationQuat.w) === "number" || typeof (diffObject.orientationQuat.x) === "number" || typeof (diffObject.orientationQuat.y) === "number" || typeof (diffObject.orientationQuat.z) === "number")) {
             returnValue.orientationQuat = new OrientationQuat3D(diffObject.orientationQuat);
         }
 

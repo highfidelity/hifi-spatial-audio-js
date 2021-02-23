@@ -27,7 +27,30 @@ export enum HiFiConnectionStates {
      * The `HiFiConnectionState` will be `"Unavailable"` when the API Server is at capacity.
      */
     Unavailable = "Unavailable"
-}
+};
+
+/**
+ * 
+ */
+export enum HiFiUserDataStreamingScopes {
+    /**
+     * Passing this value to the {@link HiFiCommunicator} constructor means that the Server will not send any
+     * User Data updates to the client, meaning User Data Subscriptions will not function. This Streaming Scope
+     * saves bandwidth and, marginally, processing time.
+     */
+    None = "none",
+    /**
+     * Passing this value to the {@link HiFiCommunicator} constructor means that the Server will only send
+     * _peer data_ to the Client; the Server will not send User Data pertaining to the connecting Client when
+     * this Data Streaming Scope is selected.
+     */
+    Peers = "peers",
+    /**
+     * "all" is the default value when the {@link HiFiCommunicator} constructor is called. All User Data
+     * will be streamed from the Server to the Client.
+     */
+    All = "all"
+};
 
 /**
  * This class exposes properties and methods useful for communicating from the High Fidelity Audio API Client to
@@ -67,21 +90,20 @@ export class HiFiCommunicator {
      * @param initialHiFiAudioAPIData - The initial position, orientation, etc of the user.
      * @param onConnectionStateChanged - A function that will be called when the connection state to the High Fidelity Audio API Server changes. See {@link HiFiConnectionStates}.
      * @param transmitRateLimitTimeoutMS - User Data updates will not be sent to the server any more frequently than this number in milliseconds.
-     * @param serverShouldSendUserData - Cannot be set later. If set to `true`, the Server will send all User Data updates to the client. Setting this value to `true` (its default) is necessary for
-     * User Data Subscriptions to work. If this value is set to `false`, the Server will not send any User Data updates to the client, which saves bandwidth and, marginally, processing time.
+     * @param userDataStreamingScope - Cannot be set later. See {@link HiFiUserDataStreamingScopes}.
      * @param hiFiAxisConfiguration - Cannot be set later. The 3D axis configuration. See {@link ourHiFiAxisConfiguration} for defaults.
      */
     constructor({
         initialHiFiAudioAPIData = new HiFiAudioAPIData(),
         onConnectionStateChanged,
         transmitRateLimitTimeoutMS = HiFiConstants.DEFAULT_TRANSMIT_RATE_LIMIT_TIMEOUT_MS,
-        serverShouldSendUserData = true,
+        userDataStreamingScope = HiFiUserDataStreamingScopes.All,
         hiFiAxisConfiguration
     }: {
         initialHiFiAudioAPIData?: HiFiAudioAPIData,
         onConnectionStateChanged?: Function,
         transmitRateLimitTimeoutMS?: number,
-        serverShouldSendUserData?: boolean,
+        userDataStreamingScope?: HiFiUserDataStreamingScopes,
         hiFiAxisConfiguration?: HiFiAxisConfiguration
     } = {}) {
         // Make minimum 10ms
@@ -92,7 +114,7 @@ export class HiFiCommunicator {
         this.transmitRateLimitTimeoutMS = transmitRateLimitTimeoutMS
 
         this._mixerSession = new HiFiMixerSession({
-            "serverShouldSendUserData": serverShouldSendUserData,
+            "userDataStreamingScope": userDataStreamingScope,
             "onUserDataUpdated": (data: Array<ReceivedHiFiAudioAPIData>) => { this._handleUserDataUpdates(data); },
             "onUsersDisconnected": (data: Array<ReceivedHiFiAudioAPIData>) => { this._onUsersDisconnected(data); },
             "onConnectionStateChanged": onConnectionStateChanged
@@ -207,7 +229,7 @@ export class HiFiCommunicator {
             } else if (!isBrowserContext) {
                 webRTCSignalingAddress = `${HiFiConstants.DEFAULT_PROD_HIGH_FIDELITY_ENDPOINT}/?token=`;
             } else {
-                webRTCSignalingAddress = webRTCSignalingAddress.replace('$STACKNAME', 'api-staging-01');
+                webRTCSignalingAddress = webRTCSignalingAddress.replace('$STACKNAME', 'api-staging-02');
             }
 
             this._mixerSession.webRTCAddress = `${webRTCSignalingAddress}${hifiAuthJWT}`;
@@ -652,7 +674,7 @@ export class HiFiCommunicator {
             return;
         }
 
-        if (!this._mixerSession.serverShouldSendUserData) {
+        if (this._mixerSession.userDataStreamingScope === HiFiUserDataStreamingScopes.None) {
             HiFiLogger.error(`During \`HiFiCommunicator\` construction, the server was set up to **not** send user data! Data subscription not added.`);
             return;
         }
