@@ -204,24 +204,34 @@ export class HiFiMixerSession {
         let unGZippedData = pako.ungzip(data, { to: 'string' });
         let jsonData = JSON.parse(unGZippedData);
 
-        // Wait for merge and deploy of https://github.com/highfidelity/audionet-hifi/pull/258
-        if (jsonData.deleted_visit_ids) {
-            console.log(jsonData.deleted_visit_ids);
-            
-            // let allDeletedUserData: Array<ReceivedHiFiAudioAPIData> = [];
+        if (jsonData.deleted_visit_ids) {            
+            let allDeletedUserData: Array<ReceivedHiFiAudioAPIData> = [];
 
-            // let deletedPeersKeys = Object.keys(jsonData.deleted_peers);
-            // for (let itr = 0; itr < deletedPeersKeys.length; itr++) {
-            //     let peerDataFromMixer = jsonData.deleted_peers[deletedPeersKeys[itr]];
+            let deletedVisitIDs = jsonData.deleted_visit_ids;
+            for (const deletedVisitID of deletedVisitIDs) {
+                let hashedVisitID = deletedVisitID;
 
-            //     let deletedUserData = new ReceivedHiFiAudioAPIData();
-            // }
+                let deletedUserData = new ReceivedHiFiAudioAPIData({
+                    hashedVisitID: hashedVisitID
+                });
 
-            // if (this.onUsersDisconnected && allDeletedPeers.length > 0) {
-            //     this.onUsersDisconnected(allDeletedPeers);
-            // }
+                let mixerPeerKeys = Object.keys(this._mixerPeerKeyToHashedVisitIDDict);
+                for (const mixerPeerKey of mixerPeerKeys) {
+                    if (this._mixerPeerKeyToHashedVisitIDDict[mixerPeerKey] === hashedVisitID) {
+                        if (this._mixerPeerKeyToProvidedUserIDDict[mixerPeerKey]) {
+                            deletedUserData.providedUserID = this._mixerPeerKeyToProvidedUserIDDict[mixerPeerKey];
+                        }
+                        break;
+                    }
+                }
+
+                allDeletedUserData.push(deletedUserData);
+            }
+
+            if (this.onUsersDisconnected && allDeletedUserData.length > 0) {
+                this.onUsersDisconnected(allDeletedUserData);
+            }
         }
-
 
         if (jsonData.peers) {
             let allNewUserData: Array<ReceivedHiFiAudioAPIData> = [];

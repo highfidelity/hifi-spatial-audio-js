@@ -78,6 +78,11 @@ export class HiFiCommunicator {
     // when the server reports that a user's data - such as position, orientationEuler, and volume - has been modified.
     private _userDataSubscriptions: Array<UserDataSubscription>;
 
+    /**
+     * See {@link HiFiCommunicator._onUsersDisconnected}.
+     */
+    onUsersDisconnected: Function;
+
     // This contains data dealing with the mixer session, such as the RAVI session, WebRTC address, etc.
     private _mixerSession: HiFiMixerSession;
 
@@ -89,6 +94,7 @@ export class HiFiCommunicator {
      * @param {Object} __namedParameters
      * @param initialHiFiAudioAPIData - The initial position, orientation, etc of the user.
      * @param onConnectionStateChanged - A function that will be called when the connection state to the High Fidelity Audio API Server changes. See {@link HiFiConnectionStates}.
+     * @param onUsersDisconnected - A function that will be called when a peer disconnects from the Space.
      * @param transmitRateLimitTimeoutMS - User Data updates will not be sent to the server any more frequently than this number in milliseconds.
      * @param userDataStreamingScope - Cannot be set later. See {@link HiFiUserDataStreamingScopes}.
      * @param hiFiAxisConfiguration - Cannot be set later. The 3D axis configuration. See {@link ourHiFiAxisConfiguration} for defaults.
@@ -96,12 +102,14 @@ export class HiFiCommunicator {
     constructor({
         initialHiFiAudioAPIData = new HiFiAudioAPIData(),
         onConnectionStateChanged,
+        onUsersDisconnected,
         transmitRateLimitTimeoutMS = HiFiConstants.DEFAULT_TRANSMIT_RATE_LIMIT_TIMEOUT_MS,
         userDataStreamingScope = HiFiUserDataStreamingScopes.All,
         hiFiAxisConfiguration
     }: {
         initialHiFiAudioAPIData?: HiFiAudioAPIData,
         onConnectionStateChanged?: Function,
+        onUsersDisconnected?: Function,
         transmitRateLimitTimeoutMS?: number,
         userDataStreamingScope?: HiFiUserDataStreamingScopes,
         hiFiAxisConfiguration?: HiFiAxisConfiguration
@@ -111,7 +119,11 @@ export class HiFiCommunicator {
             HiFiLogger.warn(`\`transmitRateLimitTimeoutMS\` must be >= ${HiFiConstants.MIN_TRANSMIT_RATE_LIMIT_TIMEOUT_MS}ms! Setting to ${HiFiConstants.MIN_TRANSMIT_RATE_LIMIT_TIMEOUT_MS}ms...`);
             transmitRateLimitTimeoutMS = HiFiConstants.MIN_TRANSMIT_RATE_LIMIT_TIMEOUT_MS;
         }
-        this.transmitRateLimitTimeoutMS = transmitRateLimitTimeoutMS
+        this.transmitRateLimitTimeoutMS = transmitRateLimitTimeoutMS;
+
+        if (onUsersDisconnected) {
+            this.onUsersDisconnected = onUsersDisconnected;
+        }
 
         this._mixerSession = new HiFiMixerSession({
             "userDataStreamingScope": userDataStreamingScope,
@@ -676,8 +688,17 @@ export class HiFiCommunicator {
         }
     }
 
+    /**
+     * A simple wrapper function called by our instantiation of `HiFiMixerSession` that calls the user-provided `onUsersDisconnected()`
+     * function if one exists.
+     * Library users can provide an `onUsersDisconnected()` callback function when instantiating the `HiFiCommunicator` object, or by setting
+     * `HiFiCommunicator.onUsersDisconnected` after instantiation.
+     * @param usersDisconnected - An Array of {@link ReceivedHiFiAudioAPIData} regarding the users who disconnected.
+     */
     private _onUsersDisconnected(usersDisconnected: Array<ReceivedHiFiAudioAPIData>): void {
-
+        if (this.onUsersDisconnected) {
+            this.onUsersDisconnected(usersDisconnected);
+        }
     }
 
     /**
