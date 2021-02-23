@@ -228,7 +228,7 @@ export class HiFiCommunicator {
             } else if (!isBrowserContext) {
                 webRTCSignalingAddress = `${HiFiConstants.DEFAULT_PROD_HIGH_FIDELITY_ENDPOINT}/?token=`;
             } else {
-                webRTCSignalingAddress = webRTCSignalingAddress.replace('$STACKNAME', 'api-staging-01');
+                webRTCSignalingAddress = webRTCSignalingAddress.replace('$STACKNAME', 'api-staging-02');
             }
 
             this._mixerSession.webRTCAddress = `${webRTCSignalingAddress}${hifiAuthJWT}`;
