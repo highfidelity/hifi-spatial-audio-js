@@ -27,7 +27,30 @@ export enum HiFiConnectionStates {
      * The `HiFiConnectionState` will be `"Unavailable"` when the API Server is at capacity.
      */
     Unavailable = "Unavailable"
-}
+};
+
+/**
+ * 
+ */
+export enum HiFiUserDataStreamingScopes {
+    /**
+     * Passing this value to the {@link HiFiCommunicator} constructor means that the Server will not send any
+     * User Data updates to the client, meaning User Data Subscriptions will not function. This Streaming Scope
+     * saves bandwidth and, marginally, processing time.
+     */
+    None = "none",
+    /**
+     * Passing this value to the {@link HiFiCommunicator} constructor means that the Server will only send
+     * _peer data_ to the Client; the Server will not send User Data pertaining to the connecting Client when
+     * this Data Streaming Scope is selected.
+     */
+    Peers = "peers",
+    /**
+     * "all" is the default value when the {@link HiFiCommunicator} constructor is called. All User Data
+     * will be streamed from the Server to the Client.
+     */
+    All = "all"
+};
 
 /**
  * This class exposes properties and methods useful for communicating from the High Fidelity Audio API Client to
@@ -55,6 +78,11 @@ export class HiFiCommunicator {
     // when the server reports that a user's data - such as position, orientationEuler, and volume - has been modified.
     private _userDataSubscriptions: Array<UserDataSubscription>;
 
+    /**
+     * See {@link HiFiCommunicator._onUsersDisconnected}.
+     */
+    onUsersDisconnected: Function;
+
     // This contains data dealing with the mixer session, such as the RAVI session, WebRTC address, etc.
     private _mixerSession: HiFiMixerSession;
 
@@ -66,22 +94,24 @@ export class HiFiCommunicator {
      * @param {Object} __namedParameters
      * @param initialHiFiAudioAPIData - The initial position, orientation, etc of the user.
      * @param onConnectionStateChanged - A function that will be called when the connection state to the High Fidelity Audio API Server changes. See {@link HiFiConnectionStates}.
+     * @param onUsersDisconnected - A function that will be called when a peer disconnects from the Space.
      * @param transmitRateLimitTimeoutMS - User Data updates will not be sent to the server any more frequently than this number in milliseconds.
-     * @param serverShouldSendUserData - Cannot be set later. If set to `true`, the Server will send all User Data updates to the client. Setting this value to `true` (its default) is necessary for
-     * User Data Subscriptions to work. If this value is set to `false`, the Server will not send any User Data updates to the client, which saves bandwidth and, marginally, processing time.
+     * @param userDataStreamingScope - Cannot be set later. See {@link HiFiUserDataStreamingScopes}.
      * @param hiFiAxisConfiguration - Cannot be set later. The 3D axis configuration. See {@link ourHiFiAxisConfiguration} for defaults.
      */
     constructor({
         initialHiFiAudioAPIData = new HiFiAudioAPIData(),
         onConnectionStateChanged,
+        onUsersDisconnected,
         transmitRateLimitTimeoutMS = HiFiConstants.DEFAULT_TRANSMIT_RATE_LIMIT_TIMEOUT_MS,
-        serverShouldSendUserData = true,
+        userDataStreamingScope = HiFiUserDataStreamingScopes.All,
         hiFiAxisConfiguration
     }: {
         initialHiFiAudioAPIData?: HiFiAudioAPIData,
         onConnectionStateChanged?: Function,
+        onUsersDisconnected?: Function,
         transmitRateLimitTimeoutMS?: number,
-        serverShouldSendUserData?: boolean,
+        userDataStreamingScope?: HiFiUserDataStreamingScopes,
         hiFiAxisConfiguration?: HiFiAxisConfiguration
     } = {}) {
         // Make minimum 10ms
@@ -89,11 +119,16 @@ export class HiFiCommunicator {
             HiFiLogger.warn(`\`transmitRateLimitTimeoutMS\` must be >= ${HiFiConstants.MIN_TRANSMIT_RATE_LIMIT_TIMEOUT_MS}ms! Setting to ${HiFiConstants.MIN_TRANSMIT_RATE_LIMIT_TIMEOUT_MS}ms...`);
             transmitRateLimitTimeoutMS = HiFiConstants.MIN_TRANSMIT_RATE_LIMIT_TIMEOUT_MS;
         }
-        this.transmitRateLimitTimeoutMS = transmitRateLimitTimeoutMS
+        this.transmitRateLimitTimeoutMS = transmitRateLimitTimeoutMS;
+
+        if (onUsersDisconnected) {
+            this.onUsersDisconnected = onUsersDisconnected;
+        }
 
         this._mixerSession = new HiFiMixerSession({
-            "serverShouldSendUserData": serverShouldSendUserData,
+            "userDataStreamingScope": userDataStreamingScope,
             "onUserDataUpdated": (data: Array<ReceivedHiFiAudioAPIData>) => { this._handleUserDataUpdates(data); },
+            "onUsersDisconnected": (data: Array<ReceivedHiFiAudioAPIData>) => { this._onUsersDisconnected(data); },
             "onConnectionStateChanged": onConnectionStateChanged
         });
 
@@ -154,13 +189,15 @@ export class HiFiCommunicator {
      *
      * @param stackName The WebSocket address to which we make our WebRTC signaling connection is decided based on the following heirarchal logic:
      * 1. If the code is running in the browser context, and the browser's URL query parameters contains a `?stack=<stackName>` query parameter, 
-     * the WebRTC signaling address will be based off of this `stackName`. Stack names are used internally by High Fidelity developers when testing new server-side code.
+     * the WebRTC signaling address will be based off of this `stackName` or `stackURL`. Stack names are used internally by High Fidelity developers when testing new server-side code.
+     *     - If the passed `stackName` is a URL, that URL will be used as the WebRTC Signaling Address directly.
      * 2. If the code is running in the browser context, and the browser's current location's hostname contains `highfidelity.io` (a hostname for internal use only),
      * it is very likely that we are running a test in a browser. Tests running in a browser from that hostname should assume that the WebRTC Signaling Address
      * is at the same host from which the test is served.
      * 3. If the code is running in the browser context, and our code compilation processes have specified the build mode as "production", we should use the production
      * WebRTC signaling connection address.
      * 4. If a developer has passed a `stackName` parameter into this `connectToHiFiAudioAPIServer()` call, use a WebRTC signaling address based on that `stackName`.
+     *     - If the passed `stackName` is a URL, that URL will be used as the WebRTC Signaling Address directly.
      * 5. If the code is running in the NodeJS context, we will use the "production" `stackName`, and use a WebRTC signaling address based on that `stackName`.
      * 6. If none of the above logic applies, we will use the default "staging" WebRTC signaling connection address.
      * 
@@ -196,17 +233,35 @@ export class HiFiCommunicator {
             let webRTCSignalingAddress = "wss://loadbalancer-$STACKNAME.highfidelity.io:8001/?token=";
             let isBrowserContext = typeof self !== 'undefined';
             if (params && params.has("stack")) {
-                webRTCSignalingAddress = webRTCSignalingAddress.replace('$STACKNAME', params.get("stack"));
+                let url;
+                try {
+                    url = new URL(params.get("stack"));
+                } catch (e) { }
+
+                if (url) {
+                    webRTCSignalingAddress = url.href;
+                } else {
+                    webRTCSignalingAddress = webRTCSignalingAddress.replace('$STACKNAME', params.get("stack"));
+                }
             } else if (isBrowserContext && window.location.hostname.indexOf("highfidelity.io") > -1) {
                 webRTCSignalingAddress = `wss://${window.location.hostname}:8001/?token=`;
             } else if (isBrowserContext && BUILD_ENVIRONMENT && BUILD_ENVIRONMENT === "prod") {
                 webRTCSignalingAddress = `${HiFiConstants.DEFAULT_PROD_HIGH_FIDELITY_ENDPOINT}/?token=`;
             } else if (stackName) {
-                webRTCSignalingAddress = webRTCSignalingAddress.replace('$STACKNAME', stackName);
+                let url;
+                try {
+                    url = new URL(stackName);
+                } catch (e) { }
+
+                if (url) {
+                    webRTCSignalingAddress = url.href;
+                } else {
+                    webRTCSignalingAddress = webRTCSignalingAddress.replace('$STACKNAME', stackName);
+                }
             } else if (!isBrowserContext) {
                 webRTCSignalingAddress = `${HiFiConstants.DEFAULT_PROD_HIGH_FIDELITY_ENDPOINT}/?token=`;
             } else {
-                webRTCSignalingAddress = webRTCSignalingAddress.replace('$STACKNAME', 'api-staging-01');
+                webRTCSignalingAddress = webRTCSignalingAddress.replace('$STACKNAME', 'api-staging-02');
             }
 
             this._mixerSession.webRTCAddress = `${webRTCSignalingAddress}${hifiAuthJWT}`;
@@ -634,6 +689,19 @@ export class HiFiCommunicator {
     }
 
     /**
+     * A simple wrapper function called by our instantiation of `HiFiMixerSession` that calls the user-provided `onUsersDisconnected()`
+     * function if one exists.
+     * Library users can provide an `onUsersDisconnected()` callback function when instantiating the `HiFiCommunicator` object, or by setting
+     * `HiFiCommunicator.onUsersDisconnected` after instantiation.
+     * @param usersDisconnected - An Array of {@link ReceivedHiFiAudioAPIData} regarding the users who disconnected.
+     */
+    private _onUsersDisconnected(usersDisconnected: Array<ReceivedHiFiAudioAPIData>): void {
+        if (this.onUsersDisconnected) {
+            this.onUsersDisconnected(usersDisconnected);
+        }
+    }
+
+    /**
      * Adds a new User Data Subscription to the list of clientside Subscriptions. User Data Subscriptions are used to obtain
      * User Data about other Users. For example, if you set up a User Data Subscription for your own User Data, you can use that subscription 
      * to ensure that the data on the High Fidelity Audio API Server is the same as the data you are sending
@@ -647,7 +715,7 @@ export class HiFiCommunicator {
             return;
         }
 
-        if (!this._mixerSession.serverShouldSendUserData) {
+        if (this._mixerSession.userDataStreamingScope === HiFiUserDataStreamingScopes.None) {
             HiFiLogger.error(`During \`HiFiCommunicator\` construction, the server was set up to **not** send user data! Data subscription not added.`);
             return;
         }
