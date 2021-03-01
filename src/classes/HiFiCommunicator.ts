@@ -428,7 +428,7 @@ export class HiFiCommunicator {
         }
 
         if (orientation) {
-            if (this._currentHiFiAudioAPIData.orientation) {
+            if (!this._currentHiFiAudioAPIData.orientation) {
                 this._currentHiFiAudioAPIData.orientation = new OrientationQuat3D();
             }
 
