@@ -180,6 +180,13 @@ describe('HiFi API REST Calls', () => {
 
     describe('Admin CAN change space settings', () => {
         test(`CAN change multiple settings simultaneously using 'GET'`, async () => {
+            // preset the property to ensure its state before attempting to make changes
+            try {
+                await fetch(`${stackURL}/api/v1/spaces/${stackData.apps.app1.spaces.space1.id}/settings?token=${adminToken}&new-connections-allowed=true`);
+            } catch (err) {
+                console.log("Cannot set space to allow unsigned tokens signing before testing.");
+                throw err;
+            }
             let newName = "nameChanged";
             let returnMessage = await fetch(`${stackURL}/api/v1/spaces/${stackData.apps.app1.spaces.space1.id}/settings?token=${adminToken}&new-connections-allowed=false&name=${newName}`);
 
@@ -191,6 +198,14 @@ describe('HiFi API REST Calls', () => {
         });
 
         test(`CAN change multiple settings simultaneously using 'POST'`, async () => {
+            // preset the property to ensure its state before attempting to make changes
+            try {
+                await fetch(`${stackURL}/api/v1/spaces/${stackData.apps.app1.spaces.space1.id}/settings?token=${adminToken}&new-connections-allowed=false`);
+            } catch (err) {
+                console.log("Cannot set space to allow unsigned tokens signing before testing.");
+                throw err;
+            }
+            let newName = "nameChangedAlso";
             let returnMessage = await fetch(`${stackURL}/api/v1/spaces/${stackData.apps.app1.spaces.space1.id}/settings?token=${adminToken}`, {
                 method: 'POST',
                 headers: {
@@ -206,13 +221,14 @@ describe('HiFi API REST Calls', () => {
             settingsJSON = await returnMessage.json();
 
             expect(settingsJSON['new-connections-allowed']).toBe(true);
-            expect(settingsJSON['name']).toBe(stackData.apps.app1.spaces.space1.name);
+            expect(settingsJSON['name']).toBe(newName);
         });
 
         test(`CAN make a space not joinable`, async () => {
+            // preset the property to ensure its state before attempting to change it
             try {
                 await fetch(`${stackURL}/api/v1/spaces/${stackData.apps.app1.spaces.space1.id}/settings?token=${adminToken}&new-connections-allowed=true`);
-            } catch(err) {
+            } catch (err) {
                 console.log("Cannot make space joinable before testing.");
                 throw err;
             }
@@ -226,9 +242,10 @@ describe('HiFi API REST Calls', () => {
         });
 
         test(`CAN make a space joinable`, async () => {
+            // preset the property to ensure its state before attempting to change it
             try {
                 await fetch(`${stackURL}/api/v1/spaces/${stackData.apps.app1.spaces.space1.id}/settings?token=${adminToken}&new-connections-allowed=false`);
-            } catch(err) {
+            } catch (err) {
                 console.log("Cannot make space not joinable before testing.");
                 throw err;
             }
@@ -254,9 +271,10 @@ describe('HiFi API REST Calls', () => {
         });
 
         test(`CAN set space to allow unsigned tokens`, async () => {
+            // preset the property to ensure its state before attempting to change it
             try {
                 await fetch(`${stackURL}/api/v1/spaces/${stackData.apps.app1.spaces.space1.id}/settings?token=${adminToken}&ignore-token-signing=false`);
-            } catch(err) {
+            } catch (err) {
                 console.log("Cannot set space to disallow unsigned tokens before testing.");
                 throw err;
             }
@@ -268,9 +286,10 @@ describe('HiFi API REST Calls', () => {
         });
 
         test(`CAN set space to disallow unsigned tokens`, async () => {
+            // preset the property to ensure its state before attempting to change it
             try {
                 await fetch(`${stackURL}/api/v1/spaces/${stackData.apps.app1.spaces.space1.id}/settings?token=${adminToken}&ignore-token-signing=true`);
-            } catch(err) {
+            } catch (err) {
                 console.log("Cannot set space to allow unsigned tokens signing before testing.");
                 throw err;
             }
@@ -284,7 +303,7 @@ describe('HiFi API REST Calls', () => {
 
     describe('Non admin CANNOT change space settings', () => {
         test(`CANNOT change multiple settings simultaneously using 'GET'`, async () => {
-            let newName = "nameChanged";
+            let newName = "nameChangedAgain";
             let returnMessage = await fetch(`${stackURL}/api/v1/spaces/${stackData.apps.app1.spaces.space1.id}/settings?token=${nonAdminToken}&new-connections-allowed=false&name=${newName}`);
 
             let returnMessageJSON: any = {};
@@ -310,12 +329,6 @@ describe('HiFi API REST Calls', () => {
         });
 
         test(`CANNOT make a space not joinable`, async () => {
-            try {
-                await fetch(`${stackURL}/api/v1/spaces/${stackData.apps.app1.spaces.space1.id}/settings?token=${adminToken}&new-connections-allowed=true`);
-            } catch(err) {
-                console.log("Cannot make space joinable before testing.");
-                throw err;
-            }
             let returnMessage = await fetch(`${stackURL}/api/v1/spaces/${stackData.apps.app1.spaces.space1.id}/settings?token=${nonAdminToken}&new-connections-allowed=false`);
 
             let returnMessageJSON: any = {};
@@ -325,12 +338,6 @@ describe('HiFi API REST Calls', () => {
         });
 
         test(`CANNOT make a space joinable`, async () => {
-            try {
-                await fetch(`${stackURL}/api/v1/spaces/${stackData.apps.app1.spaces.space1.id}/settings?token=${adminToken}&new-connections-allowed=false`);
-            } catch(err) {
-                console.log("CANNOT make space not joinable before testing.");
-                throw err;
-            }
             let returnMessage = await fetch(`${stackURL}/api/v1/spaces/${stackData.apps.app1.spaces.space1.id}/settings?token=${nonAdminToken}&new-connections-allowed=true`);
 
             let returnMessageJSON: any = {};
@@ -348,12 +355,6 @@ describe('HiFi API REST Calls', () => {
         });
 
         test(`CANNOT set space to ignore token signing`, async () => {
-            try {
-                await fetch(`${stackURL}/api/v1/spaces/${stackData.apps.app1.spaces.space1.id}/settings?token=${adminToken}&ignore-token-signing=false`);
-            } catch(err) {
-                console.log("CANNOT set space to disallow unsigned tokens before testing.");
-                throw err;
-            }
             let returnMessage = await fetch(`${stackURL}/api/v1/spaces/${stackData.apps.app1.spaces.space1.id}/settings?token=${nonAdminToken}&ignore-token-signing=true`);
 
             let returnMessageJSON: any = {};
@@ -362,12 +363,6 @@ describe('HiFi API REST Calls', () => {
         });
 
         test(`CANNOT set space to not ignore token signing`, async () => {
-            try {
-                await fetch(`${stackURL}/api/v1/spaces/${stackData.apps.app1.spaces.space1.id}/settings?token=${adminToken}&ignore-token-signing=true`);
-            } catch(err) {
-                console.log("CANNOT set space to allow unsigned tokens before testing.");
-                throw err;
-            }
             let returnMessage = await fetch(`${stackURL}/api/v1/spaces/${stackData.apps.app1.spaces.space1.id}/settings?token=${nonAdminToken}&ignore-token-signing=false`);
 
             let returnMessageJSON: any = {};
