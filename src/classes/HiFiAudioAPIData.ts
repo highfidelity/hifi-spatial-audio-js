@@ -130,14 +130,25 @@ export function yawPitchRollFromQuaternion(quat: OrientationQuat3D): Orientation
     // yaw = asin(T(-2) * (q.x * q.z - q.w * q.y));
     // pitch = glm::degrees(atan(T(2) * (q.y * q.z + q.w * q.x), q.w * q.w - q.x * q.x - q.y * q.y + q.z * q.z));
     // roll = glm::degrees(atan(T(2) * (q.x * q.y + q.w * q.z), q.w * q.w + q.x * q.x - q.y * q.y - q.z * q.z));
-    let qxx = quat.x * quat.x;
-    let qyy = quat.y * quat.y;
-    let qzz = quat.z * quat.z;
-    let qww = quat.w * quat.w;
+    let qx2 = quat.x * quat.x;
+    let qy2 = quat.y * quat.y;
+    let qz2 = quat.z * quat.z;
+    let qw2 = quat.w * quat.w;
+    let qwx = quat.w * quat.x;
+    let qwy = quat.w * quat.y;
+    let qwz = quat.w * quat.z;
+    let qxy = quat.x * quat.y;
+    let qyz = quat.y * quat.z;
+    let qzx = quat.z * quat.x;
+    // ROT Mat33 =  {  1 - 2qy2 - 2qz2  |  2(qxy - qwz)    |  2(qxz + qwy)  }
+    //              {  2(qxy + qwz)     |  1 - 2qx2 - 2qz2 |  2(qyz - qwx)  }
+    //              {  2(qxz + qwy)     |  2(qyz + qwx)    |  1 - 2qx2 - 2qy2  }
+        
+
     return new OrientationEuler3D({
-        yawDegrees: RAD_TO_DEG * Math.asin( -2.0 * (quat.x * quat.z - quat.w * quat.y)),
-        pitchDegrees: RAD_TO_DEG * Math.atan2( 2.0 * (quat.y * quat.z + quat.w * quat.x), qww - qxx - qyy + qzz),
-        rollDegrees: RAD_TO_DEG * Math.atan2( 2.0 * (quat.x * quat.y + quat.w * quat.z), qww + qxx - qyy - qzz)
+        yawDegrees: RAD_TO_DEG * Math.asin( -2.0 * (qzx - qwy)),
+        pitchDegrees: RAD_TO_DEG * Math.atan2( 2.0 * (qyz + qwx), qw2 - qx2 - qy2 + qz2),
+        rollDegrees: RAD_TO_DEG * Math.atan2( 2.0 * (qxy + qwz), qw2 + qx2 - qy2 - qz2)
     });
 }
 
@@ -177,14 +188,14 @@ export function rollYawPitchFromQuaternion(quat: OrientationQuat3D): Orientation
     // yaw = asin(T(-2) * (q.x * q.z - q.w * q.y));
     // pitch = glm::degrees(atan(T(2) * (q.y * q.z + q.w * q.x), q.w * q.w - q.x * q.x - q.y * q.y + q.z * q.z));
     // roll = glm::degrees(atan(T(2) * (q.x * q.y + q.w * q.z), q.w * q.w + q.x * q.x - q.y * q.y - q.z * q.z));
-    let qxx = quat.x * quat.x;
-    let qyy = quat.y * quat.y;
-    let qzz = quat.z * quat.z;
-    let qww = quat.w * quat.w;
+    let qx2 = quat.x * quat.x;
+    let qy2 = quat.y * quat.y;
+    let qz2 = quat.z * quat.z;
+    let qw2 = quat.w * quat.w;
     return new OrientationEuler3D({
         yawDegrees: RAD_TO_DEG * Math.asin( -2 * (quat.x * quat.z - quat.w * quat.y)),
-        pitchDegrees: RAD_TO_DEG * Math.atan2( 2 * (quat.y * quat.z + quat.w * quat.x), qww - qxx - qyy + qzz),
-        rollDegrees: RAD_TO_DEG * Math.atan2( 2 * (quat.x * quat.y + quat.w * quat.z), qww + qxx - qyy - qzz)
+        pitchDegrees: RAD_TO_DEG * Math.atan2( 2 * (quat.y * quat.z + quat.w * quat.x), qw2 - qx2 - qy2 + qz2),
+        rollDegrees: RAD_TO_DEG * Math.atan2( 2 * (quat.x * quat.y + quat.w * quat.z), qw2 + qx2 - qy2 - qz2)
     });
 }
 
