@@ -1,6 +1,6 @@
 declare var HIFI_API_VERSION: string;
 
-import { HiFiAudioAPIData, ReceivedHiFiAudioAPIData, OrientationEuler3D, OrientationQuat3D, Point3D } from "./classes/HiFiAudioAPIData";
+import { HiFiAudioAPIData, ReceivedHiFiAudioAPIData, OrientationEuler3D, OrientationQuat3D, Point3D, yawPitchRollToQuaternion, yawPitchRollFromQuaternion} from "./classes/HiFiAudioAPIData";
 import { HiFiCommunicator, HiFiConnectionStates, HiFiUserDataStreamingScopes } from "./classes/HiFiCommunicator";
 import { AvailableUserDataSubscriptionComponents, UserDataSubscription } from "./classes/HiFiUserDataSubscription";
 import { HiFiLogLevel, HiFiLogger } from "./utilities/HiFiLogger";
@@ -25,6 +25,8 @@ exports.HiFiAudioAPIData = HiFiAudioAPIData;
 exports.Point3D = Point3D;
 exports.OrientationEuler3D = OrientationEuler3D;
 exports.OrientationQuat3D = OrientationQuat3D;
+exports.yawPitchRollToQuaternion = yawPitchRollToQuaternion;
+exports.yawPitchRollFromQuaternion = yawPitchRollFromQuaternion;
 
 exports.HiFiLogger = HiFiLogger;
 exports.HiFiLogLevel = HiFiLogLevel;

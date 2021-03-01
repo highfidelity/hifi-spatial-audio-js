@@ -4,7 +4,7 @@
  * @packageDocumentation
  */
 
-import { HiFiAudioAPIData, OrientationEuler3D, OrientationQuat3D, Point3D, ReceivedHiFiAudioAPIData } from "./HiFiAudioAPIData";
+import { HiFiAudioAPIData, OrientationQuat3D, Point3D, ReceivedHiFiAudioAPIData } from "./HiFiAudioAPIData";
 import { HiFiLogger } from "../utilities/HiFiLogger";
 import { HiFiConnectionStates, HiFiUserDataStreamingScopes } from "./HiFiCommunicator";
 
@@ -290,41 +290,44 @@ export class HiFiMixerSession {
                     serverSentNewUserData = true;
                 }
 
-                // `ReceivedHiFiAudioAPIData.orientationEuler.pitchDegrees`
-                if (typeof (peerDataFromMixer.k) === "number") {
-                    if (!newUserData.orientationEuler) {
-                        newUserData.orientationEuler = new OrientationEuler3D();
+                // convert the received position (if any) to the user space
+                if (newUserData.position) {
+                    newUserData.position = HiFiAxisUtilities.translatePoint3DFromMixerSpace(ourHiFiAxisConfiguration, newUserData.position);
+                }
+
+                // `ReceivedHiFiAudioAPIData.orientation.*`
+                if (typeof (peerDataFromMixer.W) === "number") {
+                    if (!newUserData.orientation) {
+                        newUserData.orientation = new OrientationQuat3D();
                     }
-                    newUserData.orientationEuler.pitchDegrees = peerDataFromMixer.k;
+                    newUserData.orientation.w = peerDataFromMixer.W / 1000;
                     serverSentNewUserData = true;
                 }
-                // `ReceivedHiFiAudioAPIData.orientationEuler.yawDegrees`
-                if (typeof (peerDataFromMixer.o) === "number") {
-                    if (!newUserData.orientationEuler) {
-                        newUserData.orientationEuler = new OrientationEuler3D();
+                if (typeof (peerDataFromMixer.X) === "number") {
+                    if (!newUserData.orientation) {
+                        newUserData.orientation = new OrientationQuat3D();
                     }
-                    newUserData.orientationEuler.yawDegrees = peerDataFromMixer.o;
+                    newUserData.orientation.x = peerDataFromMixer.X / 1000;
                     serverSentNewUserData = true;
                 }
-                // `ReceivedHiFiAudioAPIData.orientationEuler.rollDegrees`
-                if (typeof (peerDataFromMixer.l) === "number") {
-                    if (!newUserData.orientationEuler) {
-                        newUserData.orientationEuler = new OrientationEuler3D();
+                if (typeof (peerDataFromMixer.Y) === "number") {
+                    if (!newUserData.orientation) {
+                        newUserData.orientation = new OrientationQuat3D();
                     }
-                    newUserData.orientationEuler.rollDegrees = peerDataFromMixer.l;
+                    newUserData.orientation.y = peerDataFromMixer.Y / 1000;
+                    serverSentNewUserData = true;
+                }
+                if (typeof (peerDataFromMixer.Z) === "number") {
+                    if (!newUserData.orientation) {
+                        newUserData.orientation = new OrientationQuat3D();
+                    }
+                    newUserData.orientation.z = peerDataFromMixer.Z / 1000;
                     serverSentNewUserData = true;
                 }
 
-                // `ReceivedHiFiAudioAPIData.orientationQuat.*`
-                if (typeof (peerDataFromMixer.W) === "number" && typeof (peerDataFromMixer.X) === "number" && typeof (peerDataFromMixer.Y) === "number" && typeof (peerDataFromMixer.Z) === "number") {
-                    newUserData.orientationQuat = new OrientationQuat3D({
-                        // Mixer sends Quaternion component data multiplied by 1000
-                        w: peerDataFromMixer.W / 1000,
-                        x: peerDataFromMixer.X / 1000,
-                        y: peerDataFromMixer.Y / 1000,
-                        z: peerDataFromMixer.Z / 1000
-                    });
-                    serverSentNewUserData = true;
+                // convert the received orientation (if any) to the user space
+                if (newUserData.orientation) {
+                    newUserData.orientation = HiFiAxisUtilities.translateOrientation3FromMixerSpace(ourHiFiAxisConfiguration, newUserData.orientation);
                 }
 
                 // `ReceivedHiFiAudioAPIData.hiFiGain`
@@ -685,33 +688,21 @@ export class HiFiMixerSession {
             }
         }
 
-        if (hifiAudioAPIData.orientationEuler) {
-            let translatedOrientation = HiFiAxisUtilities.translateOrientationEuler3DToMixerSpace(ourHiFiAxisConfiguration, hifiAudioAPIData.orientationEuler);
-
-            if (typeof (translatedOrientation.pitchDegrees) === "number") {
-                dataForMixer["k"] = translatedOrientation.pitchDegrees;
-            }
-            if (typeof (translatedOrientation.yawDegrees) === "number") {
-                dataForMixer["o"] = translatedOrientation.yawDegrees;
-            }
-            if (typeof (translatedOrientation.rollDegrees) === "number") {
-                dataForMixer["l"] = translatedOrientation.rollDegrees;
-            }
-        }
-
         // The mixer expects Quaternion components to be mulitiplied by 1000.
-        if (hifiAudioAPIData.orientationQuat) {
-            if (typeof (hifiAudioAPIData.orientationQuat.w) === "number") {
-                dataForMixer["W"] = hifiAudioAPIData.orientationQuat.w * 1000;
+        if (hifiAudioAPIData.orientation) {
+            let translatedOrientation = HiFiAxisUtilities.translateOrientation3DToMixerSpace(ourHiFiAxisConfiguration, hifiAudioAPIData.orientation);
+          
+            if (typeof (hifiAudioAPIData.orientation.w) === "number") {
+                dataForMixer["W"] = translatedOrientation.w * 1000;
             }
-            if (typeof (hifiAudioAPIData.orientationQuat.x) === "number") {
-                dataForMixer["X"] = hifiAudioAPIData.orientationQuat.x * 1000;
+            if (typeof (hifiAudioAPIData.orientation.x) === "number") {
+                dataForMixer["X"] = translatedOrientation.x * 1000;
             }
-            if (typeof (hifiAudioAPIData.orientationQuat.y) === "number") {
-                dataForMixer["Y"] = hifiAudioAPIData.orientationQuat.y * 1000;
+            if (typeof (hifiAudioAPIData.orientation.y) === "number") {
+                dataForMixer["Y"] = translatedOrientation.y * 1000;
             }
-            if (typeof (hifiAudioAPIData.orientationQuat.z) === "number") {
-                dataForMixer["Z"] = hifiAudioAPIData.orientationQuat.z * 1000;
+            if (typeof (hifiAudioAPIData.orientation.z) === "number") {
+                dataForMixer["Z"] = translatedOrientation.z * 1000;
             }
         }
 

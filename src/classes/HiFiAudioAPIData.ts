@@ -34,6 +34,30 @@ export class Point3D {
 }
 
 /**
+ * Instantiations of this class define an orientation in 3D space in Quaternion format. A user's orientation in 3D space
+ * affects the way the mixed spatial audio is heard by the user. Additionally, orientation affects the way
+ * a user's audio input propagates through a space: speakers facing directly towards a listener will sound louder than
+ * speakers facing away from a listener.
+ */
+export class OrientationQuat3D {
+    w: number;
+    x: number;
+    y: number;
+    z: number;
+
+    /**
+     * Construct a new `OrientationQuat3D` object. All parameters are required.
+     */
+    constructor({ w = 1, x = 0, y = 0, z = 0 }: { w?: number, x?: number, y?: number, z?: number } = {}) {
+        this.w = w;
+        this.x = x;
+        this.y = y;
+        this.z = z;
+    }
+}
+
+
+/**
  * Instantiations of this class define an orientation in 3D space. A user's orientation in 3D space
  * affects the way the mixed spatial audio is heard by the user. Additionally, orientation affects the way
  * a user's audio input propagates through a space: speakers facing directly towards a listener will sound louder than
@@ -73,26 +97,95 @@ export class OrientationEuler3D {
 }
 
 /**
- * Instantiations of this class define an orientation in 3D space in Quaternion format. A user's orientation in 3D space
- * affects the way the mixed spatial audio is heard by the user. Additionally, orientation affects the way
- * a user's audio input propagates through a space: speakers facing directly towards a listener will sound louder than
- * speakers facing away from a listener.
+ * Compute the orientation quaternion from the specified euler angles.
+ * The resulting quaternion is the rotation transforming from combining the euler angles rotations in the explicit order
+ *  1/ Yaw, rotating around the vertical axis
+ *  2/ Pitch, rotating around the right axis 
+ *  3/ Roll, rotating around the front axis
+ * 
+ * @param yawDegrees - The yaw angle rotation in degrees.
+ * @param pitchDegrees - The pitch angle rotation in degrees.
+ * @param rollDegrees - The roll angle rotation in degrees.
+ * 
+ * @return The end resulting quaternion defined from the euler angles combination
  */
-export class OrientationQuat3D {
-    w: number;
-    x: number;
-    y: number;
-    z: number
+export function yawPitchRollToQuaternion(euler: OrientationEuler3D): OrientationQuat3D {
+    const HALF_DEG_TO_RAD = 0.5 * Math.PI / 180.0;
+    let cos = { P: Math.cos(euler.pitchDegrees * HALF_DEG_TO_RAD), Y: Math.cos(euler.yawDegrees * HALF_DEG_TO_RAD), R: Math.cos(euler.rollDegrees * HALF_DEG_TO_RAD)};
+    let sin = { P: Math.sin(euler.pitchDegrees * HALF_DEG_TO_RAD), Y: Math.sin(euler.yawDegrees * HALF_DEG_TO_RAD), R: Math.sin(euler.rollDegrees * HALF_DEG_TO_RAD)};
+    // Exact same code as glm::eulerAngles
+    // from world space rotate Roll, then Yaw then Pitch
+    // Resulting rotation is:
+    // Vworld = [Y][P][R] Vlistener
+    return new OrientationQuat3D({
+            w: cos.P * cos.Y * cos.R + sin.P * sin.Y * sin.R,
+            x: sin.P * cos.Y * cos.R - cos.P * sin.Y * sin.R,
+            y: cos.P * sin.Y * cos.R + sin.P * cos.Y * sin.R,
+            z: cos.P * cos.Y * sin.R + sin.P * sin.Y * cos.R
+        });
+}
 
-    /**
-     * Construct a new `OrientationQuat3D` object. All parameters are required.
-     */
-    constructor({ w = 1, x = 0, y = 0, z = 0 }: { w?: number, x?: number, y?: number, z?: number } = {}) {
-        this.w = w;
-        this.x = x;
-        this.y = y;
-        this.z = z;
-    }
+export function yawPitchRollFromQuaternion(quat: OrientationQuat3D): OrientationEuler3D {
+    const RAD_TO_DEG = 180.0 / Math.PI;
+    // yaw = asin(T(-2) * (q.x * q.z - q.w * q.y));
+    // pitch = glm::degrees(atan(T(2) * (q.y * q.z + q.w * q.x), q.w * q.w - q.x * q.x - q.y * q.y + q.z * q.z));
+    // roll = glm::degrees(atan(T(2) * (q.x * q.y + q.w * q.z), q.w * q.w + q.x * q.x - q.y * q.y - q.z * q.z));
+    let qxx = quat.x * quat.x;
+    let qyy = quat.y * quat.y;
+    let qzz = quat.z * quat.z;
+    let qww = quat.w * quat.w;
+    return new OrientationEuler3D({
+        yawDegrees: RAD_TO_DEG * Math.asin( -2.0 * (quat.x * quat.z - quat.w * quat.y)),
+        pitchDegrees: RAD_TO_DEG * Math.atan2( 2.0 * (quat.y * quat.z + quat.w * quat.x), qww - qxx - qyy + qzz),
+        rollDegrees: RAD_TO_DEG * Math.atan2( 2.0 * (quat.x * quat.y + quat.w * quat.z), qww + qxx - qyy - qzz)
+    });
+}
+
+
+/**
+ * Compute the orientation quaternion from the specified euler angles in the order Roll, Yaw, Pitch.
+ * The resulting quaternion is the rotation transforming from combining the euler angles rotations in the explicit order
+ *  1/ Roll, rotating around the back axis
+ *  2/ Yaw, rotating around the vertical axis
+ *  3/ Pitch, rotating around the right axis
+ * 
+ * 
+ * @param rollDegrees - The roll angle rotation in degrees.
+ * @param yawDegrees - The yaw angle rotation in degrees.
+ * @param pitchDegrees - The pitch angle rotation in degrees.
+ * 
+ * @return The end resulting quaternion defined from the euler angles combination
+ */
+export function rollYawPitchToQuaternion(euler: OrientationEuler3D): OrientationQuat3D {
+    const HALF_DEG_TO_RAD = 0.5 * Math.PI / 180.0;
+    let cos = { P: Math.cos(euler.pitchDegrees * HALF_DEG_TO_RAD), Y: Math.cos(euler.yawDegrees * HALF_DEG_TO_RAD), R: Math.cos(euler.rollDegrees * HALF_DEG_TO_RAD)};
+    let sin = { P: Math.sin(euler.pitchDegrees * HALF_DEG_TO_RAD), Y: Math.sin(euler.yawDegrees * HALF_DEG_TO_RAD), R: Math.sin(euler.rollDegrees * HALF_DEG_TO_RAD)};
+    // Exact same code as glm::eulerAngles
+    // from world space rotate Roll, then Yaw then Pitch
+    // Resulting rotation is:
+    // Vworld = [R][Y][P] Vlistener
+    return new OrientationQuat3D({
+            w: cos.P * cos.Y * cos.R + sin.P * sin.Y * sin.R,
+            x: sin.P * cos.Y * cos.R - cos.P * sin.Y * sin.R,
+            y: cos.P * sin.Y * cos.R + sin.P * cos.Y * sin.R,
+            z: cos.P * cos.Y * sin.R + sin.P * sin.Y * cos.R
+        });
+}
+
+export function rollYawPitchFromQuaternion(quat: OrientationQuat3D): OrientationEuler3D {
+    const RAD_TO_DEG = 180.0 / Math.PI;
+    // yaw = asin(T(-2) * (q.x * q.z - q.w * q.y));
+    // pitch = glm::degrees(atan(T(2) * (q.y * q.z + q.w * q.x), q.w * q.w - q.x * q.x - q.y * q.y + q.z * q.z));
+    // roll = glm::degrees(atan(T(2) * (q.x * q.y + q.w * q.z), q.w * q.w + q.x * q.x - q.y * q.y - q.z * q.z));
+    let qxx = quat.x * quat.x;
+    let qyy = quat.y * quat.y;
+    let qzz = quat.z * quat.z;
+    let qww = quat.w * quat.w;
+    return new OrientationEuler3D({
+        yawDegrees: RAD_TO_DEG * Math.asin( -2 * (quat.x * quat.z - quat.w * quat.y)),
+        pitchDegrees: RAD_TO_DEG * Math.atan2( 2 * (quat.y * quat.z + quat.w * quat.x), qww - qxx - qyy + qzz),
+        rollDegrees: RAD_TO_DEG * Math.atan2( 2 * (quat.x * quat.y + quat.w * quat.z), qww + qxx - qyy - qzz)
+    });
 }
 
 /**
@@ -105,8 +198,7 @@ export class OrientationQuat3D {
  */
 export class HiFiAudioAPIData {
     position: Point3D;
-    orientationEuler: OrientationEuler3D;
-    orientationQuat: OrientationQuat3D;
+    orientation: OrientationQuat3D;
     hiFiGain: number;
 
     /**
@@ -117,16 +209,11 @@ export class HiFiAudioAPIData {
      * ✔ The client sends `position` data to the server when `_transmitHiFiAudioAPIDataToServer()` is called.
      * 
      * ✔ The server sends `position` data to all clients connected to a server during "peer updates".
-     * @param orientationEuler If you don't supply an `orientationEuler` when constructing instantiations of this class, `orientationEuler` will be `null`.
+     * @param orientation If you don't supply an `orientation` when constructing instantiations of this class, `orientation` will be `null`.
      * 
-     * ✔ The client sends `orientationEuler` data to the server when `_transmitHiFiAudioAPIDataToServer()` is called.
+     * ✔ The client sends `orientation` data to the server when `_transmitHiFiAudioAPIDataToServer()` is called.
      * 
-     * ✔ The server sends `orientationEuler` data to all clients connected to a server during "peer updates".
-     * @param orientationQuat If you don't supply an `orientationQuat` when constructing instantiations of this class, `orientationQuat` will be `null`.
-     * 
-     * ✔ The client sends `orientationQuat` data to the server when `_transmitHiFiAudioAPIDataToServer()` is called.
-     * 
-     * ✔ The server sends `orientationQuat` data to all clients connected to a server during "peer updates".
+     * ✔ The server sends `orientation` data to all clients connected to a server during "peer updates".
      * @param hiFiGain This value affects how loud User A will sound to User B at a given distance in 3D space.
      * This value also affects the distance at which User A can be heard in 3D space.
      * Higher values for User A means that User A will sound louder to other users around User A, and it also means that User A will be audible from a greater distance.
@@ -136,10 +223,9 @@ export class HiFiAudioAPIData {
      * 
      * ✔ The server sends `hiFiGain` data to all clients connected to a server during "peer updates".
      */
-    constructor({ position = null, orientationEuler = null, orientationQuat = null, hiFiGain = null }: { position?: Point3D, orientationEuler?: OrientationEuler3D, orientationQuat?: OrientationQuat3D, hiFiGain?: number } = {}) {
+    constructor({ position = null, orientation = null, hiFiGain = null }: { position?: Point3D, orientation?: OrientationQuat3D, hiFiGain?: number } = {}) {
         this.position = position;
-        this.orientationQuat = orientationQuat;
-        this.orientationEuler = orientationEuler;
+        this.orientation = orientation;
         this.hiFiGain = hiFiGain;
     }
 
@@ -151,8 +237,7 @@ export class HiFiAudioAPIData {
     diff(otherHiFiData: HiFiAudioAPIData): HiFiAudioAPIData {
         let currentHiFiAudioAPIDataObj: any = {
             "position": Object.assign({}, this.position),
-            "orientationEuler": Object.assign({}, this.orientationEuler),
-            "orientationQuat": Object.assign({}, this.orientationQuat),
+            "orientation": Object.assign({}, this.orientation),
         };
         if (typeof (this.hiFiGain) === "number") {
             currentHiFiAudioAPIDataObj["hiFiGain"] = this.hiFiGain;
@@ -160,8 +245,7 @@ export class HiFiAudioAPIData {
 
         let otherHiFiDataObj: any = {
             "position": Object.assign({}, otherHiFiData.position),
-            "orientationEuler": Object.assign({}, otherHiFiData.orientationEuler),
-            "orientationQuat": Object.assign({}, otherHiFiData.orientationQuat),
+            "orientation": Object.assign({}, otherHiFiData.orientation),
         };
         if (typeof (otherHiFiData.hiFiGain) === "number") {
             otherHiFiDataObj["hiFiGain"] = otherHiFiData.hiFiGain;
@@ -177,12 +261,13 @@ export class HiFiAudioAPIData {
             returnValue.position = new Point3D(otherHiFiData.position);
         }
 
-        if (diffObject.orientationEuler && (typeof (diffObject.orientationEuler.pitchDegrees) === "number" || typeof (diffObject.orientationEuler.yawDegrees) === "number" || typeof (diffObject.orientationEuler.rollDegrees) === "number")) {
-            returnValue.orientationEuler = new OrientationEuler3D(diffObject.orientationEuler);
-        }
-
-        if (diffObject.orientationQuat && (typeof (diffObject.orientationQuat.w) === "number" || typeof (diffObject.orientationQuat.x) === "number" || typeof (diffObject.orientationQuat.y) === "number" || typeof (diffObject.orientationQuat.z) === "number")) {
-            returnValue.orientationQuat = new OrientationQuat3D(diffObject.orientationQuat);
+        if (diffObject.orientation && (typeof (diffObject.orientation.w) === "number" || typeof (diffObject.orientation.x) === "number" || typeof (diffObject.orientation.y) === "number" || typeof (diffObject.orientation.z) === "number")) {
+            returnValue.orientation = new OrientationQuat3D({
+                w: diffObject.orientation.w ?? currentHiFiAudioAPIDataObj.orientation.w,
+                x: diffObject.orientation.x ?? currentHiFiAudioAPIDataObj.orientation.x,
+                y: diffObject.orientation.y ?? currentHiFiAudioAPIDataObj.orientation.y,
+                z: diffObject.orientation.z ?? currentHiFiAudioAPIDataObj.orientation.z
+            });
         }
 
         if (typeof (diffObject.hiFiGain) === "number") {
@@ -218,7 +303,7 @@ export class ReceivedHiFiAudioAPIData extends HiFiAudioAPIData {
      * ❌ The client never sends `volumeDecibels` data to the server.
      * ✔ The server sends `volumeDecibels` data to all clients connected to a server during "peer updates".
      */
-    constructor(params: { providedUserID?: string, hashedVisitID?: string, volumeDecibels?: number, position?: Point3D, orientationEuler?: OrientationEuler3D, orientationQuat?: OrientationQuat3D, hiFiGain?: number } = {}) {
+    constructor(params: { providedUserID?: string, hashedVisitID?: string, volumeDecibels?: number, position?: Point3D, orientationEuler?: OrientationEuler3D, orientation?: OrientationQuat3D, hiFiGain?: number } = {}) {
         super(params);
         this.providedUserID = params.providedUserID;
         this.hashedVisitID = params.hashedVisitID;
