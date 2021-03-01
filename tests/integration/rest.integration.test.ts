@@ -212,7 +212,7 @@ describe('HiFi API REST Calls', () => {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    'name': stackData.apps.app1.spaces.space1.name,
+                    'name': newName,
                     'new-connections-allowed': true
                 })
             });
@@ -312,13 +312,14 @@ describe('HiFi API REST Calls', () => {
         });
 
         test(`CANNOT change multiple settings simultaneously using 'POST'`, async () => {
+            let newName = "nameChangedAgain";
             let returnMessage = await fetch(`${stackURL}/api/v1/spaces/${stackData.apps.app1.spaces.space1.id}/settings?token=${nonAdminToken}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    'name': stackData.apps.app1.spaces.space1.name,
+                    'name': newName,
                     'new-connections-allowed': true
                 })
             });
