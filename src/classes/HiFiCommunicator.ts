@@ -187,24 +187,14 @@ export class HiFiCommunicator {
      * isn't supplied as an argument to this function, uses the value of that `token` URL query parameter as the JWT.
      * We should remove that later, because we almost certainly don't want this to stay in the API code, but it's _very_ convenient for sample apps for right now.
      *
-     * @param stackName The WebSocket address to which we make our WebRTC signaling connection is decided based on the following heirarchal logic:
-     * 1. If the code is running in the browser context, and the browser's URL query parameters contains a `?stack=<stackName>` query parameter, 
-     * the WebRTC signaling address will be based off of this `stackName` or `stackURL`. Stack names are used internally by High Fidelity developers when testing new server-side code.
-     *     - If the passed `stackName` is a URL, that URL will be used as the WebRTC Signaling Address directly.
-     * 2. If the code is running in the browser context, and the browser's current location's hostname contains `highfidelity.io` (a hostname for internal use only),
-     * it is very likely that we are running a test in a browser. Tests running in a browser from that hostname should assume that the WebRTC Signaling Address
-     * is at the same host from which the test is served.
-     * 3. If the code is running in the browser context, and our code compilation processes have specified the build mode as "production", we should use the production
-     * WebRTC signaling connection address.
-     * 4. If a developer has passed a `stackName` parameter into this `connectToHiFiAudioAPIServer()` call, use a WebRTC signaling address based on that `stackName`.
-     *     - If the passed `stackName` is a URL, that URL will be used as the WebRTC Signaling Address directly.
-     * 5. If the code is running in the NodeJS context, we will use the "production" `stackName`, and use a WebRTC signaling address based on that `stackName`.
-     * 6. If none of the above logic applies, we will use the default "staging" WebRTC signaling connection address.
+     * @param hostURL An URL that will be used to create a valid WebRTC signaling address. `wws://${hostURL}:8001/?token=`
+     * If the developer does not pass a hostURL parameter, a default URL will be used instead. HiFiConstants.DEFAULT_PROD_HIGH_FIDELITY_ENDPOINT
+     * Reading this parameter from the URL should be implemented by the developer as part of the application code.
      * 
      * @returns If this operation is successful, the Promise will resolve with `{ success: true, audionetInitResponse: <The response to `audionet.init` from the server in Object format>}`.
      * If unsuccessful, the Promise will reject with `{ success: false, error: <an error message> }`.
      */
-    async connectToHiFiAudioAPIServer(hifiAuthJWT: string, stackName?: string): Promise<any> {
+    async connectToHiFiAudioAPIServer(hifiAuthJWT: string, hostURL?: string): Promise<any> {
         if (!this._mixerSession) {
             let errMsg = `\`this._mixerSession\` is falsey!`;
             return Promise.reject({
@@ -214,56 +204,17 @@ export class HiFiCommunicator {
         }
 
         let mixerConnectionResponse;
+        let hostURLSafe;
+        
         try {
-            // TODO: Revisit this chunk of code later. We almost certainly don't want this to stay in the API code,
-            // but it's _very_ convenient for sample apps for right now.
-            let params = URLSearchParams && (typeof (location) !== 'undefined') && new URLSearchParams(location.search);
-            if (params && params.has("token") && (!hifiAuthJWT || hifiAuthJWT.length === 0)) {
-                hifiAuthJWT = params.get("token");
-            }
+            hostURLSafe = new URL(hostURL).hostname;
+        } catch(e) {
+            // If hostURL is not defined, we assign the default URL
+            hostURLSafe = hostURL ? hostURL : HiFiConstants.DEFAULT_PROD_HIGH_FIDELITY_ENDPOINT;
+        }
 
-            if (!hifiAuthJWT || hifiAuthJWT.length === 0) {
-                let errMsg = `Can't connect to API Server: No JWT.\nSee this guide for information about obtaining a JWT:\nhttps://www.highfidelity.com/api/guides/misc/getAJWT`;
-                return Promise.reject({
-                    success: false,
-                    error: errMsg
-                });
-            }
-
-            let webRTCSignalingAddress = "wss://loadbalancer-$STACKNAME.highfidelity.io:8001/?token=";
-            let isBrowserContext = typeof self !== 'undefined';
-            if (params && params.has("stack")) {
-                let url;
-                try {
-                    url = new URL(params.get("stack"));
-                } catch (e) { }
-
-                if (url) {
-                    webRTCSignalingAddress = url.href;
-                } else {
-                    webRTCSignalingAddress = webRTCSignalingAddress.replace('$STACKNAME', params.get("stack"));
-                }
-            } else if (isBrowserContext && window.location.hostname.indexOf("highfidelity.io") > -1) {
-                webRTCSignalingAddress = `wss://${window.location.hostname}:8001/?token=`;
-            } else if (isBrowserContext && BUILD_ENVIRONMENT && BUILD_ENVIRONMENT === "prod") {
-                webRTCSignalingAddress = `${HiFiConstants.DEFAULT_PROD_HIGH_FIDELITY_ENDPOINT}/?token=`;
-            } else if (stackName) {
-                let url;
-                try {
-                    url = new URL(stackName);
-                } catch (e) { }
-
-                if (url) {
-                    webRTCSignalingAddress = url.href;
-                } else {
-                    webRTCSignalingAddress = webRTCSignalingAddress.replace('$STACKNAME', stackName);
-                }
-            } else if (!isBrowserContext) {
-                webRTCSignalingAddress = `${HiFiConstants.DEFAULT_PROD_HIGH_FIDELITY_ENDPOINT}/?token=`;
-            } else {
-                webRTCSignalingAddress = webRTCSignalingAddress.replace('$STACKNAME', 'api-staging-02');
-            }
-
+        try {
+            let webRTCSignalingAddress = `wss://${hostURLSafe}:8001/?token=`;
             this._mixerSession.webRTCAddress = `${webRTCSignalingAddress}${hifiAuthJWT}`;
 
             HiFiLogger.log(`Using WebRTC Signaling Address:\n${webRTCSignalingAddress}<token redacted>`);
