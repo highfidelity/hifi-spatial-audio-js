@@ -154,7 +154,8 @@ export class HiFiAudioAPIData {
      * relative to other users. (Note: The actual value "0" is used internally to represent the default; for setting minimal attenuation, 
      * small non-zero numbers should be used instead. See also "userRolloff" below.)
      *   - Negative attenuation numbers are used to represent linear attenuation, and are a somewhat artificial, non-real-world concept. However,
-     * this setting can be used as a blunt tool to easily test attenuation, and tune it aggressively in extreme circumstances.
+     * this setting can be used as a blunt tool to easily test attenuation, and tune it aggressively in extreme circumstances. When using linear 
+     * attenuation, the setting is the distance in meters at which the audio becomes totally inaudible.
      *
      * If you don't supply an `userAttenuation` when constructing instantiations of this class, `userAttenuation` will be `null` and the
      * default will be used.
@@ -166,7 +167,7 @@ export class HiFiAudioAPIData {
      * @param userRolloff This value represents the progressive high frequency roll-off in meters, a measure of how the higher frequencies 
      * in a user's sound are dampened as the user gets further away. By default, there is a global roll-off value (set for a given space), currently 12.5 
      * meters, which applies to all users in a space. This value represents the distance for a 1kHz rolloff. Values in the range of 
-     * 12 to 32 meters tend to provide a more "enclosed" sound, in which high frequencies tend to be dampened over distance as they are 
+     * 12 to 32 meters provide a more "enclosed" sound, in which high frequencies tend to be dampened over distance as they are 
      * in the real world. Generally changes to roll-off values should be made for the entire space rather than for individual users, but
      * extremely high values (e.g. 99999) should be used in combination with "broadcast mode"-style userAttenuation settings to cause the
      * broadcasted voice to sound crisp and "up close" even at very large distances.
