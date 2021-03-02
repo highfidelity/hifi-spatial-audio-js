@@ -11,7 +11,7 @@ declare var HIFI_API_VERSION: string;
 
 import { HiFiConstants } from "../constants/HiFiConstants";
 import { HiFiLogger } from "../utilities/HiFiLogger";
-import { HiFiAudioAPIData, ReceivedHiFiAudioAPIData, Point3D, OrientationQuat3D } from "./HiFiAudioAPIData";
+import { HiFiAudioAPIData, ReceivedHiFiAudioAPIData, Point3D, OrientationQuat3D, OrientationEuler3D, eulerToQuaternion, eulerFromQuaternion } from "./HiFiAudioAPIData";
 import { HiFiAxisConfiguration, HiFiAxisUtilities, ourHiFiAxisConfiguration } from "./HiFiAxisConfiguration";
 import { HiFiMixerSession } from "./HiFiMixerSession";
 import { AvailableUserDataSubscriptionComponents, UserDataSubscription } from "./HiFiUserDataSubscription";
@@ -408,15 +408,22 @@ export class HiFiCommunicator {
      * the user data on the High Fidelity Audio API server. There are no good reasons for a client to call this function
      * and _not_ update the server User Data, and thus this function is `private`.
      * 
+     * The function both representation of orientation, quaternion and euler.
+     * The quaternion representation is preferred.
+     * If both representation are provided, the euler representation is ignored.
+     * If only the euler representation is provided, it is then converted immediately to the equivalent quaternion representation.
+     * Euler representation is not used internally anymore in the Hifi API.
+     * 
      * @param __namedParameters
      * @param position - The new position of the user.
      * @param orientation - The new orientation of the user.
+     * @param orientationEuler - The new orientation of the user expressed with an euler representation. Ignored if the field 'orientation' quat version is defined.
      * @param hiFiGain - This value affects how loud User A will sound to User B at a given distance in 3D space.
      * This value also affects the distance at which User A can be heard in 3D space.
      * Higher values for User A means that User A will sound louder to other users around User A, and it also means that User A will be audible from a greater distance.
      * The new hiFiGain of the user.
      */
-    private _updateUserData({ position, orientation, hiFiGain }: { position?: Point3D, orientation?: OrientationQuat3D, hiFiGain?: number } = {}): void {
+    private _updateUserData({ position, orientation, orientationEuler, hiFiGain }: { position?: Point3D, orientation?: OrientationQuat3D, orientationEuler?: OrientationEuler3D, hiFiGain?: number } = {}): void {
         if (position) {
             if (!this._currentHiFiAudioAPIData.position) {
                 this._currentHiFiAudioAPIData.position = new Point3D();
@@ -436,6 +443,11 @@ export class HiFiCommunicator {
             this._currentHiFiAudioAPIData.orientation.x = orientation.x ?? this._currentHiFiAudioAPIData.orientation.x;
             this._currentHiFiAudioAPIData.orientation.y = orientation.y ?? this._currentHiFiAudioAPIData.orientation.y;
             this._currentHiFiAudioAPIData.orientation.z = orientation.z ?? this._currentHiFiAudioAPIData.orientation.z;
+        } 
+        // if orientation is provided as an euler format, then do the conversion immediately
+        else if (orientationEuler) {
+            let checkedEuler = new OrientationEuler3D(orientationEuler);
+            this._currentHiFiAudioAPIData.orientation = eulerToQuaternion(checkedEuler);
         }
 
         if (typeof (hiFiGain) === "number") {
@@ -514,15 +526,15 @@ export class HiFiCommunicator {
             }
             // Get the data to transmit, which is the difference between the last data we transmitted
             // and the current data we have stored.
-            let delta = this._lastTransmittedHiFiAudioAPIData.diff(this._currentHiFiAudioAPIData);
+           // let delta = this._lastTransmittedHiFiAudioAPIData.diff(this._currentHiFiAudioAPIData);
             // This function will translate the new `HiFiAudioAPIData` object from above into stringified JSON data in the proper format,
             // then send that data to the mixer.
             // The function will return the raw data that it sent to the mixer.
-            let transmitRetval = this._mixerSession._transmitHiFiAudioAPIDataToServer(delta);
+            let transmitRetval = this._mixerSession._transmitHiFiAudioAPIDataToServer(this._currentHiFiAudioAPIData, this._lastTransmittedHiFiAudioAPIData);
             if (transmitRetval.success) {
                 // Now we have to update our "last transmitted" `HiFiAudioAPIData` object
                 // to contain the data that we just transmitted.
-                this._updateLastTransmittedHiFiAudioAPIData(delta);
+                this._updateLastTransmittedHiFiAudioAPIData(this._currentHiFiAudioAPIData);
 
                 return {
                     success: true,
@@ -616,9 +628,16 @@ export class HiFiCommunicator {
                             }
                             break;
 
-                        case AvailableUserDataSubscriptionComponents.Orientation:
+                        case AvailableUserDataSubscriptionComponents.OrientationQuat:
                             if (currentDataFromServer.orientation) {
                                 newCallbackData.orientation = currentDataFromServer.orientation;
+                                shouldPushNewCallbackData = true;
+                            }
+                            break;
+                        case AvailableUserDataSubscriptionComponents.OrientationEuler:
+                            // Generate the euler version of orientation if quat version available
+                            if (currentDataFromServer.orientation) {
+                                newCallbackData.orientationEuler = eulerFromQuaternion(currentDataFromServer.orientation);
                                 shouldPushNewCallbackData = true;
                             }
                             break;

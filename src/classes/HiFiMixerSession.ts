@@ -663,7 +663,7 @@ export class HiFiMixerSession {
      * @returns If this operation is successful, returns `{ success: true, stringifiedDataForMixer: <the raw data that was transmitted to the server>}`. If unsuccessful, returns
      * `{ success: false, error: <an error message> }`.
      */
-    _transmitHiFiAudioAPIDataToServer(hifiAudioAPIData: HiFiAudioAPIData): any {
+    _transmitHiFiAudioAPIDataToServer(currentHifiAudioAPIData: HiFiAudioAPIData, previousHifiAudioAPIData?: HiFiAudioAPIData): any {
         if (!this.mixerInfo["connected"] || !this._raviSession) {
             return {
                 success: false,
@@ -673,41 +673,108 @@ export class HiFiMixerSession {
 
         let dataForMixer: any = {};
 
-        if (hifiAudioAPIData.position) {
-            let translatedPosition = HiFiAxisUtilities.translatePoint3DToMixerSpace(ourHiFiAxisConfiguration, hifiAudioAPIData.position);
+        // if a position is specified with valid components, let's consider adding position payload
+        if (currentHifiAudioAPIData.position && (typeof (currentHifiAudioAPIData.position.x) === "number")
+                                             && (typeof (currentHifiAudioAPIData.position.y) === "number")
+                                             && (typeof (currentHifiAudioAPIData.position.z) === "number")) {
+            // Detect the position components which have really changed compared to the previous state known from the server
+            let changedComponents : { x: boolean, y: boolean, z: boolean, changed: boolean} = {x: false, y: false, z: false, changed: false};
+            if (previousHifiAudioAPIData && previousHifiAudioAPIData.position) {
+                if (currentHifiAudioAPIData.position.x !== previousHifiAudioAPIData.position.x) {
+                    changedComponents.x = true;
+                    changedComponents.changed = true;
+                }
+                if (currentHifiAudioAPIData.position.y !== previousHifiAudioAPIData.position.y) {
+                    changedComponents.y = true;
+                    changedComponents.changed = true;
+                }
+                if (currentHifiAudioAPIData.position.z !== previousHifiAudioAPIData.position.z) {
+                    changedComponents.z = true;
+                    changedComponents.changed = true;
+                }
+            } else {
+                changedComponents.x = true;
+                changedComponents.y = true;
+                changedComponents.z = true;
+                changedComponents.changed = true;
+            }
+            
+            // Some position components have changed, let's fill in the payload
+            if (changedComponents.changed) {
+                let translatedPosition = HiFiAxisUtilities.translatePoint3DToMixerSpace(ourHiFiAxisConfiguration, currentHifiAudioAPIData.position);
 
-            // Position data is sent in millimeters integers to reduce JSON size.
-            if (typeof (translatedPosition.x) === "number") {
-                dataForMixer["x"] = Math.round(translatedPosition.x * 1000);
-            }
-            if (typeof (translatedPosition.y) === "number") {
-                dataForMixer["y"] = Math.round(translatedPosition.y * 1000);
-            }
-            if (typeof (translatedPosition.z) === "number") {
-                dataForMixer["z"] = Math.round(translatedPosition.z * 1000);
+                // Position data is sent in millimeters integers to reduce JSON size.
+                if (changedComponents.x) {
+                    dataForMixer["x"] = Math.round(translatedPosition.x * 1000);
+                }
+                if (changedComponents.y) {
+                    dataForMixer["y"] = Math.round(translatedPosition.y * 1000);
+                }
+                if (changedComponents.z) {
+                    dataForMixer["z"] = Math.round(translatedPosition.z * 1000);
+                }
             }
         }
 
-        // The mixer expects Quaternion components to be mulitiplied by 1000.
-        if (hifiAudioAPIData.orientation) {
-            let translatedOrientation = HiFiAxisUtilities.translateOrientation3DToMixerSpace(ourHiFiAxisConfiguration, hifiAudioAPIData.orientation);
-          
-            if (typeof (hifiAudioAPIData.orientation.w) === "number") {
-                dataForMixer["W"] = translatedOrientation.w * 1000;
+        // if orientation is specified with valid components, let's consider adding orientation payload
+        if (currentHifiAudioAPIData.orientation && (typeof (currentHifiAudioAPIData.orientation.w) === "number")
+                                                && (typeof (currentHifiAudioAPIData.orientation.x) === "number")
+                                                && (typeof (currentHifiAudioAPIData.orientation.y) === "number")
+                                                && (typeof (currentHifiAudioAPIData.orientation.z) === "number") ) {
+            // Detect the orientation components which have really changed compared to the previous state known from the server
+            let changedComponents : { w: boolean, x: boolean, y: boolean, z: boolean, changed: boolean} = {w: false, x: false, y: false, z: false, changed: false};
+            if (previousHifiAudioAPIData && previousHifiAudioAPIData.orientation) {
+                if (currentHifiAudioAPIData.orientation.w !== previousHifiAudioAPIData.orientation.w) {
+                    changedComponents.w = true;
+                    changedComponents.changed = true;
+                }
+                if (currentHifiAudioAPIData.orientation.x !== previousHifiAudioAPIData.orientation.x) {
+                    changedComponents.x = true;
+                    changedComponents.changed = true;
+                }
+                if (currentHifiAudioAPIData.orientation.y !== previousHifiAudioAPIData.orientation.y) {
+                    changedComponents.y = true;
+                    changedComponents.changed = true;
+                }
+                if (currentHifiAudioAPIData.orientation.z !== previousHifiAudioAPIData.orientation.z) {
+                    changedComponents.z = true;
+                    changedComponents.changed = true;
+                }
+            } else {
+                changedComponents.w = true;
+                changedComponents.x = true;
+                changedComponents.y = true;
+                changedComponents.z = true;
+                changedComponents.changed = true;
             }
-            if (typeof (hifiAudioAPIData.orientation.x) === "number") {
-                dataForMixer["X"] = translatedOrientation.x * 1000;
-            }
-            if (typeof (hifiAudioAPIData.orientation.y) === "number") {
-                dataForMixer["Y"] = translatedOrientation.y * 1000;
-            }
-            if (typeof (hifiAudioAPIData.orientation.z) === "number") {
-                dataForMixer["Z"] = translatedOrientation.z * 1000;
+
+            // Some orientation components have changed, let's fill in the payload
+            if (changedComponents.changed) {
+                // The mixer expects Quaternion components in its space and to be mulitiplied by 1000.
+                let translatedOrientation = HiFiAxisUtilities.translateOrientation3DToMixerSpace(ourHiFiAxisConfiguration, currentHifiAudioAPIData.orientation);
+
+                if (changedComponents.w) {
+                    dataForMixer["W"] = translatedOrientation.w * 1000;
+                }
+                if (changedComponents.x) {
+                    dataForMixer["X"] = translatedOrientation.x * 1000;
+                }
+                if (changedComponents.y) {
+                    dataForMixer["Y"] = translatedOrientation.y * 1000;
+                }
+                if (changedComponents.z) {
+                    dataForMixer["Z"] = translatedOrientation.z * 1000;
+                }
             }
         }
 
-        if (typeof (hifiAudioAPIData.hiFiGain) === "number") {
-            dataForMixer["g"] = Math.max(0, hifiAudioAPIData.hiFiGain);
+        // Transmit the hifiGain if different from before
+        if (currentHifiAudioAPIData.hiFiGain && (typeof (currentHifiAudioAPIData.hiFiGain) === "number")) {
+            if (previousHifiAudioAPIData && previousHifiAudioAPIData.hiFiGain && (previousHifiAudioAPIData.hiFiGain === currentHifiAudioAPIData.hiFiGain) ) {
+                // no op, previous and new are the same
+            } else {
+                dataForMixer["g"] = Math.max(0, currentHifiAudioAPIData.hiFiGain);
+            }
         }
 
         if (Object.keys(dataForMixer).length === 0) {

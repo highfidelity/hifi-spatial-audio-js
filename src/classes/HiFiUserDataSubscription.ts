@@ -10,7 +10,8 @@
  */
 export enum AvailableUserDataSubscriptionComponents {
     Position = "Position",
-    Orientation = "Orientation (Quaternion)",
+    OrientationEuler = "Orientation (Euler)",
+    OrientationQuat = "Orientation (Quaternion)",
     VolumeDecibels = "Volume (Decibels)",
     HiFiGain = "HiFiGain"
 }
@@ -29,7 +30,7 @@ export class UserDataSubscription {
      * @param {Object} __namedParameters
      * @param providedUserID - The user's `providedUserID` associated with the Subscription. See {@link HiFiAudioAPIData}. Optional. If unset, the Subscription callback
      * will be called for all users' data when it changes.
-     * @param components - The User Data components to which we want to subscribe, such as Position, Orientation, or VolumeDecibels.
+     * @param components - The User Data components to which we want to subscribe, such as Position, OrientationEuler, or VolumeDecibels.
      * @param callback - The callback function to call when the client receives new User Data associated with the `component` from the server.
      * The first and only argument to the callback function will be of type `Array<ReceivedHiFiAudioAPIData>`.
      */
