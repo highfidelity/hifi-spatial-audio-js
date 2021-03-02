@@ -187,8 +187,8 @@ export class HiFiCommunicator {
      * isn't supplied as an argument to this function, uses the value of that `token` URL query parameter as the JWT.
      * We should remove that later, because we almost certainly don't want this to stay in the API code, but it's _very_ convenient for sample apps for right now.
      *
-     * @param hostURL An URL that will be used to create a valid WebRTC signaling address. `wws://${hostURL}:8001/?token=`
-     * If the developer does not pass a hostURL parameter, a default URL will be used instead. HiFiConstants.DEFAULT_PROD_HIGH_FIDELITY_ENDPOINT
+     * @param hostURL An URL that will be used to create a valid WebRTC signaling address. The passed `hostURL` will be used to construct a signaling address of the form: `wws://${hostURL}:8001/?token=`
+     * If the developer does not pass a `hostURL` parameter, a default URL will be used instead. See: {@link DEFAULT_PROD_HIGH_FIDELITY_ENDPOINT}
      * Reading this parameter from the URL should be implemented by the developer as part of the application code.
      * 
      * @returns If this operation is successful, the Promise will resolve with `{ success: true, audionetInitResponse: <The response to `audionet.init` from the server in Object format>}`.
@@ -205,7 +205,7 @@ export class HiFiCommunicator {
 
         let mixerConnectionResponse;
         let hostURLSafe;
-        
+
         try {
             hostURLSafe = new URL(hostURL).hostname;
         } catch(e) {
