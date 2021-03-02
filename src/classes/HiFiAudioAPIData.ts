@@ -140,28 +140,37 @@ export class HiFiAudioAPIData {
      * ✔ The server sends `hiFiGain` data to all clients connected to a server during "peer updates".
 
      * @param userAttenuation This value affects how far a user's sound will travel in 3D space, without affecting the user's loudness.
-     * By default, there is a global attenuation value (set for a given space) that applies to all users in a space.
+     * By default, there is a global attenuation value (set for a given space) that applies to all users in a space. This default space
+     * attenuation is usually 0.5, which represents a reasonable approximation of a real-world fall-off in sound over distance.
+     * Lower numbers represent less attenuation (i.e. sound travels farther); higher numbers represent more attenuation (i.e. sound drops
+     * off more quickly).
+     * 
+     * When setting this value for an individual user, the following holds:
+     *   - Positive numbers should be between 0 and 1, and they represent a logarithmic attenuation. This range is recommended, as it is
+     * more natural sounding.  Smaller numbers represent less attenuation, so a number such as 0.2 can be used to make a particular 
+     * user's audio travel farther than other users', for instance in "amplified" concert type settings. Similarly, an extremely 
+     * small non-zero number (e.g. 0.00001) can be used to effectively turn off attenuation for a given user within a reasonably 
+     * sized space, resulting in a "broadcast mode" where the user can be heard throughout most of the space regardless of their location
+     * relative to other users. (Note: The actual value "0" is used internally to represent the default; for setting minimal attenuation, 
+     * small non-zero numbers should be used instead. See also "userRolloff" below.)
+     *   - Negative attenuation numbers are used to represent linear attenuation, and are a somewhat artificial, non-real-world concept. However,
+     * this setting can be used as a blunt tool to easily test attenuation, and tune it aggressively in extreme circumstances.
      *
-     * Positive numbers should be between 0 and 1, and they represent exponential attenuation. These numbers are recommended, 
-     * as it is more natural sounding. Default space attenuation is usually 0.5. Lower numbers represent less attenuation (i.e. 
-     * sound travels farther); higher numbers represent more attenuation (i.e. sound drops off more quickly). A number such as 0.2
-     * can be used to make a particular user's audio travel farther than other users, which can be useful for concert type settings.
-     *
-     * Negative numbers are used to represent linear attenuation, and are less natural -- however, this setting can be more
-     * intuitive. An extremely large negative number (e.g. -99999) can be used to effectively turn off attenuation entirely
-     * for a given user, resulting in a "broadcast mode" where the user can be heard throughout most of the space regardless of location
-     * relative to other users. 
-     *
-     * If you don't supply an `userAttenuation` when constructing instantiations of this class, `userAttenuation` will be `null`.
+     * If you don't supply an `userAttenuation` when constructing instantiations of this class, `userAttenuation` will be `null` and the
+     * default will be used.
      * 
      * ✔ The client sends `userAttenuation` data to the server when `_transmitHiFiAudioAPIDataToServer()` is called.
      * 
      * ❌ The server never sends `userAttenuation` data.
-
-     * @param userRolloff This value affects frequency rolloff. Very large numbers mean that rolloff will be effectively disabled.
-     * When setting a user up for a "broadcast mode" it is recommended to set this to a number such as 99999 to effectively
-     * turn off frequency rolloff entirely. Smaller numbers (e.g. 30) can be used to reduce rolloff slightly without turning
-     * it off altogether.
+     *
+     * @param userRolloff This value represents the progressive high frequency roll-off in meters, a measure of how the higher frequencies 
+     * in a user's sound are dampened as the user gets further away. By default, there is a global roll-off value (set for a given space), currently 12.5 
+     * meters, which applies to all users in a space. This value represents the distance for a 1kHz rolloff. Values in the range of 
+     * 12 to 32 meters tend to provide a more "enclosed" sound, in which high frequencies tend to be dampened over distance as they are 
+     * in the real world. Generally changes to roll-off values should be made for the entire space rather than for individual users, but
+     * extremely high values (e.g. 99999) should be used in combination with "broadcast mode"-style userAttenuation settings to cause the
+     * broadcasted voice to sound crisp and "up close" even at very large distances.
+     *
      * If you don't supply an `userRolloff` when constructing instantiations of this class, `userRolloff` will be `null`.
      * 
      * ✔ The client sends `userRolloff` data to the server when `_transmitHiFiAudioAPIDataToServer()` is called.
