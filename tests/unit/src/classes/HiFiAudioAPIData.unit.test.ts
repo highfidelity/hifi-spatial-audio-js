@@ -1,4 +1,4 @@
-import { HiFiAudioAPIData, OrientationEuler3D, Point3D } from "../../../src/classes/HiFiAudioAPIData";
+import { HiFiAudioAPIData, OrientationEuler3D, Point3D } from "../../../../src/classes/HiFiAudioAPIData";
 
 describe('Point3D', () => {
     test('verifies default members of a new Point3D are null', () => {

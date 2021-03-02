@@ -1,4 +1,4 @@
-import { HiFiLogger, HiFiLogLevel } from "../../../src/utilities/HiFiLogger";
+import { HiFiLogger, HiFiLogLevel } from "../../../../src/utilities/HiFiLogger";
 
 test(`the default log level is Error`, () => {
     expect(HiFiLogger.log('Log: If you see this, a test has failed!')).toBe(false);
