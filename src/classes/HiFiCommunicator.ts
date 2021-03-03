@@ -370,7 +370,7 @@ export class HiFiCommunicator {
      * Higher values for User A means that User A will sound louder to other users around User A, and it also means that User A will be audible from a greater distance.
      * The new hiFiGain of the user.
      */
-    private _updateUserData({ position, orientationEuler, orientationQuat, volumeThreshold, hiFiGain }: { position?: Point3D, orientationEuler?: OrientationEuler3D, orientationQuat?: OrientationQuat3D, volumeThreshold?: volumeThreshold, hiFiGain?: number } = {}): void {
+    private _updateUserData({ position, orientationEuler, orientationQuat, volumeThreshold, hiFiGain }: { position?: Point3D, orientationEuler?: OrientationEuler3D, orientationQuat?: OrientationQuat3D, volumeThreshold?: number, hiFiGain?: number } = {}): void {
         if (position) {
             if (!this._currentHiFiAudioAPIData.position) {
                 this._currentHiFiAudioAPIData.position = new Point3D();
