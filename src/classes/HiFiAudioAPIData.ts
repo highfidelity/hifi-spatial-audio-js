@@ -130,7 +130,8 @@ export class HiFiAudioAPIData {
      * ✔ The server sends `orientationQuat` data to all clients connected to a server during "peer updates".
      *
      * @param volumeThreshold A volume level below this value is considered background noise and will be smoothly gated off.
-     * The floating point value is in the same decibel units as the VolumeDecibels component of UserDataSubscription.
+     * The floating point value is specified in dBFS (decibels relative to full scale) with values between -96 dB (indicating no gating)
+     * and 0 dB. It is in the same decibel units as the VolumeDecibels component of UserDataSubscription.
      *
      * @param hiFiGain This value affects how loud User A will sound to User B at a given distance in 3D space.
      * This value also affects the distance at which User A can be heard in 3D space.
