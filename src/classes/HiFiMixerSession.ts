@@ -724,7 +724,6 @@ export class HiFiMixerSession {
         }
 
         if (typeof (hifiAudioAPIData.userRolloff) === "number") {
-            // TODO: Should this ever go negative?
             dataForMixer["r"] = Math.max(0, hifiAudioAPIData.userRolloff);
         }
 

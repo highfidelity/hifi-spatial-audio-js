@@ -165,7 +165,7 @@ export class HiFiAudioAPIData {
      * ❌ The server never sends `userAttenuation` data.
      *
      * @param userRolloff This value represents the progressive high frequency roll-off in meters, a measure of how the higher frequencies 
-     * in a user's sound are dampened as the user gets further away. By default, there is a global roll-off value (set for a given space), currently 12.5 
+     * in a user's sound are dampened as the user gets further away. By default, there is a global roll-off value (set for a given space), currently 16 
      * meters, which applies to all users in a space. This value represents the distance for a 1kHz rolloff. Values in the range of 
      * 12 to 32 meters provide a more "enclosed" sound, in which high frequencies tend to be dampened over distance as they are 
      * in the real world. Generally changes to roll-off values should be made for the entire space rather than for individual users, but

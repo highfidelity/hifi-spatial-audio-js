@@ -465,7 +465,6 @@ export class HiFiCommunicator {
             this._currentHiFiAudioAPIData.userAttenuation = userAttenuation;
         }
         if (typeof (userRolloff) === "number") {
-            // TODO: will this ever be negative legitimately?
             this._currentHiFiAudioAPIData.userRolloff = Math.max(0, userRolloff);
         }
     }
