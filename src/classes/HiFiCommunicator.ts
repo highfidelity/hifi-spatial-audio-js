@@ -134,7 +134,7 @@ export class HiFiCommunicator {
 
         this._inputAudioMediaStream = undefined;
 
-        this._currentHiFiAudioAPIData = initialHiFiAudioAPIData;
+        this._currentHiFiAudioAPIData = new HiFiAudioAPIData();
 
         this._lastTransmittedHiFiAudioAPIData = new HiFiAudioAPIData();
 
@@ -153,6 +153,9 @@ export class HiFiCommunicator {
                 HiFiLogger.error(`There is an error with the passed \`HiFiAxisConfiguration\`, so the new axis configuration was not set. There are more error details in the logs above.`);
             }
         }
+
+        // initialize the current Audo API Data with the given data, but use the updateUserData call for sanity.
+        this._updateUserData(initialHiFiAudioAPIData);
     }
 
     /**

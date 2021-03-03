@@ -24,6 +24,14 @@ describe('OrientationQuat3D', () => {
         expect(newOrientationQuat3D.y).toBe(0);
         expect(newOrientationQuat3D.z).toBe(0);
     });
+
+    test('verifies components out of bound of a new OrientationQuat3D are clamped in the correct range', () => {
+        let newOrientationQuat3D = new OrientationQuat3D({w: 2, x: NaN, y: Infinity, z: -Infinity});
+        expect(newOrientationQuat3D.w).toBe(1);
+        expect(newOrientationQuat3D.x).toBe(0);
+        expect(newOrientationQuat3D.y).toBe(1);
+        expect(newOrientationQuat3D.z).toBe(-1);
+    });
 });
 
 describe('OrientationEuler3D', () => {
@@ -33,12 +41,26 @@ describe('OrientationEuler3D', () => {
         expect(newOrientationEuler3D.yawDegrees).toBe(0);
         expect(newOrientationEuler3D.rollDegrees).toBe(0);
     });
-    
+
+    test('verifies default members of a new OrientationEuler3D initialized with undefined are 0', () => {
+        let newOrientationEuler3D = new OrientationEuler3D(undefined);
+        expect(newOrientationEuler3D.pitchDegrees).toBe(0);
+        expect(newOrientationEuler3D.yawDegrees).toBe(0);
+        expect(newOrientationEuler3D.rollDegrees).toBe(0);
+    });
+
     test('allows us to only set the pitchDegrees component of a new OrientationEuler3D', () => {
         let newOrientationEuler3D = new OrientationEuler3D({pitchDegrees: 25});
         expect(newOrientationEuler3D.pitchDegrees).toBe(25);
         expect(newOrientationEuler3D.yawDegrees).toBe(0);
         expect(newOrientationEuler3D.rollDegrees).toBe(0);
+    });
+    
+    test('verifies default members of a new OrientationEuler3D initialized with out of range and NaN are kept in range', () => {
+        let newOrientationEuler3D = new OrientationEuler3D({pitchDegrees: NaN, yawDegrees: Infinity, rollDegrees: -Infinity});
+        expect(newOrientationEuler3D.pitchDegrees).toBe(0);
+        expect(newOrientationEuler3D.yawDegrees).toBe(360);
+        expect(newOrientationEuler3D.rollDegrees).toBe(-360);
     });
 });
 
@@ -107,6 +129,17 @@ describe('Orientation_EulerToFromQuat', () => {
 describe('HiFiAudioAPIData', () => {
     test('verifies default members of a new HiFiAudioAPIData are null', () => {
         let newHiFiAudioAPIData = new HiFiAudioAPIData();
+        expect(newHiFiAudioAPIData.position).toBeNull();
+        expect(newHiFiAudioAPIData.orientation).toBeNull();
+        expect(newHiFiAudioAPIData.orientationEuler).toBeNull();
+    });
+
+
+    test('verifies default members of a new HiFiAudioAPIData are null', () => {
+        let newHiFiAudioAPIData = new HiFiAudioAPIData({
+            position: undefined,
+            orientationEuler: undefined
+        });
         expect(newHiFiAudioAPIData.position).toBeNull();
         expect(newHiFiAudioAPIData.orientation).toBeNull();
         expect(newHiFiAudioAPIData.orientationEuler).toBeNull();
