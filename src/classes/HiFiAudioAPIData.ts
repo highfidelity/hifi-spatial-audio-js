@@ -107,6 +107,7 @@ export class HiFiAudioAPIData {
     position: Point3D;
     orientationEuler: OrientationEuler3D;
     orientationQuat: OrientationQuat3D;
+    volumeThreshold: number;
     hiFiGain: number;
 
     /**
@@ -127,6 +128,10 @@ export class HiFiAudioAPIData {
      * ✔ The client sends `orientationQuat` data to the server when `_transmitHiFiAudioAPIDataToServer()` is called.
      * 
      * ✔ The server sends `orientationQuat` data to all clients connected to a server during "peer updates".
+     *
+     * @param volumeThreshold A volume level below this value is considered background noise and will be smoothly gated off.
+     * The floating point value is in the same decibel units as the VolumeDecibels component of UserDataSubscription.
+     *
      * @param hiFiGain This value affects how loud User A will sound to User B at a given distance in 3D space.
      * This value also affects the distance at which User A can be heard in 3D space.
      * Higher values for User A means that User A will sound louder to other users around User A, and it also means that User A will be audible from a greater distance.
@@ -136,10 +141,11 @@ export class HiFiAudioAPIData {
      * 
      * ✔ The server sends `hiFiGain` data to all clients connected to a server during "peer updates".
      */
-    constructor({ position = null, orientationEuler = null, orientationQuat = null, hiFiGain = null }: { position?: Point3D, orientationEuler?: OrientationEuler3D, orientationQuat?: OrientationQuat3D, hiFiGain?: number } = {}) {
+    constructor({ position = null, orientationEuler = null, orientationQuat = null, volumeThreshold = null, hiFiGain = null }: { position?: Point3D, orientationEuler?: OrientationEuler3D, orientationQuat?: OrientationQuat3D, volumeThreshold?: number, hiFiGain?: number } = {}) {
         this.position = position;
         this.orientationQuat = orientationQuat;
         this.orientationEuler = orientationEuler;
+        this.volumeThreshold = volumeThreshold;
         this.hiFiGain = hiFiGain;
     }
 
@@ -154,6 +160,9 @@ export class HiFiAudioAPIData {
             "orientationEuler": Object.assign({}, this.orientationEuler),
             "orientationQuat": Object.assign({}, this.orientationQuat),
         };
+        if (typeof (this.volumeThreshold) === "number") {
+            currentHiFiAudioAPIDataObj["volumeThreshold"] = this.volumeThreshold;
+        }
         if (typeof (this.hiFiGain) === "number") {
             currentHiFiAudioAPIDataObj["hiFiGain"] = this.hiFiGain;
         }
@@ -163,6 +172,9 @@ export class HiFiAudioAPIData {
             "orientationEuler": Object.assign({}, otherHiFiData.orientationEuler),
             "orientationQuat": Object.assign({}, otherHiFiData.orientationQuat),
         };
+        if (typeof (otherHiFiData.volumeThreshold) === "number") {
+            otherHiFiDataObj["volumeThreshold"] = otherHiFiData.volumeThreshold;
+        }
         if (typeof (otherHiFiData.hiFiGain) === "number") {
             otherHiFiDataObj["hiFiGain"] = otherHiFiData.hiFiGain;
         }
@@ -183,6 +195,10 @@ export class HiFiAudioAPIData {
 
         if (diffObject.orientationQuat && (typeof (diffObject.orientationQuat.w) === "number" || typeof (diffObject.orientationQuat.x) === "number" || typeof (diffObject.orientationQuat.y) === "number" || typeof (diffObject.orientationQuat.z) === "number")) {
             returnValue.orientationQuat = new OrientationQuat3D(diffObject.orientationQuat);
+        }
+
+        if (typeof (diffObject.volumeThreshold) === "number") {
+            returnValue.volumeThreshold = diffObject.volumeThreshold;
         }
 
         if (typeof (diffObject.hiFiGain) === "number") {
