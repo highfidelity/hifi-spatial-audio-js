@@ -14,7 +14,7 @@ describe('HiFi API REST Calls', () => {
             nonAdminToken = await generateJWT(TOKEN_GEN_TYPES.NON_ADMIN_ID_APP1_SPACE1_SIGNED);
         } catch (err) {
             console.error("Unable to create non admin token for testing REST calls. ERR: ", err);
-            return;
+            process.exit();
         }
     });
 
@@ -71,6 +71,33 @@ describe('HiFi API REST Calls', () => {
             } catch (err) {
                 console.log("Cannot delete the space used to test a nonadmin trying to delete a space! ERR: ", err);
             }
+        });
+    });
+
+    describe(`Admin CAN read accurate list of spaces for an app`, () => {
+        test(`CAN read the list of spaces`, async () => {
+            let returnMessage = await fetch(`${stackURL}/api/v1/spaces/?token=${adminToken}`);
+
+            let spacesListJSON: any = {};
+            spacesListJSON = await returnMessage.json();
+            expect(spacesListJSON).toBeDefined();
+        });
+
+        test(`the list is accurate`, async () => {
+            let returnMessage = await fetch(`${stackURL}/api/v1/spaces/?token=${adminToken}`);
+
+            let spacesListJSON: any = {};
+            spacesListJSON = await returnMessage.json();
+            expect(spacesListJSON.length).toBe(Object.keys(stackData.apps.app1.spaces).length);
+            spacesListJSON.forEach(async (space: any) => {
+                let match = false;
+                for (var key in stackData.apps.app1.spaces) {
+                    if (stackData.apps.app1.spaces[key].id === space['space-id']) { match = true; }
+                }
+                expect(match).toBe(true);
+            });
+
+
         });
     });
 
