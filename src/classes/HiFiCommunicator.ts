@@ -188,7 +188,7 @@ export class HiFiCommunicator {
      * We should remove that later, because we almost certainly don't want this to stay in the API code, but it's _very_ convenient for sample apps for right now.
      *
      * @param hostURL An URL that will be used to create a valid WebRTC signaling address. The passed `hostURL` parameter does not need to contain the protocol 
-     * or port - e.g. `server.highfidelity.com` - and it will be used to construct a signaling address of the form: `wws://${hostURL}:8001/?token=`
+     * or port - e.g. `server.highfidelity.com` - and it will be used to construct a signaling address of the form: `wss://${hostURL}:8001/?token=`
      * If the developer does not pass a `hostURL` parameter, a default URL will be used instead. See: {@link DEFAULT_PROD_HIGH_FIDELITY_ENDPOINT}
      * Reading this parameter from the URL should be implemented by the developer as part of the application code.
      * 
