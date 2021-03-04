@@ -2,7 +2,6 @@ const fetch = require('node-fetch');
 import { HiFiCommunicator, HiFiConnectionStates, HiFiUserDataStreamingScopes } from "../../../../src/classes/HiFiCommunicator";
 import { TOKEN_GEN_TYPES, generateJWT } from '../../testUtilities/integrationTestUtils';
 const stackData = require('../../secrets/auth.json').stackData;
-const hifiCommunicator = new HiFiCommunicator();
 jest.setTimeout(10000);
 
 describe('Non admin server connections', () => {
@@ -14,6 +13,7 @@ describe('Non admin server connections', () => {
     let nonAdminTimed: string;
     let nonAdminExpired: string;
     let nonAdminDupSpaceName: string;
+    let hifiCommunicator: HiFiCommunicator;
     beforeAll(async () => {
         try {
             nonAdminSigned = await generateJWT(TOKEN_GEN_TYPES.NON_ADMIN_ID_APP2_SPACE1_SIGNED);
@@ -48,7 +48,6 @@ describe('Non admin server connections', () => {
                 deleteReturnMessageJSON = await deleteReturnMessage.json();
 
                 expect(deleteReturnMessageJSON['space-id']).toBe(spaceAlreadyExistsID);
-                console.log("EXISTING SPACE WITH SAME NAME WAS DELETED");
             }
         } catch (err) {
             console.error(`Unable to ensure the nonexistant space does not exist. Please check your app. ERR: ${err}`);
@@ -57,6 +56,10 @@ describe('Non admin server connections', () => {
 
     });
 
+    beforeEach( () => {
+        hifiCommunicator = new HiFiCommunicator();
+    })
+    
     afterEach(async () => {
         await hifiCommunicator.disconnectFromHiFiAudioAPIServer();
     });
