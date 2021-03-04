@@ -69,6 +69,19 @@ export class OrientationQuat3D {
 }
 
 
+// helper function that keeps an angle expressed in degrees in the range ]-360, 360[
+function sanitizeAngleDegrees(v: number): number {
+    // if the angle is nan then set to 0
+    if (isNaN(v)) {
+        return 0;
+    } else {
+        // else bring the value in the range ]-360, 360[
+        // if v is < 0 then it will cycle in ]-360, 0]
+        // if v is > 0 then it will cycle in [0, 360[
+        return v % 360;
+    }
+}
+
 /**
  * Instantiations of this class define an orientation in 3D space represented by euler angles.
  * This is an alternative to the quaternion representation for orientation when updating the client
@@ -101,9 +114,9 @@ export class OrientationEuler3D {
      * Construct a new `OrientationEuler3D` object. All parameters are optional. Unset parameters will be set to `0`. Remember, all units for member variables are `degrees`.
      */
     constructor({ pitchDegrees = 0, yawDegrees = 0, rollDegrees = 0 }: { pitchDegrees?: number, yawDegrees?: number, rollDegrees?: number } = {}) {
-        this.pitchDegrees = clampNonan(pitchDegrees, -360, 360, 0);
-        this.yawDegrees = clampNonan(yawDegrees, -360, 360, 0);
-        this.rollDegrees = clampNonan(rollDegrees, -360, 360, 0);
+        this.pitchDegrees = sanitizeAngleDegrees(pitchDegrees);
+        this.yawDegrees = sanitizeAngleDegrees(yawDegrees);
+        this.rollDegrees = sanitizeAngleDegrees(rollDegrees);
     }
 }
 
