@@ -3,6 +3,7 @@ import { HiFiCommunicator, HiFiConnectionStates, HiFiUserDataStreamingScopes } f
 import { TOKEN_GEN_TYPES, generateJWT } from '../../testUtilities/integrationTestUtils';
 const stackData = require('../../secrets/auth.json').stackData;
 const hifiCommunicator = new HiFiCommunicator();
+jest.setTimeout(10000);
 
 describe('Non admin server connections', () => {
     let nonAdminSigned: string;
@@ -23,6 +24,31 @@ describe('Non admin server connections', () => {
             nonAdminTimed = await generateJWT(TOKEN_GEN_TYPES.NON_ADMIN_APP2_SPACE1_TIMED_SIGNED);
             nonAdminExpired = await generateJWT(TOKEN_GEN_TYPES.NON_ADMIN_APP2_SPACE1_TIMED_EXPIRED);
             nonAdminDupSpaceName = await generateJWT(TOKEN_GEN_TYPES.NON_ADMIN_APP2_SPACE1_DUP_SIGNED);
+            // Make sure the space we try to create later does not already exist, delet it if it does
+            try {
+                let spaceAlreadyExistsID: string;
+                let returnMessage = await fetch(`${stackData.url}/api/v1/spaces/?token=${adminSigned}`);
+                let spacesListJSON: any = {};
+                spacesListJSON = await returnMessage.json();
+                spacesListJSON.forEach(async (space: any) => {
+                    if (space['name'] === TOKEN_GEN_TYPES.NON_ADMIN_APP2_NEW_SPACE_NAME_SIGNED["space_name"]) { spaceAlreadyExistsID = space['space-id']; }
+                });
+
+                // TODO handle if more than 1 already exists
+                if (spaceAlreadyExistsID) {
+                    let deleteReturnMessage = await fetch(`${stackData.url}/api/v1/spaces/${spaceAlreadyExistsID}?token=${adminSigned}`, {
+                        method: 'DELETE'
+                    });
+                    let deleteReturnMessageJSON: any = {};
+                    deleteReturnMessageJSON = await deleteReturnMessage.json();
+
+                    expect(deleteReturnMessageJSON['space-id']).toBe(spaceAlreadyExistsID);
+                    console.log("EXISTING SPACE WITH SAME NAME WAS DELETED");
+                }
+            } catch (err) {
+                console.error(`Unable to ensure the nonexistant space does not exist. Please check your app. ERR: ${err}`);
+                throw err;
+            }
         } catch (err) {
             console.error("Unable to create tokens in preparation for testing server connections. Please check " +
                 "your 'auth.json' file for errors or discrepancies with your account data. ERR: ", err);
@@ -107,22 +133,42 @@ describe('Non admin server connections', () => {
             .rejects.toMatchObject({ error: expect.stringMatching(/Unexpected server response: 501/) });
     });
 
-    // TODO AFTER pr from https://highfidelity.atlassian.net/browse/HIFI-302 is deployed
-    // test(`CAN create space by trying to connect with SIGNED incorrect token (nonexistant space NAME, no space ID) and correct stack URL`, async () => {
-    //     let nonexistantSpaceName = TOKEN_GEN_TYPES.NON_ADMIN_APP2_NEW_SPACE_NAME_SIGNED["space-name"];
-    //     // TODO Make sure space does not exist first
-    //     let result = hifiCommunicator.connectToHiFiAudioAPIServer(nonAdminNewSpaceName, stackData.url)
-    //         .then(data => { expect(data.audionetInitResponse.success).toBe(true) });
-    //     // check the name exists?
-    //     try {
-    //         await fetch(`${stackData.url}/api/v1/spaces/${nonexistantSpaceName}?token=${adminSigned}`, {
-    //             method: 'DELETE'
-    //         });
-    //     } catch (err) {
-    //         console.error(`Unable to delete the space called ${nonexistantSpaceName} that was created for testing. Please do this manually. ERR: ${err}`);
-    //     }
-    //     return result;
-    // });
+    test.only(`CAN create space by trying to connect with SIGNED token with nonexistant space NAME and no space ID and correct stack URL`, async () => {
+        await hifiCommunicator.connectToHiFiAudioAPIServer(nonAdminNewSpaceName, stackData.url)
+            .then(data => {
+                expect(data.audionetInitResponse.success).toBe(true);
+            });
+
+        // confirm that space was created and get ID for deletion
+        let createdSpaceID: string;
+        try {
+            let spaceWasCreated = false;
+            let returnMessage = await fetch(`${stackData.url}/api/v1/spaces/?token=${adminSigned}`);
+            let spacesListJSON: any = {};
+            spacesListJSON = await returnMessage.json();
+            spacesListJSON.forEach((space: any) => {
+                if (space['name'] === TOKEN_GEN_TYPES.NON_ADMIN_APP2_NEW_SPACE_NAME_SIGNED["space_name"]) {
+                    spaceWasCreated = true;
+                    createdSpaceID = space['space-id'];
+                }
+            });
+
+            expect(spaceWasCreated).toBe(true);
+        } catch (err) {
+            console.error(`Unable to check that a new space was created. Please check your app. ERR: ${err}`);
+            throw err;
+        }
+
+        // delete the created space for clean up
+        try {
+            await fetch(`${stackData.url}/api/v1/spaces/${createdSpaceID}?token=${adminSigned}`, {
+                method: 'DELETE'
+            });
+        } catch (err) {
+            console.error(`Unable to delete the space with ID ${createdSpaceID} that was created for testing. Please do this manually. ERR: ${err}`);
+            throw err;
+        }
+    });
 
     test(`CANNOT connect to a space BY NAME when multiple spaces with the same name exist in the same app`, async () => {
         await expect(hifiCommunicator.connectToHiFiAudioAPIServer(nonAdminDupSpaceName, stackData.url))

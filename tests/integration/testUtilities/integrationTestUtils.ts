@@ -66,7 +66,7 @@ export const TOKEN_GEN_TYPES = {
         "user_id": "qateamNonAdmin",
         "app_id": stackData.apps.app2.id,
         "app_secret": stackData.apps.app2.secret,
-        "space-name": "this space does not exist"
+        "space_name": "holding space"
     },
     "NON_ADMIN_APP2_SPACE1_TIMED_SIGNED": {
         "admin": false,
@@ -85,15 +85,6 @@ export const TOKEN_GEN_TYPES = {
         "space_id": stackData.apps.app2.spaces.space1.id,
         "app_secret": stackData.apps.app2.secret,
         "expired": true
-    },
-    "NON_ADMIN_APP2_SPACE1_TIMED_PREISSUED": {
-        "admin": false,
-        "signed": true,
-        "user_id": "qateamNonAdmin",
-        "app_id": stackData.apps.app2.id,
-        "space_id": stackData.apps.app2.spaces.space1.id,
-        "app_secret": stackData.apps.app2.secret,
-        "preissued": true
     },
     "NON_ADMIN_APP2_SPACE1_DUP_SIGNED": {
         "admin": false,
