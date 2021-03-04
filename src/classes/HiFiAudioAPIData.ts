@@ -286,10 +286,11 @@ export function eulerFromQuaternion(quat: OrientationQuat3D, order : Orientation
     let pitch = 0;
     let yaw = 0;
     let roll = 0;
+    const ONE_MINUS_EPSILON = 0.9999999;
     switch (order) {
     case OrientationEuler3DOrder.PitchYawRoll: {
         yaw = Math.asin( r02 );
-        if ( Math.abs( r02 ) < 0.9999999 ) {
+        if ( Math.abs( r02 ) < ONE_MINUS_EPSILON ) {
             pitch = Math.atan2( -r12, r22);
             roll = Math.atan2( -r01, r00);
         } else {
@@ -298,7 +299,7 @@ export function eulerFromQuaternion(quat: OrientationQuat3D, order : Orientation
     } break;
     case OrientationEuler3DOrder.YawPitchRoll: {
         pitch = Math.asin(-r12);
-        if ( Math.abs( r12 ) < 0.9999999 ) {
+        if ( Math.abs( r12 ) < ONE_MINUS_EPSILON ) {
             yaw = Math.atan2(r02, r22);
             roll = Math.atan2(r10, r11);
         } else {
@@ -307,7 +308,7 @@ export function eulerFromQuaternion(quat: OrientationQuat3D, order : Orientation
     } break;
     case OrientationEuler3DOrder.RollPitchYaw: {
         pitch = Math.asin(r21);
-        if ( Math.abs( r21 ) < 0.9999999 ) {
+        if ( Math.abs( r21 ) < ONE_MINUS_EPSILON ) {
             yaw = Math.atan2(-r20, r22);
             roll = Math.atan2(-r01, r11);
         } else {
@@ -316,7 +317,7 @@ export function eulerFromQuaternion(quat: OrientationQuat3D, order : Orientation
     } break;
     case OrientationEuler3DOrder.RollYawPitch: {
         yaw = Math.asin( -r20 );
-        if ( Math.abs( r20 ) < 0.9999999 ) {
+        if ( Math.abs( r20 ) < ONE_MINUS_EPSILON ) {
             pitch = Math.atan2( r21, r22);
             roll = Math.atan2( r10, r00);
         } else {
@@ -325,7 +326,7 @@ export function eulerFromQuaternion(quat: OrientationQuat3D, order : Orientation
     } break;
     case OrientationEuler3DOrder.YawRollPitch: {
         roll = Math.asin( r10 );
-        if ( Math.abs( r10 ) < 0.9999999 ) {
+        if ( Math.abs( r10 ) < ONE_MINUS_EPSILON ) {
             pitch = Math.atan2( -r12, r11);
             yaw = Math.atan2( -r20, r00);
         } else {
@@ -334,7 +335,7 @@ export function eulerFromQuaternion(quat: OrientationQuat3D, order : Orientation
     } break;
     case OrientationEuler3DOrder.PitchRollYaw: {
         roll = Math.asin( -r01 );
-        if ( Math.abs( r01 ) < 0.9999999 ) {
+        if ( Math.abs( r01 ) < ONE_MINUS_EPSILON ) {
             pitch = Math.atan2( r21, r11);
             yaw = Math.atan2( r02, r00);
         } else {
