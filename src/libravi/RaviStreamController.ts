@@ -1,6 +1,5 @@
 import { RaviCommandController } from "./RaviCommandController";
-
-const { RaviUtils } = require('./RaviUtils');
+import { RaviUtils } from "./RaviUtils";
 
 /** 
  * @class
