@@ -4,7 +4,7 @@
  */
 
 import { HiFiLogger } from "../utilities/HiFiLogger";
-import { OrientationQuat3D, Point3D } from "./HiFiAudioAPIData";
+import { OrientationQuat3D, Point3D, OrientationEuler3DOrder, OrientationEuler3D } from "./HiFiAudioAPIData";
 
 export enum HiFiAxes {
     PositiveX = "Positive X",
@@ -32,7 +32,9 @@ export class HiFiAxisConfiguration {
 
     handedness: HiFiHandedness;
 
-    constructor({rightAxis, leftAxis, intoScreenAxis, outOfScreenAxis, upAxis, downAxis, handedness }: {rightAxis: HiFiAxes, leftAxis: HiFiAxes, intoScreenAxis: HiFiAxes, outOfScreenAxis: HiFiAxes, upAxis: HiFiAxes, downAxis: HiFiAxes, handedness: HiFiHandedness }) {
+    eulerOrder: OrientationEuler3DOrder;
+
+    constructor({rightAxis, leftAxis, intoScreenAxis, outOfScreenAxis, upAxis, downAxis, handedness, eulerOrder}: {rightAxis: HiFiAxes, leftAxis: HiFiAxes, intoScreenAxis: HiFiAxes, outOfScreenAxis: HiFiAxes, upAxis: HiFiAxes, downAxis: HiFiAxes, handedness: HiFiHandedness, eulerOrder: OrientationEuler3DOrder }) {
         Object.assign(this, { rightAxis, leftAxis, intoScreenAxis, outOfScreenAxis, upAxis, downAxis, handedness });
     }
 }
@@ -43,6 +45,7 @@ export class HiFiAxisConfiguration {
  * - `+y` is into the screen and `-y` is out of the screen towards the user
  * - `+z` is up and `-z` is down
  * - The coordinate system is right-handed.
+ * - euler order is YawPitchRoll
  */
 export let ourHiFiAxisConfiguration = new HiFiAxisConfiguration({
     rightAxis: HiFiAxes.PositiveX,
@@ -52,6 +55,7 @@ export let ourHiFiAxisConfiguration = new HiFiAxisConfiguration({
     upAxis: HiFiAxes.PositiveZ,
     downAxis: HiFiAxes.NegativeZ,
     handedness: HiFiHandedness.RightHand,
+    eulerOrder: OrientationEuler3DOrder.YawPitchRoll,
 });
 
 export class HiFiAxisUtilities {

@@ -162,8 +162,7 @@ describe('Orientation_EulerToFromQuat', () => {
         test_eulerFromQuaternion( {Y: 30, P: 85}, OrientationEuler3DOrder.PitchRollYaw, {w: 0.7121552207625228, x: 0.6525700295239598, y: 0.19082141628892588, z:  0.1748556124156989});
     });
     test('verifies eulerToOrientation Yaw:30, Pitch:85, Roll: 85', () => {
-        test_eulerFromQuaternion( {Y: 30, P: 60, R: -170}, OrientationEuler3DOrder.YawPitchRoll, {w: -0.05600988047535549, x: -0.18119794153854502, y: 0.5006605187510639, z: -0.8446118897074835});
-        // 2 quaternions expected, depending on the order Yaw Pitch vs Pitch Yaw 
+        // 6 different quaternions, each 4 components has 2 possible values
         test_eulerFromQuaternion( {Y: 30, P: 85, R: 85}, OrientationEuler3DOrder.PitchYawRoll, {w: 0.40692516506453336, x: 0.6100421736976789, y:-0.30018161612201427, z: 0.6100421736976789});
         test_eulerFromQuaternion( {Y: 30, P: 85, R: 85}, OrientationEuler3DOrder.YawPitchRoll, {w: 0.6431866440539042,  x: 0.6100421736976789, y:-0.30018161612201427, z: 0.3522080132013794});
         test_eulerFromQuaternion( {Y: 30, P: 85, R: 85}, OrientationEuler3DOrder.RollPitchYaw, {w: 0.40692516506453336, x: 0.3522080132013794, y: 0.5815582273376849,  z: 0.6100421736976789});

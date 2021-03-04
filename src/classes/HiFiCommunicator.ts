@@ -415,6 +415,7 @@ export class HiFiCommunicator {
      * The quaternion representation is preferred.
      * If both representation are provided, the euler representation is ignored.
      * If only the euler representation is provided, it is then converted immediately to the equivalent quaternion representation.
+     * The eulerOrder used for the conversion is the provided by the 'ourAxisConfiguration.eulerOrder'.
      * Euler representation is not used internally anymore in the Hifi API.
      * 
      * @param __namedParameters
@@ -450,7 +451,7 @@ export class HiFiCommunicator {
         // if orientation is provided as an euler format, then do the conversion immediately
         else if (orientationEuler) {
             let checkedEuler = new OrientationEuler3D(orientationEuler);
-            this._currentHiFiAudioAPIData.orientationQuat = eulerToQuaternion(checkedEuler, OrientationEuler3DOrder.YawPitchRoll);
+            this._currentHiFiAudioAPIData.orientationQuat = eulerToQuaternion(checkedEuler, ourHiFiAxisConfiguration.eulerOrder);
         }
 
         if (typeof (hiFiGain) === "number") {
@@ -640,7 +641,7 @@ export class HiFiCommunicator {
                         case AvailableUserDataSubscriptionComponents.OrientationEuler:
                             // Generate the euler version of orientation if quat version available
                             if (currentDataFromServer.orientationQuat) {
-                                newCallbackData.orientationEuler = eulerFromQuaternion(currentDataFromServer.orientationQuat, OrientationEuler3DOrder.YawPitchRoll);
+                                newCallbackData.orientationEuler = eulerFromQuaternion(currentDataFromServer.orientationQuat, ourHiFiAxisConfiguration.eulerOrder);
                                 shouldPushNewCallbackData = true;
                             }
                             break;
