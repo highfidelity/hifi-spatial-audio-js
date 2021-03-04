@@ -719,6 +719,14 @@ export class HiFiMixerSession {
             dataForMixer["g"] = Math.max(0, hifiAudioAPIData.hiFiGain);
         }
 
+        if (typeof (hifiAudioAPIData.userAttenuation) === "number") {
+            dataForMixer["a"] = hifiAudioAPIData.userAttenuation;
+        }
+
+        if (typeof (hifiAudioAPIData.userRolloff) === "number") {
+            dataForMixer["r"] = Math.max(0, hifiAudioAPIData.userRolloff);
+        }
+
         if (Object.keys(dataForMixer).length === 0) {
             // We call this a "success" even though we didn't send anything to the mixer.
             return {
