@@ -20,7 +20,7 @@ export class HiFiConstants {
     /**
      * The production endpoint for our High Fidelity audio connections.
      */
-    static DEFAULT_PROD_HIGH_FIDELITY_ENDPOINT: string = "wss://api.highfidelity.com:8001";
+    static DEFAULT_PROD_HIGH_FIDELITY_ENDPOINT: string = "api.highfidelity.com";
 
     constructor() {}
 };

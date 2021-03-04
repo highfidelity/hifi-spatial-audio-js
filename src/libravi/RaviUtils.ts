@@ -39,7 +39,7 @@ export class RaviUtils {
     if (DEBUG) {
       console.log(message);
     }
-    if (typeof document !== 'undefined') {
+    if (typeof document !== 'undefined' && DEBUG) {
       try {
         document.dispatchEvent(new CustomEvent('logger', {detail: message}));
       } catch(err) {

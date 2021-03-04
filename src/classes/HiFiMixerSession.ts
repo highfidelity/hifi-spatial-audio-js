@@ -778,6 +778,14 @@ export class HiFiMixerSession {
             }
         }
 
+        if (typeof (currentHifiAudioAPIData.userAttenuation) === "number") {
+            dataForMixer["a"] = currentHifiAudioAPIData.userAttenuation;
+        }
+
+        if (typeof (currentHifiAudioAPIData.userRolloff) === "number") {
+            dataForMixer["r"] = Math.max(0, currentHifiAudioAPIData.userRolloff);
+        }
+
         if (Object.keys(dataForMixer).length === 0) {
             // We call this a "success" even though we didn't send anything to the mixer.
             return {
@@ -789,7 +797,6 @@ export class HiFiMixerSession {
 
             if (commandController) {
                 let stringifiedDataForMixer = JSON.stringify(dataForMixer);
-                console.log(stringifiedDataForMixer);
                 commandController.sendInput(stringifiedDataForMixer);
                 return {
                     success: true,
