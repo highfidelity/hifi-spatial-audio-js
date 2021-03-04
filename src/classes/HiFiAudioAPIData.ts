@@ -109,6 +109,8 @@ export class HiFiAudioAPIData {
     orientationQuat: OrientationQuat3D;
     volumeThreshold: number;
     hiFiGain: number;
+    userAttenuation: number;
+    userRolloff: number;
 
     /**
      * 
@@ -133,6 +135,7 @@ export class HiFiAudioAPIData {
      * The floating point value is specified in dBFS (decibels relative to full scale) with values between -96 dB (indicating no gating)
      * and 0 dB. It is in the same decibel units as the VolumeDecibels component of UserDataSubscription.
      *
+
      * @param hiFiGain This value affects how loud User A will sound to User B at a given distance in 3D space.
      * This value also affects the distance at which User A can be heard in 3D space.
      * Higher values for User A means that User A will sound louder to other users around User A, and it also means that User A will be audible from a greater distance.
@@ -141,13 +144,54 @@ export class HiFiAudioAPIData {
      * ✔ The client sends `hiFiGain` data to the server when `_transmitHiFiAudioAPIDataToServer()` is called.
      * 
      * ✔ The server sends `hiFiGain` data to all clients connected to a server during "peer updates".
+
+     * @param userAttenuation This value affects how far a user's sound will travel in 3D space, without affecting the user's loudness.
+     * By default, there is a global attenuation value (set for a given space) that applies to all users in a space. This default space
+     * attenuation is usually 0.5, which represents a reasonable approximation of a real-world fall-off in sound over distance.
+     * Lower numbers represent less attenuation (i.e. sound travels farther); higher numbers represent more attenuation (i.e. sound drops
+     * off more quickly).
+     * 
+     * When setting this value for an individual user, the following holds:
+     *   - Positive numbers should be between 0 and 1, and they represent a logarithmic attenuation. This range is recommended, as it is
+     * more natural sounding.  Smaller numbers represent less attenuation, so a number such as 0.2 can be used to make a particular 
+     * user's audio travel farther than other users', for instance in "amplified" concert type settings. Similarly, an extremely 
+     * small non-zero number (e.g. 0.00001) can be used to effectively turn off attenuation for a given user within a reasonably 
+     * sized space, resulting in a "broadcast mode" where the user can be heard throughout most of the space regardless of their location
+     * relative to other users. (Note: The actual value "0" is used internally to represent the default; for setting minimal attenuation, 
+     * small non-zero numbers should be used instead. See also "userRolloff" below.)
+     *   - Negative attenuation numbers are used to represent linear attenuation, and are a somewhat artificial, non-real-world concept. However,
+     * this setting can be used as a blunt tool to easily test attenuation, and tune it aggressively in extreme circumstances. When using linear 
+     * attenuation, the setting is the distance in meters at which the audio becomes totally inaudible.
+     *
+     * If you don't supply an `userAttenuation` when constructing instantiations of this class, `userAttenuation` will be `null` and the
+     * default will be used.
+     * 
+     * ✔ The client sends `userAttenuation` data to the server when `_transmitHiFiAudioAPIDataToServer()` is called.
+     * 
+     * ❌ The server never sends `userAttenuation` data.
+     *
+     * @param userRolloff This value represents the progressive high frequency roll-off in meters, a measure of how the higher frequencies 
+     * in a user's sound are dampened as the user gets further away. By default, there is a global roll-off value (set for a given space), currently 16 
+     * meters, which applies to all users in a space. This value represents the distance for a 1kHz rolloff. Values in the range of 
+     * 12 to 32 meters provide a more "enclosed" sound, in which high frequencies tend to be dampened over distance as they are 
+     * in the real world. Generally changes to roll-off values should be made for the entire space rather than for individual users, but
+     * extremely high values (e.g. 99999) should be used in combination with "broadcast mode"-style userAttenuation settings to cause the
+     * broadcasted voice to sound crisp and "up close" even at very large distances.
+     *
+     * If you don't supply an `userRolloff` when constructing instantiations of this class, `userRolloff` will be `null`.
+     * 
+     * ✔ The client sends `userRolloff` data to the server when `_transmitHiFiAudioAPIDataToServer()` is called.
+     * 
+     * ❌ The server never sends `userRolloff` data.
      */
-    constructor({ position = null, orientationEuler = null, orientationQuat = null, volumeThreshold = null, hiFiGain = null }: { position?: Point3D, orientationEuler?: OrientationEuler3D, orientationQuat?: OrientationQuat3D, volumeThreshold?: number, hiFiGain?: number } = {}) {
+    constructor({ position = null, orientationEuler = null, orientationQuat = null, volumeThreshold = null, hiFiGain = null, userAttenuation = null, userRolloff = null }: { position?: Point3D, orientationEuler?: OrientationEuler3D, orientationQuat?: OrientationQuat3D, volumeThreshold?: number, hiFiGain?: number, userAttenuation?: number, userRolloff?: number } = {}) {
         this.position = position;
         this.orientationQuat = orientationQuat;
         this.orientationEuler = orientationEuler;
         this.volumeThreshold = volumeThreshold;
         this.hiFiGain = hiFiGain;
+        this.userAttenuation = userAttenuation;
+        this.userRolloff = userRolloff;
     }
 
     /**
@@ -167,6 +211,12 @@ export class HiFiAudioAPIData {
         if (typeof (this.hiFiGain) === "number") {
             currentHiFiAudioAPIDataObj["hiFiGain"] = this.hiFiGain;
         }
+        if (typeof (this.userAttenuation) === "number") {
+            currentHiFiAudioAPIDataObj["userAttenuation"] = this.userAttenuation;
+        }
+        if (typeof (this.userRolloff) === "number") {
+            currentHiFiAudioAPIDataObj["userRolloff"] = this.userRolloff;
+        }
 
         let otherHiFiDataObj: any = {
             "position": Object.assign({}, otherHiFiData.position),
@@ -178,6 +228,12 @@ export class HiFiAudioAPIData {
         }
         if (typeof (otherHiFiData.hiFiGain) === "number") {
             otherHiFiDataObj["hiFiGain"] = otherHiFiData.hiFiGain;
+        }
+        if (typeof (otherHiFiData.userAttenuation) === "number") {
+            otherHiFiDataObj["userAttenuation"] = otherHiFiData.userAttenuation;
+        }
+        if (typeof (otherHiFiData.userRolloff) === "number") {
+            otherHiFiDataObj["userRolloff"] = otherHiFiData.userRolloff;
         }
 
         let diffObject = recursivelyDiffObjects(currentHiFiAudioAPIDataObj, otherHiFiDataObj);
@@ -204,6 +260,12 @@ export class HiFiAudioAPIData {
 
         if (typeof (diffObject.hiFiGain) === "number") {
             returnValue.hiFiGain = diffObject.hiFiGain;
+        }
+        if (typeof (diffObject.userAttenuation) === "number") {
+            returnValue.userAttenuation = diffObject.userAttenuation;
+        }
+        if (typeof (diffObject.userRolloff) === "number") {
+            returnValue.userRolloff = diffObject.userRolloff;
         }
 
         return returnValue;
