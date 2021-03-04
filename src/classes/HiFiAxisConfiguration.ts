@@ -217,7 +217,7 @@ export class HiFiAxisUtilities {
     }
 
     /**
-     * ⚠ WARNING ⚠ The code in this function IS be wrong.
+     * ⚠ WARNING ⚠ The code in this function IS wrong.
      * TODO: implement the function, just a NO OP at the moment.
      * 
      * @param axisConfiguration 
@@ -230,26 +230,26 @@ export class HiFiAxisUtilities {
     }
 
     /**
-     * ⚠ WARNING ⚠ The code in this function IS be wrong.
+     * ⚠ WARNING ⚠ The code in this function IS wrong.
      * TODO: implement the function, just a NO OP at the moment.
      * 
      * @param axisConfiguration 
      * @param inputOrientationQuat3D 
      */
-    static translateOrientation3DToMixerSpace(axisConfiguration: HiFiAxisConfiguration, inputOrientationQuat3D: OrientationQuat3D): OrientationQuat3D {
+    static translateOrientationQuat3DToMixerSpace(axisConfiguration: HiFiAxisConfiguration, inputOrientationQuat3D: OrientationQuat3D): OrientationQuat3D {
         let retval = new OrientationQuat3D();
         retval = inputOrientationQuat3D;
         return retval;
     }
 
     /**
-     * ⚠ WARNING ⚠ The code in this function IS be wrong.
+     * ⚠ WARNING ⚠ The code in this function IS wrong.
      * TODO: implement the function, just a NO OP at the moment.
      * 
      * @param axisConfiguration 
      * @param inputOrientationQuat3D 
      */
-    static translateOrientation3FromMixerSpace(axisConfiguration: HiFiAxisConfiguration, mixerOrientationQuat3D: OrientationQuat3D): OrientationQuat3D {
+    static translateOrientationQuat3DFromMixerSpace(axisConfiguration: HiFiAxisConfiguration, mixerOrientationQuat3D: OrientationQuat3D): OrientationQuat3D {
         let retval = new OrientationQuat3D();
         retval = mixerOrientationQuat3D;
         return retval;

@@ -11,7 +11,7 @@ declare var HIFI_API_VERSION: string;
 
 import { HiFiConstants } from "../constants/HiFiConstants";
 import { HiFiLogger } from "../utilities/HiFiLogger";
-import { HiFiAudioAPIData, ReceivedHiFiAudioAPIData, Point3D, OrientationQuat3D, OrientationEuler3D, eulerToQuaternion, eulerFromQuaternion } from "./HiFiAudioAPIData";
+import { HiFiAudioAPIData, ReceivedHiFiAudioAPIData, Point3D, OrientationQuat3D, OrientationEuler3D, OrientationEuler3DOrder, eulerToQuaternion, eulerFromQuaternion } from "./HiFiAudioAPIData";
 import { HiFiAxisConfiguration, HiFiAxisUtilities, ourHiFiAxisConfiguration } from "./HiFiAxisConfiguration";
 import { HiFiMixerSession } from "./HiFiMixerSession";
 import { AvailableUserDataSubscriptionComponents, UserDataSubscription } from "./HiFiUserDataSubscription";
@@ -450,7 +450,7 @@ export class HiFiCommunicator {
         // if orientation is provided as an euler format, then do the conversion immediately
         else if (orientationEuler) {
             let checkedEuler = new OrientationEuler3D(orientationEuler);
-            this._currentHiFiAudioAPIData.orientationQuat = eulerToQuaternion(checkedEuler);
+            this._currentHiFiAudioAPIData.orientationQuat = eulerToQuaternion(checkedEuler, OrientationEuler3DOrder.YawPitchRoll);
         }
 
         if (typeof (hiFiGain) === "number") {
@@ -640,7 +640,7 @@ export class HiFiCommunicator {
                         case AvailableUserDataSubscriptionComponents.OrientationEuler:
                             // Generate the euler version of orientation if quat version available
                             if (currentDataFromServer.orientationQuat) {
-                                newCallbackData.orientationEuler = eulerFromQuaternion(currentDataFromServer.orientationQuat);
+                                newCallbackData.orientationEuler = eulerFromQuaternion(currentDataFromServer.orientationQuat, OrientationEuler3DOrder.YawPitchRoll);
                                 shouldPushNewCallbackData = true;
                             }
                             break;

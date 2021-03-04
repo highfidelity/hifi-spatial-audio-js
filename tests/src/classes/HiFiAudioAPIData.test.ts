@@ -1,4 +1,4 @@
-import { HiFiAudioAPIData, OrientationQuat3D, OrientationEuler3D, Point3D, eulerToQuaternion, eulerFromQuaternion } from "../../../src/classes/HiFiAudioAPIData";
+import { HiFiAudioAPIData, OrientationQuat3D, OrientationEuler3D, Point3D, eulerToQuaternion, eulerFromQuaternion, OrientationEuler3DOrder } from "../../../src/classes/HiFiAudioAPIData";
 
 describe('Point3D', () => {
     test('verifies default members of a new Point3D are 0', () => {
@@ -66,63 +66,110 @@ describe('OrientationEuler3D', () => {
 
 function test_eulerFromQuaternion(
     inEuler: {P?: number, Y?: number, R?: number},
-    outQuat: {w: number, x: number, y: number, z: number}) {
+    inEulerOrder: OrientationEuler3DOrder,
+    outQuat: {w: number, x: number, y: number, z: number},
+    outEuler?: {P?: number, Y?: number, R?: number}) {
     let euler3D = new OrientationEuler3D({pitchDegrees: inEuler.P, yawDegrees: inEuler.Y, rollDegrees: inEuler.R});
     expect(euler3D.pitchDegrees).toBe(inEuler.P ?? 0);
     expect(euler3D.yawDegrees).toBe(inEuler.Y ?? 0);
     expect(euler3D.rollDegrees).toBe(inEuler.R ?? 0);
 
-    let newOrientationQuat3D = eulerToQuaternion(euler3D);
+    let newOrientationQuat3D = eulerToQuaternion(euler3D, inEulerOrder);
     expect(newOrientationQuat3D.w).toBeCloseTo(outQuat.w, 5);
     expect(newOrientationQuat3D.x).toBeCloseTo(outQuat.x, 5);
     expect(newOrientationQuat3D.y).toBeCloseTo(outQuat.y, 5);
     expect(newOrientationQuat3D.z).toBeCloseTo(outQuat.z, 5);
 
-    let newOrientationEuler3D = eulerFromQuaternion(newOrientationQuat3D);
-    expect(newOrientationEuler3D.pitchDegrees).toBeCloseTo(inEuler.P ?? 0, 5);
-    expect(newOrientationEuler3D.yawDegrees).toBeCloseTo(inEuler.Y ?? 0, 5);
-    expect(newOrientationEuler3D.rollDegrees).toBeCloseTo(inEuler.R ?? 0, 5);   
+    let newOrientationEuler3D = eulerFromQuaternion(newOrientationQuat3D, inEulerOrder);
+
+    // Check the euler evaluated back from the quaternion against outEuler (or inEuler if not specified)
+    expect(newOrientationEuler3D.pitchDegrees).toBeCloseTo(( outEuler ? outEuler.P ?? 0 : inEuler.P ?? 0), 5);
+    expect(newOrientationEuler3D.yawDegrees).toBeCloseTo(( outEuler ? outEuler.Y ?? 0 : inEuler.Y ?? 0), 5);
+    expect(newOrientationEuler3D.rollDegrees).toBeCloseTo( ( outEuler ? outEuler.R ?? 0 : inEuler.R ?? 0), 5);   
 }
 
 describe('Orientation_EulerToFromQuat', () => {
     test('verifies eulerToOrientation identity', () => {
         let euler3D = new OrientationEuler3D();
-        let newOrientationQuat3D = eulerToQuaternion(euler3D);
+        let newOrientationQuat3D = eulerToQuaternion(euler3D, OrientationEuler3DOrder.YawPitchRoll);
         expect(newOrientationQuat3D.w).toBe(1);
         expect(newOrientationQuat3D.x).toBe(0);
         expect(newOrientationQuat3D.y).toBe(0);
         expect(newOrientationQuat3D.z).toBe(0);
 
-        let newOrientationEuler3D = eulerFromQuaternion(newOrientationQuat3D);
+        let newOrientationEuler3D = eulerFromQuaternion(newOrientationQuat3D, OrientationEuler3DOrder.YawPitchRoll);
         expect(newOrientationEuler3D.pitchDegrees).toBeCloseTo(0);
         expect(newOrientationEuler3D.yawDegrees).toBeCloseTo(0);
         expect(newOrientationEuler3D.rollDegrees).toBeCloseTo(0);
 
-        test_eulerFromQuaternion( {}, {w: 1, x: 0, y: 0, z: 0});
+        test_eulerFromQuaternion( {}, OrientationEuler3DOrder.YawPitchRoll, {w: 1, x: 0, y: 0, z: 0});
     });
     test('verifies eulerToOrientation Pitch:90', () => {
-        test_eulerFromQuaternion( {P: 90}, {w: 0.7071067811865476, x: 0.7071067811865475, y: 0, z: 0});
+        test_eulerFromQuaternion( {P: 90}, OrientationEuler3DOrder.PitchYawRoll, {w: 0.7071067811865476, x: 0.7071067811865475, y: 0, z: 0});
+        test_eulerFromQuaternion( {P: 90}, OrientationEuler3DOrder.YawPitchRoll, {w: 0.7071067811865476, x: 0.7071067811865475, y: 0, z: 0});
+        test_eulerFromQuaternion( {P: 90}, OrientationEuler3DOrder.RollPitchYaw, {w: 0.7071067811865476, x: 0.7071067811865475, y: 0, z: 0});
+        test_eulerFromQuaternion( {P: 90}, OrientationEuler3DOrder.RollYawPitch, {w: 0.7071067811865476, x: 0.7071067811865475, y: 0, z: 0});
+        test_eulerFromQuaternion( {P: 90}, OrientationEuler3DOrder.YawRollPitch, {w: 0.7071067811865476, x: 0.7071067811865475, y: 0, z: 0});
+        test_eulerFromQuaternion( {P: 90}, OrientationEuler3DOrder.PitchRollYaw, {w: 0.7071067811865476, x: 0.7071067811865475, y: 0, z: 0});
     });
     test('verifies eulerToOrientation Pitch:-90', () => {
-        test_eulerFromQuaternion( {P: -90}, {w:  0.7071067811865476, x: -0.7071067811865475, y: 0, z: 0});
+        test_eulerFromQuaternion( {P: -90}, OrientationEuler3DOrder.PitchYawRoll, {w:  0.7071067811865476, x: -0.7071067811865475, y: 0, z: 0});
+        test_eulerFromQuaternion( {P: -90}, OrientationEuler3DOrder.YawPitchRoll, {w:  0.7071067811865476, x: -0.7071067811865475, y: 0, z: 0});
+        test_eulerFromQuaternion( {P: -90}, OrientationEuler3DOrder.RollPitchYaw, {w:  0.7071067811865476, x: -0.7071067811865475, y: 0, z: 0});
+        test_eulerFromQuaternion( {P: -90}, OrientationEuler3DOrder.RollYawPitch, {w:  0.7071067811865476, x: -0.7071067811865475, y: 0, z: 0});
+        test_eulerFromQuaternion( {P: -90}, OrientationEuler3DOrder.YawRollPitch, {w:  0.7071067811865476, x: -0.7071067811865475, y: 0, z: 0});
+        test_eulerFromQuaternion( {P: -90}, OrientationEuler3DOrder.PitchRollYaw, {w:  0.7071067811865476, x: -0.7071067811865475, y: 0, z: 0});
     });
     test('verifies eulerToOrientation Yaw:90', () => {
-        test_eulerFromQuaternion( {Y: 90}, {w: 0.7071067811865476, x: 0, y: 0.7071067811865475, z: 0});
+        test_eulerFromQuaternion( {Y: 90}, OrientationEuler3DOrder.PitchYawRoll, {w: 0.7071067811865476, x: 0, y: 0.7071067811865475, z: 0});
+        test_eulerFromQuaternion( {Y: 90}, OrientationEuler3DOrder.YawPitchRoll, {w: 0.7071067811865476, x: 0, y: 0.7071067811865475, z: 0});
+        test_eulerFromQuaternion( {Y: 90}, OrientationEuler3DOrder.RollPitchYaw, {w: 0.7071067811865476, x: 0, y: 0.7071067811865475, z: 0});
+        test_eulerFromQuaternion( {Y: 90}, OrientationEuler3DOrder.RollYawPitch, {w: 0.7071067811865476, x: 0, y: 0.7071067811865475, z: 0});
+        test_eulerFromQuaternion( {Y: 90}, OrientationEuler3DOrder.YawRollPitch, {w: 0.7071067811865476, x: 0, y: 0.7071067811865475, z: 0});
+        test_eulerFromQuaternion( {Y: 90}, OrientationEuler3DOrder.PitchRollYaw, {w: 0.7071067811865476, x: 0, y: 0.7071067811865475, z: 0});
     });
     test('verifies eulerToOrientation Yaw:-180', () => {
-        test_eulerFromQuaternion( {Y: -180}, {w: 0, x: 0, y: -1, z: 0});
+        test_eulerFromQuaternion( {Y: -180}, OrientationEuler3DOrder.PitchYawRoll, {w: 0, x: 0, y: -1, z: 0}, {P: 180, R: 180});
+        test_eulerFromQuaternion( {Y: -180}, OrientationEuler3DOrder.YawPitchRoll, {w: 0, x: 0, y: -1, z: 0});
+        test_eulerFromQuaternion( {Y: -180}, OrientationEuler3DOrder.RollPitchYaw, {w: 0, x: 0, y: -1, z: 0});
+        test_eulerFromQuaternion( {Y: -180}, OrientationEuler3DOrder.RollYawPitch, {w: 0, x: 0, y: -1, z: 0}, {P: 180, R: 180});
+        test_eulerFromQuaternion( {Y: -180}, OrientationEuler3DOrder.YawRollPitch, {w: 0, x: 0, y: -1, z: 0});
+        test_eulerFromQuaternion( {Y: -180}, OrientationEuler3DOrder.PitchRollYaw, {w: 0, x: 0, y: -1, z: 0});
     });
     test('verifies eulerToOrientation Roll:90', () => {
-        test_eulerFromQuaternion( {R: 90}, {w: 0.7071067811865476, x: 0, y: 0, z: 0.7071067811865475});
+        test_eulerFromQuaternion( {R: 90}, OrientationEuler3DOrder.PitchYawRoll, {w: 0.7071067811865476, x: 0, y: 0, z: 0.7071067811865475});
+        test_eulerFromQuaternion( {R: 90}, OrientationEuler3DOrder.YawPitchRoll, {w: 0.7071067811865476, x: 0, y: 0, z: 0.7071067811865475});
+        test_eulerFromQuaternion( {R: 90}, OrientationEuler3DOrder.RollPitchYaw, {w: 0.7071067811865476, x: 0, y: 0, z: 0.7071067811865475});
+        test_eulerFromQuaternion( {R: 90}, OrientationEuler3DOrder.RollYawPitch, {w: 0.7071067811865476, x: 0, y: 0, z: 0.7071067811865475});
+        test_eulerFromQuaternion( {R: 90}, OrientationEuler3DOrder.YawRollPitch, {w: 0.7071067811865476, x: 0, y: 0, z: 0.7071067811865475});
+        test_eulerFromQuaternion( {R: 90}, OrientationEuler3DOrder.PitchRollYaw, {w: 0.7071067811865476, x: 0, y: 0, z: 0.7071067811865475});
     });
-    test('verifies eulerToOrientation Roll:-180', () => {
-        test_eulerFromQuaternion( {R: -180}, {w: 0, x: 0, y: 0, z: -1});
+    test('verifies eulerToOrientation Roll:180', () => {
+        test_eulerFromQuaternion( {R: 180}, OrientationEuler3DOrder.PitchYawRoll, {w: 0, x: 0, y: 0, z: 1});
+        test_eulerFromQuaternion( {R: 180}, OrientationEuler3DOrder.YawPitchRoll, {w: 0, x: 0, y: 0, z: 1});
+        test_eulerFromQuaternion( {R: 180}, OrientationEuler3DOrder.RollPitchYaw, {w: 0, x: 0, y: 0, z: 1});
+        test_eulerFromQuaternion( {R: 180}, OrientationEuler3DOrder.RollYawPitch, {w: 0, x: 0, y: 0, z: 1});
+        test_eulerFromQuaternion( {R: 180}, OrientationEuler3DOrder.YawRollPitch, {w: 0, x: 0, y: 0, z: 1}, {P: -180, Y: -180});
+        test_eulerFromQuaternion( {R: 180}, OrientationEuler3DOrder.PitchRollYaw, {w: 0, x: 0, y: 0, z: 1}, {P: 180, Y: 180});
     });
-    test('verifies eulerToOrientation Yaw:30, Pitch:90', () => {
-        test_eulerFromQuaternion( {Y: 30, P: 90}, {w: 0.6830127018922194, x: 0.6830127018922193, y: 0.18301270189221933, z: -0.1830127018922193});
+    test('verifies eulerToOrientation Yaw:30, Pitch:85', () => {
+        // 2 quaternions expected, depending on the order Yaw Pitch vs Pitch Yaw 
+        test_eulerFromQuaternion( {Y: 30, P: 85}, OrientationEuler3DOrder.PitchYawRoll, {w: 0.7121552207625228, x: 0.6525700295239598, y: 0.19082141628892588, z:  0.1748556124156989});
+        test_eulerFromQuaternion( {Y: 30, P: 85}, OrientationEuler3DOrder.YawPitchRoll, {w: 0.7121552207625228, x: 0.6525700295239598, y: 0.19082141628892588, z: -0.1748556124156989});
+        test_eulerFromQuaternion( {Y: 30, P: 85}, OrientationEuler3DOrder.RollPitchYaw, {w: 0.7121552207625228, x: 0.6525700295239598, y: 0.19082141628892588, z:  0.1748556124156989});
+        test_eulerFromQuaternion( {Y: 30, P: 85}, OrientationEuler3DOrder.RollYawPitch, {w: 0.7121552207625228, x: 0.6525700295239598, y: 0.19082141628892588, z: -0.1748556124156989});
+        test_eulerFromQuaternion( {Y: 30, P: 85}, OrientationEuler3DOrder.YawRollPitch, {w: 0.7121552207625228, x: 0.6525700295239598, y: 0.19082141628892588, z: -0.1748556124156989});
+        test_eulerFromQuaternion( {Y: 30, P: 85}, OrientationEuler3DOrder.PitchRollYaw, {w: 0.7121552207625228, x: 0.6525700295239598, y: 0.19082141628892588, z:  0.1748556124156989});
     });
-    test('verifies eulerToOrientation Yaw:30, Pitch:60, Roll: -170', () => {
-        test_eulerFromQuaternion( {Y: 30, P: 60, R: -170}, {w: -0.05600988047535549, x: -0.18119794153854502, y: 0.5006605187510639, z: -0.8446118897074835});
+    test('verifies eulerToOrientation Yaw:30, Pitch:85, Roll: 85', () => {
+        test_eulerFromQuaternion( {Y: 30, P: 60, R: -170}, OrientationEuler3DOrder.YawPitchRoll, {w: -0.05600988047535549, x: -0.18119794153854502, y: 0.5006605187510639, z: -0.8446118897074835});
+        // 2 quaternions expected, depending on the order Yaw Pitch vs Pitch Yaw 
+        test_eulerFromQuaternion( {Y: 30, P: 85, R: 85}, OrientationEuler3DOrder.PitchYawRoll, {w: 0.40692516506453336, x: 0.6100421736976789, y:-0.30018161612201427, z: 0.6100421736976789});
+        test_eulerFromQuaternion( {Y: 30, P: 85, R: 85}, OrientationEuler3DOrder.YawPitchRoll, {w: 0.6431866440539042,  x: 0.6100421736976789, y:-0.30018161612201427, z: 0.3522080132013794});
+        test_eulerFromQuaternion( {Y: 30, P: 85, R: 85}, OrientationEuler3DOrder.RollPitchYaw, {w: 0.40692516506453336, x: 0.3522080132013794, y: 0.5815582273376849,  z: 0.6100421736976789});
+        test_eulerFromQuaternion( {Y: 30, P: 85, R: 85}, OrientationEuler3DOrder.RollYawPitch, {w: 0.6431866440539042,  x: 0.3522080132013794, y: 0.5815582273376849,  z: 0.3522080132013794});
+        test_eulerFromQuaternion( {Y: 30, P: 85, R: 85}, OrientationEuler3DOrder.YawRollPitch, {w: 0.40692516506453336, x: 0.6100421736976789, y: 0.5815582273376849,  z: 0.3522080132013794});
+        test_eulerFromQuaternion( {Y: 30, P: 85, R: 85}, OrientationEuler3DOrder.PitchRollYaw, {w: 0.6431866440539042,  x: 0.3522080132013794, y:-0.30018161612201427, z: 0.6100421736976789});
     });
 });
 

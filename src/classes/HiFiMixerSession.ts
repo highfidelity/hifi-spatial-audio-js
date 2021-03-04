@@ -327,7 +327,7 @@ export class HiFiMixerSession {
 
                 // convert the received orientation (if any) to the user space
                 if (newUserData.orientationQuat) {
-                    newUserData.orientationQuat = HiFiAxisUtilities.translateOrientation3FromMixerSpace(ourHiFiAxisConfiguration, newUserData.orientationQuat);
+                    newUserData.orientationQuat = HiFiAxisUtilities.translateOrientationQuat3DFromMixerSpace(ourHiFiAxisConfiguration, newUserData.orientationQuat);
                 }
 
                 // `ReceivedHiFiAudioAPIData.hiFiGain`
@@ -751,7 +751,7 @@ export class HiFiMixerSession {
             // Some orientation components have changed, let's fill in the payload
             if (changedComponents.changed) {
                 // The mixer expects Quaternion components in its space and to be mulitiplied by 1000.
-                let translatedOrientation = HiFiAxisUtilities.translateOrientation3DToMixerSpace(ourHiFiAxisConfiguration, currentHifiAudioAPIData.orientationQuat);
+                let translatedOrientation = HiFiAxisUtilities.translateOrientationQuat3DToMixerSpace(ourHiFiAxisConfiguration, currentHifiAudioAPIData.orientationQuat);
          
                 if (changedComponents.w) {
                     dataForMixer["W"] = translatedOrientation.w * 1000;

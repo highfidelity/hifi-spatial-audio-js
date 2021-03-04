@@ -70,10 +70,9 @@ export class OrientationQuat3D {
 
 
 /**
- * Instantiations of this class define an orientation in 3D space. A user's orientation in 3D space
- * affects the way the mixed spatial audio is heard by the user. Additionally, orientation affects the way
- * a user's audio input propagates through a space: speakers facing directly towards a listener will sound louder than
- * speakers facing away from a listener. By default, the axis configuration is set up to be right-handed.
+ * Instantiations of this class define an orientation in 3D space represented by euler angles.
+ * This is an alternative to the quaternion representation for orientation when updating the client
+ * or when receiving the updates about the other clients in the space.
  */
 export class OrientationEuler3D {
     /**
@@ -109,40 +108,159 @@ export class OrientationEuler3D {
 }
 
 /**
- * Compute the orientation quaternion from the specified euler angles.
- * The resulting quaternion is the rotation transforming from combining the euler angles rotations in the explicit order
+ * Aside from the 3 angles Yaw, Pitch, Roll defining an orientation, euler angles requires 
+ * to define the order in witch the individual yaw, pitch roll rotations are combined.
+ * There are 6 orders possible identified by the HiFiEulerOrder enum.
+ * 
+ *  For example, the order YawPitchRoll is describe the following sequence
+ *  starting from the base 3d frame,
  *  1/ Yaw, rotating around the vertical axis
  *  2/ Pitch, rotating around the right axis 
  *  3/ Roll, rotating around the front axis
+ *  the resulting 3d frame orientation is relative to the base frame.
+ */
+export enum OrientationEuler3DOrder {
+    PitchYawRoll = "PitchYawRoll",
+    YawPitchRoll = "YawPitchRoll",
+    RollPitchYaw = "RollPitchYaw",
+    RollYawPitch = "RollYawPitch",
+    YawRollPitch = "YawRollPitch",
+    PitchRollYaw = "PitchRollYaw",
+}
+
+
+/**
+ * Compute the orientation quaternion from the specified euler angles.
+ * The resulting quaternion is the rotation transforming from combining the euler angles rotations in the specified order
  * 
- * @param yawDegrees - The yaw angle rotation in degrees.
- * @param pitchDegrees - The pitch angle rotation in degrees.
- * @param rollDegrees - The roll angle rotation in degrees.
+ * For example, the order YawPitchRoll is computed as follow:
+ *  starting from the base 3d frame,
+ *  1/ Yaw, rotating around the vertical axis
+ *  2/ Pitch, rotating around the right axis 
+ *  3/ Roll, rotating around the front axis
+ *  the resulting 3d frame orientation is relative to the base frame.
+ *  The resulting rotation is defining the 'rotated' space relative to the 'base' space.
+ *  A vector Vr in "rotated' space and its equivalent value Vb in the'base' space is computed as follow:
+ *  Vb = [P][Y][R] Vr
+ * 
+ * @param euler - The euler angles.
+ * @param order - The euler order convention.
  * 
  * @return The end resulting quaternion defined from the euler angles combination
  */
-export function eulerToQuaternion(euler: OrientationEuler3D): OrientationQuat3D {
+export function eulerToQuaternion(euler: OrientationEuler3D, order: OrientationEuler3DOrder): OrientationQuat3D {
+    // compute the individual euler angle rotation quaternion terms sin(angle/2) and cos(aangle/2)
     const HALF_DEG_TO_RAD = 0.5 * Math.PI / 180.0;
     let cos = { P: Math.cos(euler.pitchDegrees * HALF_DEG_TO_RAD), Y: Math.cos(euler.yawDegrees * HALF_DEG_TO_RAD), R: Math.cos(euler.rollDegrees * HALF_DEG_TO_RAD)};
     let sin = { P: Math.sin(euler.pitchDegrees * HALF_DEG_TO_RAD), Y: Math.sin(euler.yawDegrees * HALF_DEG_TO_RAD), R: Math.sin(euler.rollDegrees * HALF_DEG_TO_RAD)};
-    // Exact same code as glm::eulerAngles
-    // from world space rotate Roll, then Yaw then Pitch
-    // Resulting rotation is:
-    // Vworld = [Y][P][R] Vlistener
-    return new OrientationQuat3D({
-            x: sin.P * cos.Y * cos.R + cos.P * sin.Y * sin.R,
-            y: cos.P * sin.Y * cos.R - sin.P * cos.Y * sin.R,
-            z: cos.P * cos.Y * sin.R - sin.P * sin.Y * cos.R,
-            w: cos.P * cos.Y * cos.R + sin.P * sin.Y * sin.R,
 
-        });
+    // the computed quaternion components for the 6 orders are based on the same pattern
+    // q.x = ax +/- bx 
+    // q.y = ay +/- by 
+    // q.z = az +/- bz 
+    // q.w = aw +/- bw 
+
+    let ax = sin.P * cos.Y * cos.R;
+    let ay = cos.P * sin.Y * cos.R;
+    let az = cos.P * cos.Y * sin.R;
+    let aw = cos.P * cos.Y * cos.R;
+
+    let bx = cos.P * sin.Y * sin.R;
+    let by = sin.P * cos.Y * sin.R;
+    let bz = sin.P * sin.Y * cos.R;
+    let bw = sin.P * sin.Y * sin.R;
+
+    switch (order) {
+    // from 'base' space rotate Pitch, then Yaw then Roll
+    // Resulting rotation is defining the 'rotated' space relative to the 'base' space.
+    // A vector Vr in "rotated' space and its equivalent value Vb in the'base' space is computed as follow:
+    // Vb = [P][Y][R] Vr
+    case OrientationEuler3DOrder.PitchYawRoll: {
+        return new OrientationQuat3D({
+                x: ax + bx,
+                y: ay - by,
+                z: az + bz,
+                w: aw - bw,
+            });
+        } break;
+
+    // From 'base' space rotate Yaw, then Pitch then Roll...
+    case OrientationEuler3DOrder.YawPitchRoll: {
+        return new OrientationQuat3D({
+                x: ax + bx,
+                y: ay - by,
+                z: az - bz,
+                w: aw + bw,
+            });
+        } break;
+ 
+    // From 'base' space rotate Roll, then Pitch then Yaw...
+    case OrientationEuler3DOrder.RollPitchYaw: {
+        return new OrientationQuat3D({
+                x: ax - bx,
+                y: ay + by,
+                z: az + bz,
+                w: aw - bw,
+            });
+        } break;
+ 
+    // From 'base' space rotate Roll, then Yaw then Pitch...
+    case OrientationEuler3DOrder.RollYawPitch: {
+        return new OrientationQuat3D({
+                x: ax - bx,
+                y: ay + by,
+                z: az - bz,
+                w: aw + bw,
+            });
+        } break;
+  
+    // From 'base' space rotate Yaw, then Roll then Pitch...
+    case OrientationEuler3DOrder.YawRollPitch: {
+        return new OrientationQuat3D({
+                x: ax + bx,
+                y: ay + by,
+                z: az - bz,
+                w: aw - bw,
+            });
+        } break;
+  
+    // From 'base' space rotate Pitch, then Roll then Yaw...
+    case OrientationEuler3DOrder.PitchRollYaw: {
+        return new OrientationQuat3D({
+                x: ax - bx,
+                y: ay - by,
+                z: az + bz,
+                w: aw + bw,
+            });
+        } break;
+    }    
 }
 
-export function eulerFromQuaternion(quat: OrientationQuat3D): OrientationEuler3D {
+/**
+ * Compute the orientation euler decomposition from the specified quaternion.
+ * The resulting euler is the rotation transforming from combining the euler angles rotations in the specified order
+ * 
+ * For example, the order YawPitchRoll is computed as follow:
+ *  starting from the base 3d frame,
+ *  1/ Yaw, rotating around the vertical axis
+ *  2/ Pitch, rotating around the right axis 
+ *  3/ Roll, rotating around the front axis
+ *  the resulting 3d frame orientation is relative to the base frame.
+ *  The resulting rotation is defining the 'rotated' space relative to the 'base' space.
+ *  A vector Vr in "rotated' space and its equivalent value Vb in the'base' space is computed as follow:
+ *  Vb = [P][Y][R] Vr
+ * 
+ * @param quat - The orientation quaternion.
+ * @param order - The euler order convention.
+ * 
+ * @return The end resulting quaternion defined from the euler angles combination
+ */
+export function eulerFromQuaternion(quat: OrientationQuat3D, order : OrientationEuler3DOrder): OrientationEuler3D {
+    // We need to convert the quaternion to the equivalent mat3x3
     let qx2 = quat.x * quat.x;
     let qy2 = quat.y * quat.y;
     let qz2 = quat.z * quat.z;
-    let qw2 = quat.w * quat.w;
+    // let qw2 = quat.w * quat.w; we could choose to use it instead of the 1 - 2* term...
     let qwx = quat.w * quat.x;
     let qwy = quat.w * quat.y;
     let qwz = quat.w * quat.z;
@@ -152,13 +270,11 @@ export function eulerFromQuaternion(quat: OrientationQuat3D): OrientationEuler3D
     // ROT Mat33 =  {  1 - 2qy2 - 2qz2  |  2(qxy - qwz)    |  2(qxz + qwy)  }
     //              {  2(qxy + qwz)     |  1 - 2qx2 - 2qz2 |  2(qyz - qwx)  }
     //              {  2(qxz - qwy)     |  2(qyz + qwx)    |  1 - 2qx2 - 2qy2  }
-    //let r00 = qw2 + qx2 - qy2 - qz2;
     let r00 = 1.0 - 2.0 * (qy2 + qz2);
     let r10 = 2.0 * (qxy + qwz);
     let r20 = 2.0 * (qxz - qwy);
 
     let r01 = 2.0 * (qxy - qwz);
-    //let r11 = qw2 - qx2 + qy2 - qz2; 
     let r11 = 1.0 - 2.0 * (qx2 + qz2); 
     let r21 = 2.0 * (qyz + qwx);
    
@@ -166,17 +282,69 @@ export function eulerFromQuaternion(quat: OrientationQuat3D): OrientationEuler3D
     let r12 = 2.0 * (qyz - qwx);
     let r22 = 1.0 - 2.0 * (qx2 + qy2); 
 
+    // then depending on the euler rotation order decomposition, we extract the angles 
+    // from the base vector components
+    let pitch = 0;
+    let yaw = 0;
+    let roll = 0;
+    switch (order) {
+    case OrientationEuler3DOrder.PitchYawRoll: {
+        yaw = Math.asin( r02 );
+        if ( Math.abs( r02 ) < 0.9999999 ) {
+            pitch = Math.atan2( -r12, r22);
+            roll = Math.atan2( -r01, r00);
+        } else {
+            pitch = Math.atan2(r21, r11);
+        }       
+    } break;
+    case OrientationEuler3DOrder.YawPitchRoll: {
+        pitch = Math.asin(-r12);
+        if ( Math.abs( r12 ) < 0.9999999 ) {
+            yaw = Math.atan2(r02, r22);
+            roll = Math.atan2(r10, r11);
+        } else {
+            yaw = Math.atan2(-r20, r00);
+        } 
+    } break;
+    case OrientationEuler3DOrder.RollPitchYaw: {
+        pitch = Math.asin(r21);
+        if ( Math.abs( r21 ) < 0.9999999 ) {
+            yaw = Math.atan2(-r20, r22);
+            roll = Math.atan2(-r01, r11);
+        } else {
+            roll = Math.atan2(r10, r00);
+        }
+    } break;
+    case OrientationEuler3DOrder.RollYawPitch: {
+        yaw = Math.asin( -r20 );
+        if ( Math.abs( r20 ) < 0.9999999 ) {
+            pitch = Math.atan2( r21, r22);
+            roll = Math.atan2( r10, r00);
+        } else {
+            roll = Math.atan2( -r01, r11);
+        }  
+    } break;
+    case OrientationEuler3DOrder.YawRollPitch: {
+        roll = Math.asin( r10 );
+        if ( Math.abs( r10 ) < 0.9999999 ) {
+            pitch = Math.atan2( -r12, r11);
+            yaw = Math.atan2( -r20, r00);
+        } else {
+            yaw = Math.atan2( r02, r22);
+        }
+    } break;
+    case OrientationEuler3DOrder.PitchRollYaw: {
+        roll = Math.asin( -r01 );
+        if ( Math.abs( r01 ) < 0.9999999 ) {
+            pitch = Math.atan2( r21, r11);
+            yaw = Math.atan2( r02, r00);
+        } else {
+            yaw = Math.atan2( -r12, r22);
+        }
+    } break;
+    }    
     const RAD_TO_DEG = 180.0 / Math.PI;
-    let euler = new OrientationEuler3D({ pitchDegrees: RAD_TO_DEG * Math.asin(-r12) });
-
-    if ( Math.abs( r12 ) < 0.9999999 ) {
-        euler.yawDegrees = RAD_TO_DEG * Math.atan2(r02, r22);
-        euler.rollDegrees = RAD_TO_DEG * Math.atan2(r10, r11);
-    } else {
-        euler.yawDegrees = RAD_TO_DEG * Math.atan2(-r20, r00);
-    } 
-    
-    return euler;
+    return new OrientationEuler3D({ pitchDegrees: RAD_TO_DEG * pitch, yawDegrees: RAD_TO_DEG * yaw, rollDegrees: RAD_TO_DEG * roll });
 }
 
 /**
