@@ -55,27 +55,27 @@ if (isBrowserContext) {
     exports.apiVersion = HIFI_API_VERSION;
 }
 
-exports.communicator = HiFiCommunicator;
-exports.connectionStates = HiFiConnectionStates;
-exports.userDataStreamingScopes = HiFiUserDataStreamingScopes;
+exports.Communicator = HiFiCommunicator;
+exports.ConnectionStates = HiFiConnectionStates;
+exports.UserDataStreamingScopes = HiFiUserDataStreamingScopes;
 
-exports.availableUserDataSubscriptionComponents = AvailableUserDataSubscriptionComponents;
-exports.userDataSubscription = UserDataSubscription;
+exports.AvailableUserDataSubscriptionComponents = AvailableUserDataSubscriptionComponents;
+exports.UserDataSubscription = UserDataSubscription;
 
-exports.receivedAudioAPIData = ReceivedHiFiAudioAPIData;
-exports.audioAPIData = HiFiAudioAPIData;
-exports.point3D = Point3D;
-exports.orientationEuler3D = OrientationEuler3D;
-exports.orientationQuat3D = OrientationQuat3D;
+exports.ReceivedAudioAPIData = ReceivedHiFiAudioAPIData;
+exports.AudioAPIData = HiFiAudioAPIData;
+exports.Point3D = Point3D;
+exports.OrientationEuler3D = OrientationEuler3D;
+exports.OrientationQuat3D = OrientationQuat3D;
 
-exports.logger = HiFiLogger;
-exports.logLevel = HiFiLogLevel;
+exports.Logger = HiFiLogger;
+exports.LogLevel = HiFiLogLevel;
 
 exports.getBestAudioConstraints = getBestAudioConstraints;
 exports.preciseInterval = preciseInterval;
 
-exports.constants = HiFiConstants;
+exports.Constants = HiFiConstants;
 
-exports.axes = HiFiAxes;
-exports.handedness = HiFiHandedness;
-exports.axisConfiguration = HiFiAxisConfiguration;
+exports.Axes = HiFiAxes;
+exports.Handedness = HiFiHandedness;
+exports.AxisConfiguration = HiFiAxisConfiguration;
