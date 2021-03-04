@@ -35,7 +35,7 @@ export class HiFiAxisConfiguration {
     eulerOrder: OrientationEuler3DOrder;
 
     constructor({rightAxis, leftAxis, intoScreenAxis, outOfScreenAxis, upAxis, downAxis, handedness, eulerOrder}: {rightAxis: HiFiAxes, leftAxis: HiFiAxes, intoScreenAxis: HiFiAxes, outOfScreenAxis: HiFiAxes, upAxis: HiFiAxes, downAxis: HiFiAxes, handedness: HiFiHandedness, eulerOrder: OrientationEuler3DOrder }) {
-        Object.assign(this, { rightAxis, leftAxis, intoScreenAxis, outOfScreenAxis, upAxis, downAxis, handedness });
+        Object.assign(this, { rightAxis, leftAxis, intoScreenAxis, outOfScreenAxis, upAxis, downAxis, handedness, eulerOrder });
     }
 }
 
