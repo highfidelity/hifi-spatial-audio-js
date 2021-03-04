@@ -3,7 +3,6 @@
  * @packageDocumentation
  */
 
-import { recursivelyDiffObjects } from "../utilities/HiFiUtilities";
 
 function nonan(v: number, ifnan: number ): number {
     return (isNaN(v) ? ifnan : v);
@@ -190,7 +189,7 @@ export function eulerFromQuaternion(quat: OrientationQuat3D): OrientationEuler3D
  */
 export class HiFiAudioAPIData {
     position: Point3D;
-    orientation: OrientationQuat3D;
+    orientationQuat: OrientationQuat3D;
     orientationEuler: OrientationEuler3D;
     hiFiGain: number;
 
@@ -202,13 +201,13 @@ export class HiFiAudioAPIData {
      * ✔ The client sends `position` data to the server when `_transmitHiFiAudioAPIDataToServer()` is called.
      * 
      * ✔ The server sends `position` data to all clients connected to a server during "peer updates".
-     * @param orientation If you don't supply an `orientation` when constructing instantiations of this class, `orientation` will be `null`.
+     * @param orientationQuat If you don't supply an `orientationQuat` when constructing instantiations of this class, `orientationQuat` will be `null`.
      * 
-     * ✔ The client sends `orientation` data to the server when `_transmitHiFiAudioAPIDataToServer()` is called.
+     * ✔ The client sends `orientationQuat` data to the server when `_transmitHiFiAudioAPIDataToServer()` is called.
      * 
-     * ✔ The server sends `orientation` data to all clients connected to a server during "peer updates".
+     * ✔ The server sends `orientationQuat` data to all clients connected to a server during "peer updates".
      * @param orientationEuler For convenience, a euler representation of the orientation is supported.
-     *  This is an alternative way to specify the orientation field in the AudioData to send to or received from the server.
+     *  This is an alternative way to specify the orientationQuat field in the AudioData to send to or received from the server.
      * 
      *  ✔ When using euler representation to update the client orientation, the equivalent quaternion is evaluated in _updateUserData
      *  ✔ When requesting orientation euler from server updates, the euler representation is evaluated in _handleUserDataUpdates
@@ -222,55 +221,12 @@ export class HiFiAudioAPIData {
      * 
      * ✔ The server sends `hiFiGain` data to all clients connected to a server during "peer updates".
      */
-    constructor({ position = null, orientation = null, orientationEuler = null, hiFiGain = null }: { position?: Point3D, orientation?: OrientationQuat3D, orientationEuler?: OrientationEuler3D, hiFiGain?: number } = {}) {
+    constructor({ position = null, orientationQuat = null, orientationEuler = null, hiFiGain = null }: { position?: Point3D, orientationQuat?: OrientationQuat3D, orientationEuler?: OrientationEuler3D, hiFiGain?: number } = {}) {
         this.position = position;
-        this.orientation = orientation;
+        this.orientationQuat = orientationQuat;
         this.orientationEuler = orientationEuler;
         this.hiFiGain = hiFiGain;
     }
-
-    /**
-     * Used internally for getting the minimal set of data to transmit to the server.
-     * @param otherHiFiData The "other" Audio API Data against which we want to compare.
-     * @returns The differences between this Audio API Data and the "other" Audio API Data in `HiFiAudioAPIData` format. 
-     */
-   /* diff(otherHiFiData: HiFiAudioAPIData): HiFiAudioAPIData {
-        let currentHiFiAudioAPIDataObj: any = {
-            "position": Object.assign({}, this.position),
-            "orientation": Object.assign({}, this.orientation),
-        };
-        if (typeof (this.hiFiGain) === "number") {
-            currentHiFiAudioAPIDataObj["hiFiGain"] = this.hiFiGain;
-        }
-
-        let otherHiFiDataObj: any = {
-            "position": Object.assign({}, otherHiFiData.position),
-            "orientation": Object.assign({}, otherHiFiData.orientation),
-        };
-        if (typeof (otherHiFiData.hiFiGain) === "number") {
-            otherHiFiDataObj["hiFiGain"] = otherHiFiData.hiFiGain;
-        }
-
-        let diffObject = recursivelyDiffObjects(currentHiFiAudioAPIDataObj, otherHiFiDataObj);
-
-        let returnValue = new HiFiAudioAPIData();
-
-        if (diffObject.position && (typeof (diffObject.position.x) === "number" || typeof (diffObject.position.y) === "number" || typeof (diffObject.position.z) === "number")) {
-            // returnValue.position = new Point3D(diffObject.position);
-            // We need to pass the full position data until the mixer can handle fragmented coordinates 
-            returnValue.position = new Point3D(otherHiFiData.position);
-        }
-
-        if (diffObject.orientation && (typeof (diffObject.orientation.w) === "number" || typeof (diffObject.orientation.x) === "number" || typeof (diffObject.orientation.y) === "number" || typeof (diffObject.orientation.z) === "number")) {
-            returnValue.orientation = new OrientationQuat3D(diffObject.orientation);
-        }
-
-        if (typeof (diffObject.hiFiGain) === "number") {
-            returnValue.hiFiGain = diffObject.hiFiGain;
-        }
-
-        return returnValue;
-    }*/
 }
 
 /**

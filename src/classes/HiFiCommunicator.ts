@@ -419,14 +419,14 @@ export class HiFiCommunicator {
      * 
      * @param __namedParameters
      * @param position - The new position of the user.
-     * @param orientation - The new orientation of the user.
-     * @param orientationEuler - The new orientation of the user expressed with an euler representation. Ignored if the field 'orientation' quat version is defined.
+     * @param orientationQuat - The new orientation of the user.
+     * @param orientationEuler - The new orientation of the user expressed with an euler representation. Ignored if the field 'orientationQuat' quat version is defined.
      * @param hiFiGain - This value affects how loud User A will sound to User B at a given distance in 3D space.
      * This value also affects the distance at which User A can be heard in 3D space.
      * Higher values for User A means that User A will sound louder to other users around User A, and it also means that User A will be audible from a greater distance.
      * The new hiFiGain of the user.
      */
-    private _updateUserData({ position, orientation, orientationEuler, hiFiGain }: { position?: Point3D, orientation?: OrientationQuat3D, orientationEuler?: OrientationEuler3D, hiFiGain?: number } = {}): void {
+    private _updateUserData({ position, orientationQuat, orientationEuler, hiFiGain }: { position?: Point3D, orientationQuat?: OrientationQuat3D, orientationEuler?: OrientationEuler3D, hiFiGain?: number } = {}): void {
         if (position) {
             if (!this._currentHiFiAudioAPIData.position) {
                 this._currentHiFiAudioAPIData.position = new Point3D();
@@ -437,20 +437,20 @@ export class HiFiCommunicator {
             this._currentHiFiAudioAPIData.position.z = position.z ?? this._currentHiFiAudioAPIData.position.z;
         }
 
-        if (orientation) {
-            if (!this._currentHiFiAudioAPIData.orientation) {
-                this._currentHiFiAudioAPIData.orientation = new OrientationQuat3D();
+        if (orientationQuat) {
+            if (!this._currentHiFiAudioAPIData.orientationQuat) {
+                this._currentHiFiAudioAPIData.orientationQuat = new OrientationQuat3D();
             }
 
-            this._currentHiFiAudioAPIData.orientation.w = orientation.w ?? this._currentHiFiAudioAPIData.orientation.w;
-            this._currentHiFiAudioAPIData.orientation.x = orientation.x ?? this._currentHiFiAudioAPIData.orientation.x;
-            this._currentHiFiAudioAPIData.orientation.y = orientation.y ?? this._currentHiFiAudioAPIData.orientation.y;
-            this._currentHiFiAudioAPIData.orientation.z = orientation.z ?? this._currentHiFiAudioAPIData.orientation.z;
+            this._currentHiFiAudioAPIData.orientationQuat.w = orientationQuat.w ?? this._currentHiFiAudioAPIData.orientationQuat.w;
+            this._currentHiFiAudioAPIData.orientationQuat.x = orientationQuat.x ?? this._currentHiFiAudioAPIData.orientationQuat.x;
+            this._currentHiFiAudioAPIData.orientationQuat.y = orientationQuat.y ?? this._currentHiFiAudioAPIData.orientationQuat.y;
+            this._currentHiFiAudioAPIData.orientationQuat.z = orientationQuat.z ?? this._currentHiFiAudioAPIData.orientationQuat.z;
         } 
         // if orientation is provided as an euler format, then do the conversion immediately
         else if (orientationEuler) {
             let checkedEuler = new OrientationEuler3D(orientationEuler);
-            this._currentHiFiAudioAPIData.orientation = eulerToQuaternion(checkedEuler);
+            this._currentHiFiAudioAPIData.orientationQuat = eulerToQuaternion(checkedEuler);
         }
 
         if (typeof (hiFiGain) === "number") {
@@ -488,15 +488,15 @@ export class HiFiCommunicator {
             this._lastTransmittedHiFiAudioAPIData.position.z = dataJustTransmitted.position.z ?? this._lastTransmittedHiFiAudioAPIData.position.z;
         }
 
-        if (dataJustTransmitted.orientation) {
-            if (!this._lastTransmittedHiFiAudioAPIData.orientation) {
-                this._lastTransmittedHiFiAudioAPIData.orientation = new OrientationQuat3D();
+        if (dataJustTransmitted.orientationQuat) {
+            if (!this._lastTransmittedHiFiAudioAPIData.orientationQuat) {
+                this._lastTransmittedHiFiAudioAPIData.orientationQuat = new OrientationQuat3D();
             }
 
-            this._lastTransmittedHiFiAudioAPIData.orientation.w = dataJustTransmitted.orientation.w ?? this._lastTransmittedHiFiAudioAPIData.orientation.w;
-            this._lastTransmittedHiFiAudioAPIData.orientation.x = dataJustTransmitted.orientation.x ?? this._lastTransmittedHiFiAudioAPIData.orientation.x;
-            this._lastTransmittedHiFiAudioAPIData.orientation.y = dataJustTransmitted.orientation.y ?? this._lastTransmittedHiFiAudioAPIData.orientation.y;
-            this._lastTransmittedHiFiAudioAPIData.orientation.z = dataJustTransmitted.orientation.z ?? this._lastTransmittedHiFiAudioAPIData.orientation.z;
+            this._lastTransmittedHiFiAudioAPIData.orientationQuat.w = dataJustTransmitted.orientationQuat.w ?? this._lastTransmittedHiFiAudioAPIData.orientationQuat.w;
+            this._lastTransmittedHiFiAudioAPIData.orientationQuat.x = dataJustTransmitted.orientationQuat.x ?? this._lastTransmittedHiFiAudioAPIData.orientationQuat.x;
+            this._lastTransmittedHiFiAudioAPIData.orientationQuat.y = dataJustTransmitted.orientationQuat.y ?? this._lastTransmittedHiFiAudioAPIData.orientationQuat.y;
+            this._lastTransmittedHiFiAudioAPIData.orientationQuat.z = dataJustTransmitted.orientationQuat.z ?? this._lastTransmittedHiFiAudioAPIData.orientationQuat.z;
         }
 
         if (typeof (dataJustTransmitted.hiFiGain) === "number") {
@@ -632,15 +632,15 @@ export class HiFiCommunicator {
                             break;
 
                         case AvailableUserDataSubscriptionComponents.OrientationQuat:
-                            if (currentDataFromServer.orientation) {
-                                newCallbackData.orientation = currentDataFromServer.orientation;
+                            if (currentDataFromServer.orientationQuat) {
+                                newCallbackData.orientationQuat = currentDataFromServer.orientationQuat;
                                 shouldPushNewCallbackData = true;
                             }
                             break;
                         case AvailableUserDataSubscriptionComponents.OrientationEuler:
                             // Generate the euler version of orientation if quat version available
-                            if (currentDataFromServer.orientation) {
-                                newCallbackData.orientationEuler = eulerFromQuaternion(currentDataFromServer.orientation);
+                            if (currentDataFromServer.orientationQuat) {
+                                newCallbackData.orientationEuler = eulerFromQuaternion(currentDataFromServer.orientationQuat);
                                 shouldPushNewCallbackData = true;
                             }
                             break;

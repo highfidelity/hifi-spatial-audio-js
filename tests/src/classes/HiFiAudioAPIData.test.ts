@@ -130,7 +130,7 @@ describe('HiFiAudioAPIData', () => {
     test('verifies default members of a new HiFiAudioAPIData are null', () => {
         let newHiFiAudioAPIData = new HiFiAudioAPIData();
         expect(newHiFiAudioAPIData.position).toBeNull();
-        expect(newHiFiAudioAPIData.orientation).toBeNull();
+        expect(newHiFiAudioAPIData.orientationQuat).toBeNull();
         expect(newHiFiAudioAPIData.orientationEuler).toBeNull();
     });
 
@@ -141,7 +141,7 @@ describe('HiFiAudioAPIData', () => {
             orientationEuler: undefined
         });
         expect(newHiFiAudioAPIData.position).toBeNull();
-        expect(newHiFiAudioAPIData.orientation).toBeNull();
+        expect(newHiFiAudioAPIData.orientationQuat).toBeNull();
         expect(newHiFiAudioAPIData.orientationEuler).toBeNull();
     });
 });
