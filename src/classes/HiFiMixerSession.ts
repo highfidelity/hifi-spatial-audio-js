@@ -715,6 +715,10 @@ export class HiFiMixerSession {
             }
         }
 
+        if (typeof (hifiAudioAPIData.volumeThreshold) === "number") {
+            dataForMixer["T"] = hifiAudioAPIData.volumeThreshold;
+        }
+
         if (typeof (hifiAudioAPIData.hiFiGain) === "number") {
             dataForMixer["g"] = Math.max(0, hifiAudioAPIData.hiFiGain);
         }
