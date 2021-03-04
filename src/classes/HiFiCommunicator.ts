@@ -364,12 +364,17 @@ export class HiFiCommunicator {
      * @param position - The new position of the user.
      * @param orientationEuler - The new orientationEuler of the user.
      * @param orientationQuat - The new orientationQuat of the user.
+     * @param volumeThreshold - The new volumeThreshold of the user.
      * @param hiFiGain - This value affects how loud User A will sound to User B at a given distance in 3D space.
      * This value also affects the distance at which User A can be heard in 3D space.
      * Higher values for User A means that User A will sound louder to other users around User A, and it also means that User A will be audible from a greater distance.
      * The new hiFiGain of the user.
+     * @param userAttenuation - This value affects how far a user's voice will travel in 3D space.
+     * The new attenuation value for the user.
+     * @param userRolloff - This value affects the frequency rolloff for a given user.
+     * The new rolloff value for the user.
      */
-    private _updateUserData({ position, orientationEuler, orientationQuat, hiFiGain }: { position?: Point3D, orientationEuler?: OrientationEuler3D, orientationQuat?: OrientationQuat3D, hiFiGain?: number } = {}): void {
+    private _updateUserData({ position, orientationEuler, orientationQuat, volumeThreshold, hiFiGain, userAttenuation, userRolloff }: { position?: Point3D, orientationEuler?: OrientationEuler3D, orientationQuat?: OrientationQuat3D, volumeThreshold?: number, hiFiGain?: number, userAttenuation?: number, userRolloff?: number } = {}): void {
         if (position) {
             if (!this._currentHiFiAudioAPIData.position) {
                 this._currentHiFiAudioAPIData.position = new Point3D();
@@ -406,8 +411,18 @@ export class HiFiCommunicator {
             }
         }
 
+        if (typeof (volumeThreshold) === "number") {
+            this._currentHiFiAudioAPIData.volumeThreshold = volumeThreshold;
+        }
+
         if (typeof (hiFiGain) === "number") {
             this._currentHiFiAudioAPIData.hiFiGain = Math.max(0, hiFiGain);
+        }
+        if (typeof (userAttenuation) === "number") {
+            this._currentHiFiAudioAPIData.userAttenuation = userAttenuation;
+        }
+        if (typeof (userRolloff) === "number") {
+            this._currentHiFiAudioAPIData.userRolloff = Math.max(0, userRolloff);
         }
     }
 
@@ -467,8 +482,18 @@ export class HiFiCommunicator {
             }
         }
 
+        if (typeof (dataJustTransmitted.volumeThreshold) === "number") {
+            this._lastTransmittedHiFiAudioAPIData["volumeThreshold"] = dataJustTransmitted.volumeThreshold;
+        }
+
         if (typeof (dataJustTransmitted.hiFiGain) === "number") {
             this._lastTransmittedHiFiAudioAPIData["hiFiGain"] = dataJustTransmitted.hiFiGain;
+        }
+        if (typeof (dataJustTransmitted.userAttenuation) === "number") {
+            this._lastTransmittedHiFiAudioAPIData["userAttenuation"] = dataJustTransmitted.userAttenuation;
+        }
+        if (typeof (dataJustTransmitted.userRolloff) === "number") {
+            this._lastTransmittedHiFiAudioAPIData["userRolloff"] = dataJustTransmitted.userRolloff;
         }
     }
 

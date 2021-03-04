@@ -1,4 +1,4 @@
-const { RaviUtils } = require('./RaviUtils');
+import { RaviUtils } from "./RaviUtils";
 
 /**
  * Enum for representing different possible states
@@ -14,7 +14,7 @@ const { RaviUtils } = require('./RaviUtils');
  * @readonly
  * @enum {string}
  */
-export enum SignalingStates {
+export enum RaviSignalingStates {
   CONNECTING = "connecting",
   OPEN = "open",
   ERROR = "error",
@@ -36,7 +36,7 @@ export enum SignalingStates {
 export class RaviSignalingConnection {
   _stateChangeHandlers: Set<Function>;
   _messageHandlers: Set<Function>;
-  _state: SignalingStates;
+  _state: RaviSignalingStates;
   _signalingImplementation: RaviSignalingWebSocketImplementation;
   
   /**
@@ -53,7 +53,7 @@ export class RaviSignalingConnection {
   /**
    * Create a new RaviSignalingConnection
    * Defaults the handlers
-   * and initializes the state to SignalingStates.CLOSED.
+   * and initializes the state to RaviSignalingStates.CLOSED.
    *
    * @constructor
    */
@@ -65,7 +65,7 @@ export class RaviSignalingConnection {
     this._messageHandlers = new Set();
     
     // Initialize the state
-    this._state = SignalingStates.CLOSED;
+    this._state = RaviSignalingStates.CLOSED;
     
     // If we wanted to use a different signaling implementation,
     // we would new() it here. (TODO: Make this configurable in some
@@ -78,7 +78,7 @@ export class RaviSignalingConnection {
   /**
    * Get the current state of the signaling connection
    * 
-   * @returns {SignalingStates}
+   * @returns {RaviSignalingStates}
    */
   getState() {
     return this._state;
@@ -196,9 +196,9 @@ export class RaviSignalingConnection {
         var state = "";
         if (event && event.state) state = event.state;
 
-        if (state === SignalingStates.CONNECTING) {
+        if (state === RaviSignalingStates.CONNECTING) {
           RaviUtils.log("Connecting...", "RaviSignalingController")
-        } else if (state === SignalingStates.OPEN) {
+        } else if (state === RaviSignalingStates.OPEN) {
           // Remove this as a state change handler
           signalingConnection.removeStateChangeHandler(stateHandler);
           // and resolve the Promise
@@ -212,8 +212,8 @@ export class RaviSignalingConnection {
       }
       signalingConnection.addStateChangeHandler(stateHandler);
       // And then alert about the "opening" process
-      var event = {"state":SignalingStates.CONNECTING};
-      this._handleStateChange(event, SignalingStates.CONNECTING); 
+      var event = {"state":RaviSignalingStates.CONNECTING};
+      this._handleStateChange(event, RaviSignalingStates.CONNECTING); 
       // And call the implementation's open method
       this._signalingImplementation._open(URL);
     });
@@ -238,16 +238,16 @@ export class RaviSignalingConnection {
     var signalingConnection = this;
 
     return new Promise((resolve, reject) => {
-      RaviUtils.log("Closing signaling connection");
+      RaviUtils.log("Closing signaling connection", "RaviSignalingConnection");
       // Add a state change handler that will resolve the
       // promise when the connection is closed
       const stateHandler = function(event: any) {
         var state = "";
         if (event && event.state) state = event.state;
 
-        if (state === SignalingStates.CLOSING) {
+        if (state === RaviSignalingStates.CLOSING) {
           RaviUtils.log("Closing...", "RaviSignalingConnection");
-        } else if (state === SignalingStates.CLOSED) {
+        } else if (state === RaviSignalingStates.CLOSED) {
           // Remove this as a state change handler
           signalingConnection.removeStateChangeHandler(stateHandler);
           // and resolve the Promise
@@ -261,8 +261,8 @@ export class RaviSignalingConnection {
       }
       signalingConnection.addStateChangeHandler(stateHandler);
       // And then start the "closing" process
-      var event = {"state":SignalingStates.CLOSING};
-      this._handleStateChange(event, SignalingStates.CLOSING); 
+      var event = {"state":RaviSignalingStates.CLOSING};
+      this._handleStateChange(event, RaviSignalingStates.CLOSING); 
       // And call the implementation's close method
       this._signalingImplementation._close();
     });
@@ -298,7 +298,7 @@ export class RaviSignalingConnection {
         try {
             let messageData = JSON.parse(message.data);
             if (messageData.error && messageData.error == "service-unavailable") {
-                this._handleStateChange({}, SignalingStates.UNAVAILABLE);
+                this._handleStateChange({}, RaviSignalingStates.UNAVAILABLE);
             }
         } catch(err) {
             // If we can't parse the message as JSON, it's definitely
@@ -378,9 +378,9 @@ class RaviSignalingWebSocketImplementation {
     // (We can't set these until we attempt to open the
     // WebSocket, because there's no other WebSocket constructor.)
     var signalingConnection = this._raviSignalingConnection;
-    this._webSocket.addEventListener('open', function(event: any) { signalingConnection._handleStateChange(event, SignalingStates.OPEN); });
-    this._webSocket.addEventListener('error', function(event: any) { signalingConnection._handleStateChange(event, SignalingStates.ERROR); });
-    this._webSocket.addEventListener('close', function(event: any) { signalingConnection._handleStateChange(event, SignalingStates.CLOSED); });
+    this._webSocket.addEventListener('open', function(event: any) { signalingConnection._handleStateChange(event, RaviSignalingStates.OPEN); });
+    this._webSocket.addEventListener('error', function(event: any) { signalingConnection._handleStateChange(event, RaviSignalingStates.ERROR); });
+    this._webSocket.addEventListener('close', function(event: any) { signalingConnection._handleStateChange(event, RaviSignalingStates.CLOSED); });
 
     // Any additional messaging handling gets done by the main
     // RaviSignalingConnection's messageHandlers
@@ -408,4 +408,4 @@ class RaviSignalingWebSocketImplementation {
   }
 }
 
-module.exports.SignalingStates = SignalingStates;
+module.exports.RaviSignalingStates = RaviSignalingStates;

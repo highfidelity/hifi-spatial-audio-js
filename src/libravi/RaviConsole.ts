@@ -1,4 +1,4 @@
-const { RaviUtils } = require('./RaviUtils');
+import { RaviUtils } from "./RaviUtils";
 
 /** 
  *
