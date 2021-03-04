@@ -154,7 +154,7 @@ export class HiFiCommunicator {
             }
         }
 
-        // initialize the current Audo API Data with the given data, but use the updateUserData call for sanity.
+        // Initialize the current Audio API Data with the given data, but use the 'updateUserData()' call for sanity.
         this._updateUserData(initialHiFiAudioAPIData);
     }
 
