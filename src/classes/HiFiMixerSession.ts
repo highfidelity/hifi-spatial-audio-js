@@ -14,7 +14,7 @@ import { RaviUtils } from "../libravi/RaviUtils";
 // @ts-ignore
 import { RaviSession, RaviSessionStates } from "../libravi/RaviSession";
 // @ts-ignore
-import { RaviSignalingConnection, SignalingStates } from "../libravi/RaviSignalingConnection";
+import { RaviSignalingConnection, RaviSignalingStates } from "../libravi/RaviSignalingConnection";
 import { HiFiAxisUtilities, ourHiFiAxisConfiguration } from "./HiFiAxisConfiguration";
 const pako = require('pako');
 
@@ -418,7 +418,7 @@ export class HiFiMixerSession {
             thingToClose = null;
         }
 
-        await close(this._raviSignalingConnection, "Signaling Connection", SignalingStates.CLOSED);
+        await close(this._raviSignalingConnection, "Signaling Connection", RaviSignalingStates.CLOSED);
         await close(this._raviSession, "Session", RaviSessionStates.CLOSED);
 
         this._resetMixerInfo();
@@ -578,7 +578,7 @@ export class HiFiMixerSession {
     onRAVISignalingStateChanged(event: any): void {
         HiFiLogger.log(`New RAVI signaling state: \`${event.state}\``);
         switch (event.state) {
-            case SignalingStates.UNAVAILABLE:
+            case RaviSignalingStates.UNAVAILABLE:
                 this._currentHiFiConnectionState = HiFiConnectionStates.Unavailable;
                 if (this.onConnectionStateChanged) {
                     this.onConnectionStateChanged(this._currentHiFiConnectionState);
