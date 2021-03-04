@@ -71,11 +71,13 @@ export class OrientationQuat3D {
 
 // helper function that keeps an angle expressed in degrees in the range ]-360, 360[
 function sanitizeAngleDegrees(v: number): number {
-    // if the angle is nan then set to 0
-    if (isNaN(v)) {
+    // in the case v is Infinity or Nan,  let's special case
+    if (isNaN(v) || v === Infinity) {
         return 0;
+    } else if (v === -Infinity) {
+        return -0;
     } else {
-        // else bring the value in the range ]-360, 360[
+        // bring the value in the range ]-360, 360[
         // if v is < 0 then it will cycle in ]-360, 0]
         // if v is > 0 then it will cycle in [0, 360[
         return v % 360;

@@ -59,8 +59,13 @@ describe('OrientationEuler3D', () => {
     test('verifies default members of a new OrientationEuler3D initialized with out of range and NaN are kept in range', () => {
         let newOrientationEuler3D = new OrientationEuler3D({pitchDegrees: NaN, yawDegrees: Infinity, rollDegrees: -Infinity});
         expect(newOrientationEuler3D.pitchDegrees).toBe(0);
-        expect(newOrientationEuler3D.yawDegrees).toBe(360);
-        expect(newOrientationEuler3D.rollDegrees).toBe(-360);
+        expect(newOrientationEuler3D.yawDegrees).toBe(0);
+        expect(newOrientationEuler3D.rollDegrees).toBe(-0);
+
+        newOrientationEuler3D = new OrientationEuler3D({pitchDegrees: NaN, yawDegrees: 360, rollDegrees: -360});
+        expect(newOrientationEuler3D.pitchDegrees).toBe(0);
+        expect(newOrientationEuler3D.yawDegrees).toBe(0);
+        expect(newOrientationEuler3D.rollDegrees).toBe(-0);
     });
 });
 
