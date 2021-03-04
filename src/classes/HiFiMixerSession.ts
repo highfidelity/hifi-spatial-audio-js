@@ -769,13 +769,12 @@ export class HiFiMixerSession {
             }
         }
 
-        // Transmit the hifiGain if different from before
-        if (currentHifiAudioAPIData.hiFiGain && (typeof (currentHifiAudioAPIData.hiFiGain) === "number")) {
-            if (previousHifiAudioAPIData && previousHifiAudioAPIData.hiFiGain && (previousHifiAudioAPIData.hiFiGain === currentHifiAudioAPIData.hiFiGain) ) {
-                // no op, previous and new are the same
-            } else {
-                dataForMixer["g"] = Math.max(0, currentHifiAudioAPIData.hiFiGain);
-            }
+        if (typeof (currentHifiAudioAPIData.volumeThreshold) === "number") {
+            dataForMixer["T"] = currentHifiAudioAPIData.volumeThreshold;
+        }
+
+        if (typeof (currentHifiAudioAPIData.hiFiGain) === "number") {
+            dataForMixer["g"] = Math.max(0, currentHifiAudioAPIData.hiFiGain);
         }
 
         if (typeof (currentHifiAudioAPIData.userAttenuation) === "number") {

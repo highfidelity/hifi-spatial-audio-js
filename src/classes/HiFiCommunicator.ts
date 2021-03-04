@@ -372,8 +372,9 @@ export class HiFiCommunicator {
      * 
      * @param __namedParameters
      * @param position - The new position of the user.
-     * @param orientationQuat - The new orientation of the user.
-     * @param orientationEuler - The new orientation of the user expressed with an euler representation. Ignored if the field 'orientationQuat' quat version is defined.
+     * @param orientationQuat - The new orientationQuat of the user.
+     * @param orientationEuler - The new orientationEuler of the user.
+     * @param volumeThreshold - The new volumeThreshold of the user.
      * @param hiFiGain - This value affects how loud User A will sound to User B at a given distance in 3D space.
      * This value also affects the distance at which User A can be heard in 3D space.
      * Higher values for User A means that User A will sound louder to other users around User A, and it also means that User A will be audible from a greater distance.
@@ -383,7 +384,7 @@ export class HiFiCommunicator {
      * @param userRolloff - This value affects the frequency rolloff for a given user.
      * The new rolloff value for the user.
      */
-    private _updateUserData({ position, orientationQuat, orientationEuler, hiFiGain, userAttenuation, userRolloff }: { position?: Point3D, orientationEuler?: OrientationEuler3D, orientationQuat?: OrientationQuat3D, hiFiGain?: number, userAttenuation?: number, userRolloff?: number } = {}): void {
+    private _updateUserData({ position, orientationQuat, orientationEuler, volumeThreshold, hiFiGain, userAttenuation, userRolloff }: { position?: Point3D, orientationEuler?: OrientationEuler3D, orientationQuat?: OrientationQuat3D, volumeThreshold?: number, hiFiGain?: number, userAttenuation?: number, userRolloff?: number } = {}): void {
         if (position) {
             if (!this._currentHiFiAudioAPIData.position) {
                 this._currentHiFiAudioAPIData.position = new Point3D();
@@ -410,6 +411,9 @@ export class HiFiCommunicator {
             this._currentHiFiAudioAPIData.orientationQuat = eulerToQuaternion(checkedEuler, ourHiFiAxisConfiguration.eulerOrder);
         }
 
+        if (typeof (volumeThreshold) === "number") {
+            this._currentHiFiAudioAPIData.volumeThreshold = volumeThreshold;
+        }
         if (typeof (hiFiGain) === "number") {
             this._currentHiFiAudioAPIData.hiFiGain = Math.max(0, hiFiGain);
         }
@@ -460,6 +464,10 @@ export class HiFiCommunicator {
             this._lastTransmittedHiFiAudioAPIData.orientationQuat.x = dataJustTransmitted.orientationQuat.x ?? this._lastTransmittedHiFiAudioAPIData.orientationQuat.x;
             this._lastTransmittedHiFiAudioAPIData.orientationQuat.y = dataJustTransmitted.orientationQuat.y ?? this._lastTransmittedHiFiAudioAPIData.orientationQuat.y;
             this._lastTransmittedHiFiAudioAPIData.orientationQuat.z = dataJustTransmitted.orientationQuat.z ?? this._lastTransmittedHiFiAudioAPIData.orientationQuat.z;
+        }
+
+        if (typeof (dataJustTransmitted.volumeThreshold) === "number") {
+            this._lastTransmittedHiFiAudioAPIData["volumeThreshold"] = dataJustTransmitted.volumeThreshold;
         }
 
         if (typeof (dataJustTransmitted.hiFiGain) === "number") {

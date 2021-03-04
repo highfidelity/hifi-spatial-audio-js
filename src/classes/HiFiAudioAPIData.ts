@@ -358,6 +358,7 @@ export class HiFiAudioAPIData {
     position: Point3D;
     orientationQuat: OrientationQuat3D;
     orientationEuler: OrientationEuler3D;
+    volumeThreshold: number;
     hiFiGain: number;
     userAttenuation: number;
     userRolloff: number;
@@ -381,6 +382,12 @@ export class HiFiAudioAPIData {
      *  ✔ When using euler representation to update the client orientation, the equivalent quaternion is evaluated in _updateUserData
      *  ✔ When requesting orientation euler from server updates, the euler representation is evaluated in _handleUserDataUpdates
      * 
+     *
+     * @param volumeThreshold A volume level below this value is considered background noise and will be smoothly gated off.
+     * The floating point value is specified in dBFS (decibels relative to full scale) with values between -96 dB (indicating no gating)
+     * and 0 dB. It is in the same decibel units as the VolumeDecibels component of UserDataSubscription.
+     *
+
      * @param hiFiGain This value affects how loud User A will sound to User B at a given distance in 3D space.
      * This value also affects the distance at which User A can be heard in 3D space.
      * Higher values for User A means that User A will sound louder to other users around User A, and it also means that User A will be audible from a greater distance.
@@ -429,10 +436,11 @@ export class HiFiAudioAPIData {
      * 
      * ❌ The server never sends `userRolloff` data.
      */
-    constructor({ position = null, orientationQuat = null, orientationEuler = null, hiFiGain = null, userAttenuation = null, userRolloff = null }: { position?: Point3D, orientationEuler?: OrientationEuler3D, orientationQuat?: OrientationQuat3D, hiFiGain?: number, userAttenuation?: number, userRolloff?: number } = {}) {
+    constructor({ position = null, orientationQuat = null, orientationEuler = null, volumeThreshold = null, hiFiGain = null, userAttenuation = null, userRolloff = null }: { position?: Point3D, orientationEuler?: OrientationEuler3D, orientationQuat?: OrientationQuat3D, volumeThreshold?: number, hiFiGain?: number, userAttenuation?: number, userRolloff?: number } = {}) {
         this.position = position;
         this.orientationQuat = orientationQuat;
         this.orientationEuler = orientationEuler;
+        this.volumeThreshold = volumeThreshold;
         this.hiFiGain = hiFiGain;
         this.userAttenuation = userAttenuation;
         this.userRolloff = userRolloff;
