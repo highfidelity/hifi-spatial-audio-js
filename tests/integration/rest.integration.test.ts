@@ -1,7 +1,7 @@
 const fetch = require('node-fetch');
 import { TOKEN_GEN_TYPES, generateJWT } from './testUtilities/integrationTestUtils';
 const stackData = require('./secrets/auth.json').stackData;
-const stackURL = stackData.url;
+const stackURL = 'https://' + stackData.url;
 
 //TODO Any of the above (delete, change / get settings, ignore / don't ignore signing) should all FAIL if the admin JWT being used is for an application that is NOT the application the space is in. (This test will fail -- i.e. the action will succeed -- right now! Yikes!!)
 describe('HiFi API REST Calls', () => {

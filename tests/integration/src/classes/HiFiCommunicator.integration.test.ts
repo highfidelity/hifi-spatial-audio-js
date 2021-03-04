@@ -24,36 +24,37 @@ describe('Non admin server connections', () => {
             nonAdminTimed = await generateJWT(TOKEN_GEN_TYPES.NON_ADMIN_APP2_SPACE1_TIMED_SIGNED);
             nonAdminExpired = await generateJWT(TOKEN_GEN_TYPES.NON_ADMIN_APP2_SPACE1_TIMED_EXPIRED);
             nonAdminDupSpaceName = await generateJWT(TOKEN_GEN_TYPES.NON_ADMIN_APP2_SPACE1_DUP_SIGNED);
-            // Make sure the space we try to create later does not already exist, delet it if it does
-            try {
-                let spaceAlreadyExistsID: string;
-                let returnMessage = await fetch(`${stackData.url}/api/v1/spaces/?token=${adminSigned}`);
-                let spacesListJSON: any = {};
-                spacesListJSON = await returnMessage.json();
-                spacesListJSON.forEach(async (space: any) => {
-                    if (space['name'] === TOKEN_GEN_TYPES.NON_ADMIN_APP2_NEW_SPACE_NAME_SIGNED["space_name"]) { spaceAlreadyExistsID = space['space-id']; }
-                });
-
-                // TODO handle if more than 1 already exists
-                if (spaceAlreadyExistsID) {
-                    let deleteReturnMessage = await fetch(`${stackData.url}/api/v1/spaces/${spaceAlreadyExistsID}?token=${adminSigned}`, {
-                        method: 'DELETE'
-                    });
-                    let deleteReturnMessageJSON: any = {};
-                    deleteReturnMessageJSON = await deleteReturnMessage.json();
-
-                    expect(deleteReturnMessageJSON['space-id']).toBe(spaceAlreadyExistsID);
-                    console.log("EXISTING SPACE WITH SAME NAME WAS DELETED");
-                }
-            } catch (err) {
-                console.error(`Unable to ensure the nonexistant space does not exist. Please check your app. ERR: ${err}`);
-                throw err;
-            }
         } catch (err) {
             console.error("Unable to create tokens in preparation for testing server connections. Please check " +
                 "your 'auth.json' file for errors or discrepancies with your account data. ERR: ", err);
             throw err;
         }
+        // Make sure the space we try to create later does not already exist, delete it if it does
+        try {
+            let spaceAlreadyExistsID: string;
+            let returnMessage = await fetch(`https://${stackData.url}/api/v1/spaces/?token=${adminSigned}`);
+            let spacesListJSON: any = {};
+            spacesListJSON = await returnMessage.json();
+            spacesListJSON.forEach(async (space: any) => {
+                if (space['name'] === TOKEN_GEN_TYPES.NON_ADMIN_APP2_NEW_SPACE_NAME_SIGNED["space_name"]) { spaceAlreadyExistsID = space['space-id']; }
+            });
+
+            // TODO handle if more than 1 already exists
+            if (spaceAlreadyExistsID) {
+                let deleteReturnMessage = await fetch(`https://${stackData.url}/api/v1/spaces/${spaceAlreadyExistsID}?token=${adminSigned}`, {
+                    method: 'DELETE'
+                });
+                let deleteReturnMessageJSON: any = {};
+                deleteReturnMessageJSON = await deleteReturnMessage.json();
+
+                expect(deleteReturnMessageJSON['space-id']).toBe(spaceAlreadyExistsID);
+                console.log("EXISTING SPACE WITH SAME NAME WAS DELETED");
+            }
+        } catch (err) {
+            console.error(`Unable to ensure the nonexistant space does not exist. Please check your app. ERR: ${err}`);
+            throw err;
+        }
+
     });
 
     afterEach(async () => {
@@ -74,7 +75,7 @@ describe('Non admin server connections', () => {
     test(`CAN connect with UNSIGNED correct token and correct stack URL if space ignores token signing`, async () => {
         // set space to allow unsigned tokens
         try {
-            await fetch(`${stackData.url}/api/v1/spaces/${stackData.apps.app2.spaces.space1.id}/settings?token=${adminSigned}&ignore-token-signing=true`);
+            await fetch(`https://${stackData.url}/api/v1/spaces/${stackData.apps.app2.spaces.space1.id}/settings?token=${adminSigned}&ignore-token-signing=true`);
         } catch (err) {
             console.error("Unable to set space to ignore token signing. ERR: ", err);
             throw err;
@@ -87,7 +88,7 @@ describe('Non admin server connections', () => {
     test(`CANNOT connect with UNSIGNED correct token and correct stack URL if space does not ignore token signing`, async () => {
         // set space to not allow unsigned tokens
         try {
-            await fetch(`${stackData.url}/api/v1/spaces/${stackData.apps.app2.spaces.space1.id}/settings?token=${adminSigned}&ignore-token-signing=false`);
+            await fetch(`https://${stackData.url}/api/v1/spaces/${stackData.apps.app2.spaces.space1.id}/settings?token=${adminSigned}&ignore-token-signing=false`);
         } catch (err) {
             console.error("Unable to set space to ignore token signing. ERR: ", err);
             throw err;
@@ -105,7 +106,7 @@ describe('Non admin server connections', () => {
     test(`CAN connect with UNSIGNED correct token and correct wss stackurl if space ignores token signing`, async () => {
         // set space to allow unsigned tokens
         try {
-            await fetch(`${stackData.url}/api/v1/spaces/${stackData.apps.app2.spaces.space1.id}/settings?token=${adminSigned}&ignore-token-signing=true`);
+            await fetch(`https://${stackData.url}/api/v1/spaces/${stackData.apps.app2.spaces.space1.id}/settings?token=${adminSigned}&ignore-token-signing=true`);
         } catch (err) {
             console.error("Unable to set space to ignore token signing. ERR: ", err);
             throw err;
@@ -118,7 +119,7 @@ describe('Non admin server connections', () => {
     test(`CANNOT connect with UNSIGNED correct token and correct wss stackurl if space does not ignore token signing`, async () => {
         // set space to not allow unsigned tokens
         try {
-            await fetch(`${stackData.url}/api/v1/spaces/${stackData.apps.app2.spaces.space1.id}/settings?token=${adminSigned}&ignore-token-signing=false`);
+            await fetch(`https://${stackData.url}/api/v1/spaces/${stackData.apps.app2.spaces.space1.id}/settings?token=${adminSigned}&ignore-token-signing=false`);
         } catch (err) {
             console.error("Unable to set space to ignore token signing. ERR: ", err);
             throw err;
@@ -133,7 +134,7 @@ describe('Non admin server connections', () => {
             .rejects.toMatchObject({ error: expect.stringMatching(/Unexpected server response: 501/) });
     });
 
-    test.only(`CAN create space by trying to connect with SIGNED token with nonexistant space NAME and no space ID and correct stack URL`, async () => {
+    test(`CAN create space by trying to connect with SIGNED token with nonexistant space NAME and no space ID and correct stack URL`, async () => {
         await hifiCommunicator.connectToHiFiAudioAPIServer(nonAdminNewSpaceName, stackData.url)
             .then(data => {
                 expect(data.audionetInitResponse.success).toBe(true);
@@ -143,7 +144,7 @@ describe('Non admin server connections', () => {
         let createdSpaceID: string;
         try {
             let spaceWasCreated = false;
-            let returnMessage = await fetch(`${stackData.url}/api/v1/spaces/?token=${adminSigned}`);
+            let returnMessage = await fetch(`https://${stackData.url}/api/v1/spaces/?token=${adminSigned}`);
             let spacesListJSON: any = {};
             spacesListJSON = await returnMessage.json();
             spacesListJSON.forEach((space: any) => {
@@ -161,7 +162,7 @@ describe('Non admin server connections', () => {
 
         // delete the created space for clean up
         try {
-            await fetch(`${stackData.url}/api/v1/spaces/${createdSpaceID}?token=${adminSigned}`, {
+            await fetch(`https://${stackData.url}/api/v1/spaces/${createdSpaceID}?token=${adminSigned}`, {
                 method: 'DELETE'
             });
         } catch (err) {
