@@ -715,8 +715,20 @@ export class HiFiMixerSession {
             }
         }
 
+        if (typeof (hifiAudioAPIData.volumeThreshold) === "number") {
+            dataForMixer["T"] = hifiAudioAPIData.volumeThreshold;
+        }
+
         if (typeof (hifiAudioAPIData.hiFiGain) === "number") {
             dataForMixer["g"] = Math.max(0, hifiAudioAPIData.hiFiGain);
+        }
+
+        if (typeof (hifiAudioAPIData.userAttenuation) === "number") {
+            dataForMixer["a"] = hifiAudioAPIData.userAttenuation;
+        }
+
+        if (typeof (hifiAudioAPIData.userRolloff) === "number") {
+            dataForMixer["r"] = Math.max(0, hifiAudioAPIData.userRolloff);
         }
 
         if (Object.keys(dataForMixer).length === 0) {

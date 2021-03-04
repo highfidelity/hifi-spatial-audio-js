@@ -1,5 +1,5 @@
-import { HiFiCommunicator } from "../../../src/classes/HiFiCommunicator";
-import { HiFiConstants } from "../../../src/constants/HiFiConstants";
+import { HiFiCommunicator } from "../../../../src/classes/HiFiCommunicator";
+import { HiFiConstants } from "../../../../src/constants/HiFiConstants";
 
 test(`the default members of a new HiFiCommunicator instantiation`, () => {
     let newHiFiCommunicator = new HiFiCommunicator();
