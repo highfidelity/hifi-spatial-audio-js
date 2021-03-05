@@ -58,6 +58,12 @@ export class HiFiMixerSession {
      * When the HiFi Audio Library user sets up a User Data Subscription, they can optionally associate the Subscription with a "Provided User ID".
      * Since the server doesn't always send the "Provided User ID" in these peer updates, we have to keep track of the (presumably stable) key in `jsonData.peers`
      * associated with that "Provided User ID" in order to forward that "Provided User ID" to the Subscription handler and thus to the Library user.
+     * 
+     * And since we are caching that one value, we are also caching the full state for all kwnon peers.
+     * This allows to optimize the received stream of changed data for a given peer from the server to just the necessary bits
+     * and reconstruct the complete information with the knowledge of the cached state of thata peer.
+     * One caveat, the position and orienationQuat fields cached for a peer are expressed in the 'MixerSpace', not transformed yet in the 'ClientUserSpace'.
+     * 
      * Thus, the Library user should never have to care about the `_mixerPeerKeyToStateCacheDict`.
      */
     private _mixerPeerKeyToStateCacheDict: any;

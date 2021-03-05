@@ -127,7 +127,7 @@ export class OrientationEuler3D {
  * to define the order in witch the individual yaw, pitch roll rotations are combined.
  * There are 6 orders possible identified by the HiFiEulerOrder enum.
  * 
- *  For example, the order YawPitchRoll is describe the following sequence
+ *  For example, the order YawPitchRoll is describing the following sequence
  *  starting from the base 3d frame,
  *  1/ Yaw, rotating around the vertical axis
  *  2/ Pitch, rotating around the right axis 
@@ -269,7 +269,7 @@ export function eulerToQuaternion(euler: OrientationEuler3D, order: OrientationE
  * 
  * @return The end resulting quaternion defined from the euler angles combination
  */
-export function eulerFromQuaternion(quat: OrientationQuat3D, order : OrientationEuler3DOrder): OrientationEuler3D {
+export function eulerFromQuaternion(quat: OrientationQuat3D, order: OrientationEuler3DOrder): OrientationEuler3D {
     // We need to convert the quaternion to the equivalent mat3x3
     let qx2 = quat.x * quat.x;
     let qy2 = quat.y * quat.y;
@@ -392,7 +392,7 @@ export class HiFiAudioAPIData {
      * ✔ The client sends `orientationQuat` data to the server when `_transmitHiFiAudioAPIDataToServer()` is called.
      * 
      * ✔ The server sends `orientationQuat` data to all clients connected to a server during "peer updates".
-     * @param orientationEuler For convenience, a euler representation of the orientation is supported.
+     * @param orientationEuler For convenience, a Euler representation of the orientation is supported.
      *  This is an alternative way to specify the orientationQuat field in the AudioData to send to or received from the server.
      * 
      *  ✔ When using euler representation to update the client orientation, the equivalent quaternion is evaluated in _updateUserData

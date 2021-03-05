@@ -20,6 +20,21 @@ export enum HiFiHandedness {
     LeftHand = "Left Hand"
 }
 
+/**
+ * The axis configuration describes the 3d frame of reference in which are expressed the position and orientation of the HifiCommunicator peers.
+ * All position and orientation send or received from the api calls are expected to be expressed using that space convention.
+ * On the wire and in the mixer, the HiFi Spatial Audio system is using a single unified convention called 'MixerSpace' which is the same as the 
+ * default value, see {@link ourHiFiAxisConfiguration}.
+ * 
+ * When converting the orientationEuler, to or from the quaternion representation, the Library relies on the HiFiCommunicator's axisConfiguration
+ * to apply the expected convention and correct conversion.
+ * The 'eulerOrder' field of the axis configuration is used for this conversion.
+ * 
+ * ⚠ WARNING ⚠ 
+ * The axis configuration fields (rightAxis, leftAxis, intoScreenAxis, outOfScreenAxis, upAxis, downAxis, handedness) are not in use yet
+ * Only the default value for this fields will result in the expected behavior.
+ * The eulerOrder field is working correclty and can be configured at the creation of the HiFiCommunicator
+ */
 export class HiFiAxisConfiguration {
     rightAxis: HiFiAxes;
     leftAxis: HiFiAxes;
@@ -45,7 +60,7 @@ export class HiFiAxisConfiguration {
  * - `+y` is up and `-z` is down
  * - `+z` is back and `-z` is front
  * - The coordinate system is right-handed.
- * - euler order is YawPitchRoll
+ * - Euler order is `OrientationEuler3DOrder.YawPitchRoll`
  */
 export let ourHiFiAxisConfiguration = new HiFiAxisConfiguration({
     rightAxis: HiFiAxes.PositiveX,
@@ -157,20 +172,16 @@ export class HiFiAxisUtilities {
         return isValid;
     }
 
-    /**
-     * ⚠ WARNING ⚠ The code in this function might be wrong, because 3D math is really hard. The default configuration works fine,
-     * but it's challenging to verify that other configurations work as expected until we have a better 3D example app.
-     * TODO: Verify that this is actually doing what we want for it to be doing.
-     * 
-     * The HiFi Axis Configuration must have been verified using `HiFiAxisConfiguration.verify()` before this function is called.
-     * Otherwise, undefined behavior will occur.
+    /** 
+     * ⚠ WARNING ⚠ The code in this function IS wrong.
+     * TODO: implement the function, just a NO OP at the moment.
      * 
      * @param axisConfiguration 
      * @param inputPoint3D 
      */
     static translatePoint3DToMixerSpace(axisConfiguration: HiFiAxisConfiguration, inputPoint3D: Point3D): Point3D {
         let retval = new Point3D();
-
+        /*
         let inputXIsNumber = typeof (inputPoint3D.x) === "number";
         let inputYIsNumber = typeof (inputPoint3D.y) === "number";
         let inputZIsNumber = typeof (inputPoint3D.z) === "number";
@@ -216,7 +227,8 @@ export class HiFiAxisUtilities {
         } else if (axisConfiguration.downAxis === HiFiAxes.PositiveZ && inputZIsNumber) {
             retval.z = -inputPoint3D.z;
         }
-            
+        */
+        retval = inputPoint3D;
         return retval;
     }
 

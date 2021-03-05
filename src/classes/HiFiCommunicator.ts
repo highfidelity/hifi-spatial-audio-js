@@ -363,7 +363,7 @@ export class HiFiCommunicator {
      * the user data on the High Fidelity Audio API server. There are no good reasons for a client to call this function
      * and _not_ update the server User Data, and thus this function is `private`.
      * 
-     * The function both representation of orientation, quaternion and euler.
+     * You can update user orientation by passing Quaternion or Euler orientation representations to this function
      * The quaternion representation is preferred.
      * If both representation are provided, the euler representation is ignored.
      * If only the euler representation is provided, it is then converted immediately to the equivalent quaternion representation.
