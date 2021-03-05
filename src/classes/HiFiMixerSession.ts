@@ -488,8 +488,11 @@ export class HiFiMixerSession {
             let hasMicPermission = false;
 
             if (navigator.permissions && navigator.permissions.query) {
-                let result: PermissionStatus = await navigator.permissions.query({ name: 'microphone' });
-                if (result.state === "granted") {
+                let result: PermissionStatus;
+                try {
+                    result = await navigator.permissions.query({ name: 'microphone' });
+                } catch { }
+                if (result && result.state === "granted") {
                     hasMicPermission = true;
                 }
             }
