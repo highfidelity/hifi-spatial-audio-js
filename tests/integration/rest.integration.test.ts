@@ -91,7 +91,7 @@ describe('HiFi API REST Calls', () => {
             expect(spacesListJSON.length).toBe(Object.keys(stackData.apps.app1.spaces).length);
             spacesListJSON.forEach(async (space: any) => {
                 let match = false;
-                for (var key in stackData.apps.app1.spaces) {
+                for (let key in stackData.apps.app1.spaces) {
                     if (stackData.apps.app1.spaces[key].id === space['space-id']) { match = true; }
                 }
                 expect(match).toBe(true);
