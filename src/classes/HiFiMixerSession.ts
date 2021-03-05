@@ -258,6 +258,7 @@ export class HiFiMixerSession {
                 // `.J` is the 'providedUserID'
                 if (userDataCache.providedUserID) {
                     // already  defined, should be the same initial value.
+                    newUserData.providedUserID = userDataCache.providedUserID;
                 } else if (typeof (peerDataFromMixer.J) === "string") {
                     userDataCache.providedUserID = peerDataFromMixer.J;
                     newUserData.providedUserID = peerDataFromMixer.J;
@@ -268,6 +269,7 @@ export class HiFiMixerSession {
                 // It is used to identify a given client across a cloud of mixers.
                 if (userDataCache.hashedVisitID) {
                     // already  defined, should be the same initial value.
+                    newUserData.hashedVisitID = userDataCache.hashedVisitID;
                 } else if (typeof (peerDataFromMixer.e) === "string") {
                     userDataCache.hashedVisitID = peerDataFromMixer.e;
                     newUserData.hashedVisitID = peerDataFromMixer.e;
