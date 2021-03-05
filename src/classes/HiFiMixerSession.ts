@@ -58,11 +58,9 @@ export class HiFiMixerSession {
      * When the HiFi Audio Library user sets up a User Data Subscription, they can optionally associate the Subscription with a "Provided User ID".
      * Since the server doesn't always send the "Provided User ID" in these peer updates, we have to keep track of the (presumably stable) key in `jsonData.peers`
      * associated with that "Provided User ID" in order to forward that "Provided User ID" to the Subscription handler and thus to the Library user.
-     * Thus, the Library user should never have to care about the `_mixerPeerKeyToProvidedUserIDDict`.
-     * Similarly, we keep a `_mixerPeerKeyToHashedVisitIDDict`.
+     * Thus, the Library user should never have to care about the `_mixerPeerKeyToStateCacheDict`.
      */
-    private _mixerPeerKeyToProvidedUserIDDict: any;
-    private _mixerPeerKeyToHashedVisitIDDict: any;
+    private _mixerPeerKeyToStateCacheDict: any;
 
     /**
      * We will track whether or not the input stream is stereo, so that
@@ -119,9 +117,8 @@ export class HiFiMixerSession {
         this.userDataStreamingScope = userDataStreamingScope;
         this.onUserDataUpdated = onUserDataUpdated;
         this.onUsersDisconnected = onUsersDisconnected;
-        this._mixerPeerKeyToProvidedUserIDDict = {};
-        this._mixerPeerKeyToHashedVisitIDDict = {};
-        
+        this._mixerPeerKeyToStateCacheDict = {};
+
         RaviUtils.setDebug(false);
         
         this._raviSignalingConnection = new RaviSignalingConnection();
@@ -215,18 +212,20 @@ export class HiFiMixerSession {
                     hashedVisitID: hashedVisitID
                 });
 
-                let mixerPeerKeys = Object.keys(this._mixerPeerKeyToHashedVisitIDDict);
+                let mixerPeerKeys = Object.keys(this._mixerPeerKeyToStateCacheDict);
                 for (const mixerPeerKey of mixerPeerKeys) {
-                    if (this._mixerPeerKeyToHashedVisitIDDict[mixerPeerKey] === hashedVisitID) {
-                        if (this._mixerPeerKeyToProvidedUserIDDict[mixerPeerKey]) {
-                            deletedUserData.providedUserID = this._mixerPeerKeyToProvidedUserIDDict[mixerPeerKey];
+                    if (this._mixerPeerKeyToStateCacheDict[mixerPeerKey].hashedVisitID === hashedVisitID) {
+                        if (this._mixerPeerKeyToStateCacheDict[mixerPeerKey].providedUserID) {
+                           deletedUserData.providedUserID = this._mixerPeerKeyToStateCacheDict[mixerPeerKey].providedUserID;
                         }
                         break;
                     }
-                }
+                }                
 
                 allDeletedUserData.push(deletedUserData);
             }
+
+            // TODO: remove the entry from the peer state cache
 
             if (this.onUsersDisconnected && allDeletedUserData.length > 0) {
                 this.onUsersDisconnected(allDeletedUserData);
@@ -240,108 +239,133 @@ export class HiFiMixerSession {
             for (let itr = 0; itr < peerKeys.length; itr++) {
                 let peerDataFromMixer = jsonData.peers[peerKeys[itr]];
 
+                // See {@link this._mixerPeerKeyToStateCacheDict}.
+                let userDataCache : ReceivedHiFiAudioAPIData;
+                // If it is a knwon peer, we should have an entry for it in the cache dict
+                if (this._mixerPeerKeyToStateCacheDict[peerKeys[itr]]) {
+                    userDataCache = this._mixerPeerKeyToStateCacheDict[peerKeys[itr]] as ReceivedHiFiAudioAPIData;
+                }
+                // if not let's create it.
+                else {
+                    userDataCache = new ReceivedHiFiAudioAPIData();
+                    this._mixerPeerKeyToStateCacheDict[peerKeys[itr]] = userDataCache;
+                }
+
+                // This is a new empty data that will collect the changes received from the server.
+                // as we collect the changes from the received data, we will also update the userDataCache associated with that peer.
                 let newUserData = new ReceivedHiFiAudioAPIData();
 
-                // See {@link this._mixerPeerKeyToProvidedUserIDDict}.
-                if (this._mixerPeerKeyToProvidedUserIDDict[peerKeys[itr]]) {
-                    newUserData.providedUserID = this._mixerPeerKeyToProvidedUserIDDict[peerKeys[itr]];
+                // `.J` is the 'providedUserID'
+                if (userDataCache.providedUserID) {
+                    // already  defined, should be the same initial value.
                 } else if (typeof (peerDataFromMixer.J) === "string") {
+                    userDataCache.providedUserID = peerDataFromMixer.J;
                     newUserData.providedUserID = peerDataFromMixer.J;
-                    this._mixerPeerKeyToProvidedUserIDDict[peerKeys[itr]] = newUserData.providedUserID;
                 }
 
                 // `.e` is the `hashedVisitID`, which is a hashed version of the random UUID that a connecting client
                 // sends as the `session` key inside the argument to the `audionet.init` command.
                 // It is used to identify a given client across a cloud of mixers.
-                if (this._mixerPeerKeyToHashedVisitIDDict[peerKeys[itr]]) {
-                    newUserData.hashedVisitID = this._mixerPeerKeyToHashedVisitIDDict[peerKeys[itr]];
+                if (userDataCache.hashedVisitID) {
+                    // already  defined, should be the same initial value.
                 } else if (typeof (peerDataFromMixer.e) === "string") {
+                    userDataCache.hashedVisitID = peerDataFromMixer.e;
                     newUserData.hashedVisitID = peerDataFromMixer.e;
-                    this._mixerPeerKeyToHashedVisitIDDict[peerKeys[itr]] = newUserData.hashedVisitID;
                 }
 
                 let serverSentNewUserData = false;
 
-                // `ReceivedHiFiAudioAPIData.position.x`
+                // `ReceivedHiFiAudioAPIData.position.*`
+                let serverSentNewPosition = false;
                 if (typeof (peerDataFromMixer.x) === "number") {
-                    if (!newUserData.position) {
-                        newUserData.position = new Point3D();
+                    if (!userDataCache.position) {
+                        userDataCache.position = new Point3D();
                     }
                     // Mixer sends position data in millimeters
-                    newUserData.position.x = peerDataFromMixer.x / 1000;
-                    serverSentNewUserData = true;
+                    userDataCache.position.x = peerDataFromMixer.x / 1000;
+                    serverSentNewPosition = true;
                 }
-                // `ReceivedHiFiAudioAPIData.position.y`
                 if (typeof (peerDataFromMixer.y) === "number") {
-                    if (!newUserData.position) {
-                        newUserData.position = new Point3D();
+                    if (!userDataCache.position) {
+                        userDataCache.position = new Point3D();
                     }
                     // Mixer sends position data in millimeters
-                    newUserData.position.y = peerDataFromMixer.y / 1000;
-                    serverSentNewUserData = true;
+                    userDataCache.position.y = peerDataFromMixer.y / 1000;
+                    serverSentNewPosition = true;
                 }
-                // `ReceivedHiFiAudioAPIData.position.z`
                 if (typeof (peerDataFromMixer.z) === "number") {
-                    if (!newUserData.position) {
-                        newUserData.position = new Point3D();
+                    if (!userDataCache.position) {
+                        userDataCache.position = new Point3D();
                     }
                     // Mixer sends position data in millimeters
-                    newUserData.position.z = peerDataFromMixer.z / 1000;
+                    userDataCache.position.z = peerDataFromMixer.z / 1000;
+                    serverSentNewPosition = true;
+                }  
+                // We received a new position and updated the cache entry.
+                // Need to add the new position value in the newUserData
+                if (serverSentNewPosition) {
+                    // Create the new position value for the newUserData and
+                    // convert the received position (if any) to the user space
+                    newUserData.position = HiFiAxisUtilities.translatePoint3DFromMixerSpace(ourHiFiAxisConfiguration, userDataCache.position);
                     serverSentNewUserData = true;
-                }
-
-                // convert the received position (if any) to the user space
-                if (newUserData.position) {
-                    newUserData.position = HiFiAxisUtilities.translatePoint3DFromMixerSpace(ourHiFiAxisConfiguration, newUserData.position);
                 }
 
                 // `ReceivedHiFiAudioAPIData.orientation.*`
+                let serverSentNewOrientation = false;
                 if (typeof (peerDataFromMixer.W) === "number") {
-                    if (!newUserData.orientationQuat) {
-                        newUserData.orientationQuat = new OrientationQuat3D();
+                    if (!userDataCache.orientationQuat) {
+                        userDataCache.orientationQuat = new OrientationQuat3D();
                     }
-                    newUserData.orientationQuat.w = peerDataFromMixer.W / 1000;
-                    serverSentNewUserData = true;
+                    userDataCache.orientationQuat.w = peerDataFromMixer.W / 1000;
+                    serverSentNewOrientation = true;
                 }
                 if (typeof (peerDataFromMixer.X) === "number") {
-                    if (!newUserData.orientationQuat) {
-                        newUserData.orientationQuat = new OrientationQuat3D();
+                    if (!userDataCache.orientationQuat) {
+                        userDataCache.orientationQuat = new OrientationQuat3D();
                     }
-                    newUserData.orientationQuat.x = peerDataFromMixer.X / 1000;
-                    serverSentNewUserData = true;
+                    userDataCache.orientationQuat.x = peerDataFromMixer.X / 1000;
+                    serverSentNewOrientation = true;
                 }
                 if (typeof (peerDataFromMixer.Y) === "number") {
-                    if (!newUserData.orientationQuat) {
-                        newUserData.orientationQuat = new OrientationQuat3D();
+                    if (!userDataCache.orientationQuat) {
+                        userDataCache.orientationQuat = new OrientationQuat3D();
                     }
-                    newUserData.orientationQuat.y = peerDataFromMixer.Y / 1000;
-                    serverSentNewUserData = true;
+                    userDataCache.orientationQuat.y = peerDataFromMixer.Y / 1000;
+                    serverSentNewOrientation = true;
                 }
                 if (typeof (peerDataFromMixer.Z) === "number") {
-                    if (!newUserData.orientationQuat) {
-                        newUserData.orientationQuat = new OrientationQuat3D();
+                    if (!userDataCache.orientationQuat) {
+                        userDataCache.orientationQuat = new OrientationQuat3D();
                     }
-                    newUserData.orientationQuat.z = peerDataFromMixer.Z / 1000;
+                    userDataCache.orientationQuat.z = peerDataFromMixer.Z / 1000;
+                    serverSentNewOrientation = true;
+                }
+                // We received a new orientation and updated the cache entry.
+                // Need to add the new orientation value in the newUserData
+                if (serverSentNewOrientation) {
+                    // Create the new orientation value for the newUserData and
+                    // convert the received orientation (if any) to the user space
+                    newUserData.orientationQuat = HiFiAxisUtilities.translateOrientationQuat3DFromMixerSpace(ourHiFiAxisConfiguration, userDataCache.orientationQuat);
                     serverSentNewUserData = true;
                 }
-
-                // convert the received orientation (if any) to the user space
-                if (newUserData.orientationQuat) {
-                    newUserData.orientationQuat = HiFiAxisUtilities.translateOrientationQuat3DFromMixerSpace(ourHiFiAxisConfiguration, newUserData.orientationQuat);
-                }
+                
 
                 // `ReceivedHiFiAudioAPIData.hiFiGain`
                 if (typeof (peerDataFromMixer.g) === "number") {
+                    userDataCache.hiFiGain = peerDataFromMixer.g;
                     newUserData.hiFiGain = peerDataFromMixer.g;
                     serverSentNewUserData = true;
                 }
 
                 // `ReceivedHiFiAudioAPIData.volumeDecibels`
                 if (typeof (peerDataFromMixer.v) === "number") {
+                    userDataCache.volumeDecibels = peerDataFromMixer.v;
                     newUserData.volumeDecibels = peerDataFromMixer.v;
                     serverSentNewUserData = true;
                 }
 
+                // the newUserData AND the userDataCache have been updated with the new values
+                // propagate newUserData to user space
                 if (serverSentNewUserData) {
                     allNewUserData.push(newUserData);
                 }
@@ -599,8 +623,7 @@ export class HiFiMixerSession {
         HiFiLogger.log(`New RAVI session state: \`${event.state}\``);
         switch (event.state) {
             case RaviSessionStates.CONNECTED:
-                this._mixerPeerKeyToProvidedUserIDDict = {};
-                this._mixerPeerKeyToHashedVisitIDDict = {};
+                this._mixerPeerKeyToStateCacheDict = {};
 
                 this._currentHiFiConnectionState = HiFiConnectionStates.Connected;
 
