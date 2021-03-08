@@ -20,29 +20,79 @@ export const TOKEN_GEN_TYPES = {
         "space_id": stackData.apps.app1.spaces.space1.id,
         "app_secret": stackData.apps.app1.secret
     },
-    "NON_ADMIN_ID_APP1_SPACE1_UNSIGNED": {
+    "ADMIN_ID_APP2_SPACE1_SIGNED": {
+        "admin": true,
+        "signed": true,
+        "user_id": "qateamAdmin",
+        "app_id": stackData.apps.app2.id,
+        "space_id": stackData.apps.app2.spaces.space1.id,
+        "app_secret": stackData.apps.app2.secret
+    },
+    "NON_ADMIN_ID_APP2_SPACE1_SIGNED": {
+        "admin": false,
+        "signed": true,
+        "user_id": "qateamNonAdmin",
+        "app_id": stackData.apps.app2.id,
+        "space_id": stackData.apps.app2.spaces.space1.id,
+        "app_secret": stackData.apps.app2.secret
+    },
+    "NON_ADMIN_ID_APP2_SPACE1_UNSIGNED": {
         "admin": false,
         "signed": false,
         "user_id": "qateamNonAdmin",
-        "app_id": stackData.apps.app1.id,
-        "space_id": stackData.apps.app1.spaces.space1.id,
-        "app_secret": stackData.apps.app1.secret
+        "app_id": stackData.apps.app2.id,
+        "space_id": stackData.apps.app2.spaces.space1.id,
+        "app_secret": stackData.apps.app2.secret
     },
-    "NON_ADMIN_APP1_SPACE_ID_NONEXISTANT_SIGNED": {
+    "NON_ADMIN_APP2_SPACE_ID_NONEXISTANT_SIGNED": {
         "admin": false,
         "signed": true,
         "user_id": "qateamNonAdmin",
-        "app_id": stackData.apps.app1.id,
-        "space_id": stackData.apps.app1.spaces.nonexistant.id,
-        "app_secret": stackData.apps.app1.secret
+        "app_id": stackData.apps.app2.id,
+        "space_id": stackData.apps.app2.spaces.nonexistant.id,
+        "app_secret": stackData.apps.app2.secret
     },
-    "NON_ADMIN_APP1_SPACE_NAME_NONEXISTANT_SIGNED": {
+    "NON_ADMIN_APP2_SPACE_NAME_NONEXISTANT_SIGNED": {
         "admin": false,
         "signed": true,
         "user_id": "qateamNonAdmin",
-        "app_id": stackData.apps.app1.id,
-        "space_name": "stackData.apps.app1.spaces.nonexistant.name",
-        "app_secret": stackData.apps.app1.secret
+        "app_id": stackData.apps.app2.id,
+        "space_name": stackData.apps.app2.spaces.nonexistant.name,
+        "app_secret": stackData.apps.app2.secret
+    },
+    "NON_ADMIN_APP2_NO_SPACE_NAME_SIGNED": {
+        "admin": false,
+        "signed": true,
+        "user_id": "qateamNonAdmin",
+        "app_id": stackData.apps.app2.id,
+        "app_secret": stackData.apps.app2.secret
+    },
+    "NON_ADMIN_APP2_SPACE1_TIMED_SIGNED": {
+        "admin": false,
+        "signed": true,
+        "user_id": "qateamNonAdmin",
+        "app_id": stackData.apps.app2.id,
+        "space_id": stackData.apps.app2.spaces.space1.id,
+        "app_secret": stackData.apps.app2.secret,
+        "expired": false
+    },
+    "NON_ADMIN_APP2_SPACE1_TIMED_EXPIRED": {
+        "admin": false,
+        "signed": true,
+        "user_id": "qateamNonAdmin",
+        "app_id": stackData.apps.app2.id,
+        "space_id": stackData.apps.app2.spaces.space1.id,
+        "app_secret": stackData.apps.app2.secret,
+        "expired": true
+    },
+    "NON_ADMIN_APP2_SPACE1_TIMED_PREISSUED": {
+        "admin": false,
+        "signed": true,
+        "user_id": "qateamNonAdmin",
+        "app_id": stackData.apps.app2.id,
+        "space_id": stackData.apps.app2.spaces.space1.id,
+        "app_secret": stackData.apps.app2.secret,
+        "preissued": true
     }
 };
 
