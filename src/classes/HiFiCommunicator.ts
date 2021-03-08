@@ -244,6 +244,12 @@ export class HiFiCommunicator {
             return Promise.resolve(`No mixer session from which we can disconnect!`);
         }
 
+        this._inputAudioMediaStream = undefined;
+        this.onUsersDisconnected = undefined;
+        this._userDataSubscriptions = [];
+        this._currentHiFiAudioAPIData = undefined;
+        this._lastTransmittedHiFiAudioAPIData = new HiFiAudioAPIData();
+
         return this._mixerSession.disconnect();
     }
 
