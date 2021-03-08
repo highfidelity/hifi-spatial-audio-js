@@ -20,6 +20,38 @@ export const TOKEN_GEN_TYPES = {
         "space_id": stackData.apps.app1.spaces.space1.id,
         "app_secret": stackData.apps.app1.secret
     },
+    "USER1_APP1_SPACE1_SIGNED": {
+        "admin": false,
+        "signed": true,
+        "user_id": "qa_user1",
+        "app_id": stackData.apps.app1.id,
+        "space_id": stackData.apps.app1.spaces.space1.id,
+        "app_secret": stackData.apps.app1.secret
+    },
+    "USER2_APP1_SPACE1_SIGNED": {
+        "admin": false,
+        "signed": true,
+        "user_id": "qa_user1",
+        "app_id": stackData.apps.app1.id,
+        "space_id": stackData.apps.app1.spaces.space1.id,
+        "app_secret": stackData.apps.app1.secret
+    },
+    "USER3_APP1_SPACE1_SIGNED": {
+        "admin": false,
+        "signed": true,
+        "user_id": "qa_user1",
+        "app_id": stackData.apps.app1.id,
+        "space_id": stackData.apps.app1.spaces.space1.id,
+        "app_secret": stackData.apps.app1.secret
+    },
+    "USER4_APP1_SPACE1_SIGNED": {
+        "admin": false,
+        "signed": true,
+        "user_id": "qa_user1",
+        "app_id": stackData.apps.app1.id,
+        "space_id": stackData.apps.app1.spaces.space1.id,
+        "app_secret": stackData.apps.app1.secret
+    },
     "ADMIN_ID_APP2_SPACE1_SIGNED": {
         "admin": true,
         "signed": true,
