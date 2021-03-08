@@ -760,7 +760,7 @@ class RaviWebRTCImplementation {
       // in the old, add them
       for (i; i < numNewTracks; i++) {
         RaviUtils.log("Adding local audio track #" + i + " to rtcConnection", "RaviWebRTCImplementation");
-        currentSenders.push(rtcConnection.addTrack(newAudioTracks[i]));
+        currentSenders.push(rtcConnection.addTrack(newAudioTracks[i], stream));
         // We expect the 'negotiationneeded' event to fire
       }
     } else {
