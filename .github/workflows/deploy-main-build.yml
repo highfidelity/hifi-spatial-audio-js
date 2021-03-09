@@ -13,16 +13,16 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - name: Bump npm prerelease version
-      run: npm version prerelease -m "Bump package version to %s"
+    - name: Commit files
+      run: |
 
-    - name: Push version bump commit to main
-      uses: ad-m/github-push-action@master
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        branch: main
-        author: ${{ github.author }}
-        email: actions@github.com
+    - name: Bump npm prerelease version
+      run: |
+        git config --local user.email "actions@github.com"
+        git config --local user.name "GitHub Action 🤖"
+        git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
+        npm version prerelease -m "Bump package version to %s"
+        git push
 
     - uses: actions/setup-node@v2
       with:
