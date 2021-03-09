@@ -8,7 +8,7 @@ on:
 jobs:
   Deploy-Main-Build:
     runs-on: ubuntu-latest
-    if: ${{github.event.pusher.email}} != "it+hifibuild@highfidelity.io"
+    if: ${{github.event.pusher.user.login}} != "hifibuild"
 
     steps:
     - uses: actions/checkout@v2
@@ -18,7 +18,7 @@ jobs:
     - name: Bump npm prerelease version
       run: |
         git config --local user.email "it+hifibuild@highfidelity.io"
-        git config --local user.name "hifibuild 🤖"
+        git config --local user.name "hifibuild"
         npm version prerelease -m "Bump package version to %s"
         git push
 
