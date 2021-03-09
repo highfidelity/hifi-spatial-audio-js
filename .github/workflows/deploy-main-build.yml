@@ -8,19 +8,17 @@ on:
 jobs:
   Deploy-Main-Build:
     runs-on: ubuntu-latest
-    if: ${{github.event.pusher.email}} != "actions@github.com"
+    if: ${{github.event.pusher.email}} != "it+hifibuild@highfidelity.io"
 
     steps:
     - uses: actions/checkout@v2
-
-    - name: Commit files
-      run: |
+      with:
+        token: ${{ secrets.GUSTAVO_TOKEN }}
 
     - name: Bump npm prerelease version
       run: |
-        git config --local user.email "actions@github.com"
-        git config --local user.name "GitHub Action 🤖"
-        git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
+        git config --local user.email "it+hifibuild@highfidelity.io"
+        git config --local user.name "hifi-gustavo"
         npm version prerelease -m "Bump package version to %s"
         git push
 
