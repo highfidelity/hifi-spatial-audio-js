@@ -1,0 +1,56 @@
+name: Deploy-Main-Build
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  Deploy-Main-Build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - uses: actions/setup-node@v2
+      with:
+        node-version: '14'
+
+    - name: Install Modules
+      run: npm i
+
+    - name: Maybe Build WebJS Version of Library
+      run: npm run build:web:prod
+
+    - name: Create WebJS Main ZIP
+      uses: papeloto/action-zip@v1
+      with:
+        files: dist/ 
+        dest: dist/highfidelity-hifi-audio-web.zip
+
+    - name: Maybe Upload WebJS Version to Latest S3 Folder
+      uses: highfidelity/s3-sync-action@master
+      with:
+        args: --follow-symlinks --delete
+      env:
+        AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
+        AWS_ACCESS_KEY_ID: ${{ secrets.IAM_SPATIAL_AUDIO_JS_KEY }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.IAM_SPATIAL_AUDIO_JS_SECRET }}
+        AWS_REGION: 'us-west-2'   # optional: defaults to us-east-1
+        SOURCE_DIR: ${{runner.workspace}}/hifi-spatial-audio-js/dist
+        DEST_DIR: releases/main
+
+    - name: Build NodeJS Version of Library
+      run: npm run build:node
+
+    - id: publish
+      name: Maybe Publish to NPM using main Tag
+      uses: JS-DevTools/npm-publish@v1
+      with:
+        token: ${{ secrets.NPM_TOKEN }}
+        tag: "main"
+        check-version: false
+
+    - name: Some alerts
+      run: echo "New 'main' library files uploaded to S3 and published to npm. This Action does not automatically update links on https://www.highfidelity.com/api/download , nor does it upload any documentation."
+        
