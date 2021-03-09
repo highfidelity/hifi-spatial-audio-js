@@ -8,7 +8,12 @@ on:
 jobs:
   Run-Jest-Unit-Tests:
     runs-on: ubuntu-latest
+    if: ${{github.event.pusher.name}} != "hifibuild"
+
     steps:
+    - name: View Commit Author
+      run: echo "The last push was made by a user named ${{ github.event.pusher.name }}."
+
     - uses: actions/checkout@v2
     
     - uses: actions/setup-node@v2

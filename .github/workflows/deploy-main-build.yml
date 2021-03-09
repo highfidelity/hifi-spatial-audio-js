@@ -8,9 +8,12 @@ on:
 jobs:
   Deploy-Main-Build:
     runs-on: ubuntu-latest
-    if: ${{github.event.pusher.user.login}} != "hifibuild"
+    if: ${{github.event.pusher.name}} != "hifibuild"
 
     steps:
+    - name: View Commit Author
+      run: echo "The last push was made by a user named ${{ github.event.pusher.user.login }}."
+
     - uses: actions/checkout@v2
       with:
         token: ${{ secrets.GUSTAVO_TOKEN }}
