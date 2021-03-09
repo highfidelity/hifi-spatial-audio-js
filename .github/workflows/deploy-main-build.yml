@@ -18,7 +18,7 @@ jobs:
     - name: Bump npm prerelease version
       run: |
         git config --local user.email "it+hifibuild@highfidelity.io"
-        git config --local user.name "hifi-gustavo"
+        git config --local user.name "hifibuild 🤖"
         npm version prerelease -m "Bump package version to %s"
         git push
 
