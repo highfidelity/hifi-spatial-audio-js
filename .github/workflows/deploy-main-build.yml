@@ -8,7 +8,7 @@ on:
 jobs:
   Deploy-Main-Build:
     runs-on: ubuntu-latest
-    if: ${{github.event.pusher.name}} != "hifibuild"
+    if: ${{github.event.pusher.user.login}} != "hifibuild"
 
     steps:
     - name: View Commit Author
