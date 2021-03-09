@@ -49,7 +49,6 @@ jobs:
       with:
         token: ${{ secrets.NPM_TOKEN }}
         tag: "main"
-        check-version: false
 
     - name: Some alerts
       run: echo "New 'main' library files uploaded to S3 and published to npm. This Action does not automatically update links on https://www.highfidelity.com/api/download , nor does it upload any documentation."
