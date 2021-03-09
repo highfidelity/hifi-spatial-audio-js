@@ -8,11 +8,11 @@ on:
 jobs:
   Deploy-Main-Build:
     runs-on: ubuntu-latest
-    if: ${{github.event.pusher.user.login}} != "hifibuild"
+    if: github.event.pusher.name != "hifibuild"
 
     steps:
     - name: View Commit Author
-      run: echo "The last push was made by a user named ${{ github.event.pusher.user.login }}."
+      run: echo "The last push was made by a user named ${{ github.event.pusher.name }}."
 
     - uses: actions/checkout@v2
       with:
@@ -20,8 +20,8 @@ jobs:
 
     - name: Bump npm prerelease version
       run: |
-        git config --local user.email "it+hifibuild@highfidelity.io"
-        git config --local user.name "hifibuild"
+        git config --global user.email "it+hifibuild@highfidelity.io"
+        git config --global user.name "hifibuild"
         npm version prerelease -m "Bump package version to %s"
         git push
 
