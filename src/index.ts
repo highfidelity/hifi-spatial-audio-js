@@ -1,5 +1,9 @@
 declare var HIFI_API_VERSION: string;
 
+// Check for browser compatibility
+import { checkBrowserCompatibility } from "./utilities/HiFiUtilities";
+checkBrowserCompatibility();
+
 import { HiFiAudioAPIData, ReceivedHiFiAudioAPIData, OrientationEuler3D, OrientationQuat3D, Point3D, eulerToQuaternion, eulerFromQuaternion} from "./classes/HiFiAudioAPIData";
 import { HiFiCommunicator, HiFiConnectionStates, HiFiUserDataStreamingScopes } from "./classes/HiFiCommunicator";
 import { AvailableUserDataSubscriptionComponents, UserDataSubscription } from "./classes/HiFiUserDataSubscription";
