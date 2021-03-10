@@ -2,7 +2,11 @@ declare var HIFI_API_VERSION: string;
 
 // Check for browser compatibility
 import { checkBrowserCompatibility } from "./utilities/HiFiUtilities";
-checkBrowserCompatibility();
+let isBrowserContext = typeof self !== 'undefined';
+if (isBrowserContext) {
+    exports.HiFiAPIVersion = HIFI_API_VERSION;
+    checkBrowserCompatibility();
+}
 
 import { HiFiAudioAPIData, ReceivedHiFiAudioAPIData, OrientationEuler3D, OrientationQuat3D, Point3D, eulerToQuaternion, eulerFromQuaternion} from "./classes/HiFiAudioAPIData";
 import { HiFiCommunicator, HiFiConnectionStates, HiFiUserDataStreamingScopes } from "./classes/HiFiCommunicator";
@@ -19,11 +23,6 @@ import { HiFiAxes, HiFiHandedness, HiFiAxisConfiguration } from "./classes/HiFiA
 // Some people don't want to type `HiFi` every time they want to use our Client Library,
 // so we also offer shorter synonyms for every Library entry point.
 // Scroll down to check out those shorter synonyms.
-
-let isBrowserContext = typeof self !== 'undefined';
-if (isBrowserContext) {
-    exports.HiFiAPIVersion = HIFI_API_VERSION;
-}
 
 exports.HiFiCommunicator = HiFiCommunicator;
 exports.HiFiConnectionStates = HiFiConnectionStates;
