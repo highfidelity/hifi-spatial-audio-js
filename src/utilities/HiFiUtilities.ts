@@ -213,13 +213,12 @@ export function checkBrowserCompatibility(): Boolean {
     ]
     for (let i = 0; i < requiredFeatures.length; i++) {
         if (typeof(eval(requiredFeatures[i])) === "undefined") {
-            console.log("HiFi Audio API: The browser does not support: " + requiredFeatures[i]);
+            HiFiLogger.error("HiFi Audio API: The browser does not support: " + requiredFeatures[i]);
             if (requiredFeatures[i] === "navigator.mediaDevices.getUserMedia") {
-                console.log("HiFi Audio API: It might be preventing access to this feature on insecure contexts.")
+                HiFiLogger.error("HiFi Audio API: Your browser may be preventing access to this feature if you are running in an insecure context, i.e. an `http` server.");
             }
             return false;
         }
     }
-    console.log("HiFi Audio API: The browser supports all feature requirements.")
     return true;
 }

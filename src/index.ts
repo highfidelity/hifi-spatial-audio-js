@@ -5,6 +5,8 @@ import { checkBrowserCompatibility } from "./utilities/HiFiUtilities";
 let isBrowserContext = typeof self !== 'undefined';
 if (isBrowserContext) {
     exports.HiFiAPIVersion = HIFI_API_VERSION;
+    exports.apiVersion = HIFI_API_VERSION;
+    exports.checkBrowserCompatibility = checkBrowserCompatibility;
     checkBrowserCompatibility();
 }
 
@@ -55,10 +57,6 @@ exports.HiFiAxisConfiguration = HiFiAxisConfiguration;
 // Short synonyms for the above start here!
 // Please let us know if any of these `exports` cause namespace collisions
 // in your application.
-
-if (isBrowserContext) {
-    exports.apiVersion = HIFI_API_VERSION;
-}
 
 exports.Communicator = HiFiCommunicator;
 exports.ConnectionStates = HiFiConnectionStates;
