@@ -478,11 +478,30 @@ export class HiFiMixerSession {
     }
 
     /**
-     * Sets the input audio stream to "muted" by disabling all of the tracks on it
-     * (or to "unmuted" by enabling the tracks on it).
+     * Sets the input audio stream to "muted" by _either_:
+     * 1. Calling `stop()` on all of the `MediaStreamTrack`s associated with the user's input audio stream OR
+     * 2. Setting `track.enabled = false|true` on all of the tracks on the user's input audio stream
+     * 
+     * Method 1 will work if and only if:
+     * 1. The developer has set the `tryToStopMicStream` argument to this function to `true` AND
+     * 2. The application code is running in the browser context (not the NodeJS context) AND
+     * 3. The user's browser gives the user the ability to permanently allow a website to access the user's microphone
+     * 
+     * Reasons to use Method 1:
+     * - Bluetooth Audio I/O devices will switch modes between mono out and stereo out when the user is muted,
+     * which yields significantly imrpoved audio output quality and proper audio spatialization.
+     * - When the user is muted, the browser will report that their microphone is not in use, which can improve
+     * user trust in the application.
+     * 
+     * Reasons _not_ to use Method 1:
+     * - Because Method 1 requires re-obtaining an audio input stream via `getUserMedia()`, there is a small delay
+     * between the moment the user un-mutes and when the user is able to be heard by other users in the Space.
+     * - If a user is using a Bluetooth Audio I/O device, there is a delay between the moment the user un-mutes
+     * and when a user can hear other users in a Space due to the fact that the Bluetooth audio device must
+     * switch I/O profiles.
      * @returns `true` if the stream was successfully muted/unmuted, `false` if it was not.
      */
-    async setInputAudioMuted(newMutedValue: boolean): Promise<boolean> {
+    async setInputAudioMuted(newMutedValue: boolean, tryToStopMicStream: boolean = false): Promise<boolean> {
         let streamController = this._raviSession.getStreamController();
         if (this._raviSession && streamController) {
             let hasMicPermission = false;
@@ -497,8 +516,10 @@ export class HiFiMixerSession {
                 }
             }
 
-            if (!hasMicPermission || typeof self === 'undefined') {
-                // NodeJS context OR the user hasn't granted or can't grant permanent mic permissions to our script...
+            if (!tryToStopMicStream || !hasMicPermission || typeof self === 'undefined') {
+                // Developer has explicitly or implicitly set `tryToStopMicStream` to `false` OR
+                // we're in the NodeJS context OR
+                // the user hasn't granted or can't grant permanent mic permissions to our script...
                 // On iOS Safari, the user _can't_ grant permanent mic permissions to our script.
                 let raviAudioStream = streamController._inputAudioStream;
 
@@ -518,10 +539,6 @@ export class HiFiMixerSession {
                 // into half-duplex (i.e. stereo) mode in the case where that output device is Bluetooth.
                 // If the user hasn't granted permanent mic permissions to our script, doing this would break features like push-to-talk,
                 // as the browser would prompt the user for permission to access the microphone every time they unmuted.
-                //
-                // We may not want to use this code branch at all, as getting a brand-new `MediaStream` every time the user unmutes
-                // may introduce unwanted delay on slower devices. Additionally, since the user can _never_ grant permanent mic permissions
-                // to our script on iOS, and many of our problems with half-duplex audio are on iOS, we may see no gain from adding this code.
                 let raviAudioStream = streamController._inputAudioStream;
                 if (raviAudioStream && newMutedValue) {
                     raviAudioStream.getTracks().forEach((track: MediaStreamTrack) => {

@@ -1,6 +1,6 @@
 const fetch = require('node-fetch');
 import { HiFiCommunicator, HiFiConnectionStates, HiFiUserDataStreamingScopes } from "../../../../src/classes/HiFiCommunicator";
-import { TOKEN_GEN_TYPES, generateJWT } from '../../testUtilities/integrationTestUtils';
+import { TOKEN_GEN_TYPES, generateJWT } from '../../../testUtilities/integrationTestUtils';
 const stackData = require('../../secrets/auth.json').stackData;
 jest.setTimeout(10000);
 
