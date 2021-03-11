@@ -114,14 +114,6 @@ describe('HiFi API REST Calls', () => {
                 });
             });
         });
-
-        describe(`Nonadmin CANNOT read list of spaces for an app`, () => {
-            test(`Read the list of spaces`, async () => {
-                let returnMessage = await fetch(`${stackData.url}/api/v1/spaces/?token=${adminToken}`);
-                let returnMessageJSON = await returnMessage.json();
-                expect(returnMessageJSON.error).toBe("token isn't an admin token");
-            });
-        });
     });
 
     describe('Reading space settings', () => {
