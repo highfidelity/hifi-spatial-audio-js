@@ -108,29 +108,29 @@ export class HiFiAxisUtilities {
 
         // START into-screen/out-of-screen axis error checking
         if (axisConfiguration.intoScreenAxis === HiFiAxes.PositiveX && axisConfiguration.outOfScreenAxis !== HiFiAxes.NegativeX) {
-            HiFiLogger.error(`Invalid axis configuration!\nIntoScreen Axis is ${axisConfiguration.intoScreenAxis}, and OutOfScree Axis is ${axisConfiguration.outOfScreenAxis}!`);
+            HiFiLogger.error(`Invalid axis configuration!\nIntoScreen Axis is ${axisConfiguration.intoScreenAxis}, and OutOfScreen Axis is ${axisConfiguration.outOfScreenAxis}!`);
             isValid = false;
         }
         if (axisConfiguration.outOfScreenAxis === HiFiAxes.PositiveX && axisConfiguration.intoScreenAxis !== HiFiAxes.NegativeX) {
-            HiFiLogger.error(`Invalid axis configuration!\nIntoScreen Axis is ${axisConfiguration.intoScreenAxis}, and OutOfScree Axis is ${axisConfiguration.outOfScreenAxis}!`);
+            HiFiLogger.error(`Invalid axis configuration!\nIntoScreen Axis is ${axisConfiguration.intoScreenAxis}, and OutOfScreen Axis is ${axisConfiguration.outOfScreenAxis}!`);
             isValid = false;
         }
 
         if (axisConfiguration.intoScreenAxis === HiFiAxes.PositiveY && axisConfiguration.outOfScreenAxis !== HiFiAxes.NegativeY) {
-            HiFiLogger.error(`Invalid axis configuration!\nIntoScreen Axis is ${axisConfiguration.intoScreenAxis}, and OutOfScree Axis is ${axisConfiguration.outOfScreenAxis}!`);
+            HiFiLogger.error(`Invalid axis configuration!\nIntoScreen Axis is ${axisConfiguration.intoScreenAxis}, and OutOfScreen Axis is ${axisConfiguration.outOfScreenAxis}!`);
             isValid = false;
         }
         if (axisConfiguration.outOfScreenAxis === HiFiAxes.PositiveY && axisConfiguration.intoScreenAxis !== HiFiAxes.NegativeY) {
-            HiFiLogger.error(`Invalid axis configuration!\nIntoScreen Axis is ${axisConfiguration.intoScreenAxis}, and OutOfScree Axis is ${axisConfiguration.outOfScreenAxis}!`);
+            HiFiLogger.error(`Invalid axis configuration!\nIntoScreen Axis is ${axisConfiguration.intoScreenAxis}, and OutOfScreen Axis is ${axisConfiguration.outOfScreenAxis}!`);
             isValid = false;
         }
 
         if (axisConfiguration.intoScreenAxis === HiFiAxes.PositiveZ && axisConfiguration.outOfScreenAxis !== HiFiAxes.NegativeZ) {
-            HiFiLogger.error(`Invalid axis configuration!\nIntoScreen Axis is ${axisConfiguration.intoScreenAxis}, and OutOfScree Axis is ${axisConfiguration.outOfScreenAxis}!`);
+            HiFiLogger.error(`Invalid axis configuration!\nIntoScreen Axis is ${axisConfiguration.intoScreenAxis}, and OutOfScreen Axis is ${axisConfiguration.outOfScreenAxis}!`);
             isValid = false;
         }
         if (axisConfiguration.outOfScreenAxis === HiFiAxes.PositiveZ && axisConfiguration.intoScreenAxis !== HiFiAxes.NegativeZ) {
-            HiFiLogger.error(`Invalid axis configuration!\nIntoScreen Axis is ${axisConfiguration.intoScreenAxis}, and OutOfScree Axis is ${axisConfiguration.outOfScreenAxis}!`);
+            HiFiLogger.error(`Invalid axis configuration!\nIntoScreen Axis is ${axisConfiguration.intoScreenAxis}, and OutOfScreen Axis is ${axisConfiguration.outOfScreenAxis}!`);
             isValid = false;
         }
         // END into-screen/out-of-screen axis error checking
