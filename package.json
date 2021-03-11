@@ -1,6 +1,6 @@
 {
   "name": "hifi-spatial-audio",
-  "version": "0.4.4-7",
+  "version": "0.5.0",
   "description": "hifi-spatial-audio allows developers to integrate High Fidelity's spatial audio technology into their JavaScript projects.",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
