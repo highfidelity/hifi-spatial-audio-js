@@ -57,7 +57,7 @@ export class HiFiAxisConfiguration {
 /**
  * Contains the application's 3D axis configuration. By default:
  * - `+x` is to the right and `-x` is to the left
- * - `+y` is up and `-z` is down
+ * - `+y` is up and `-y` is down
  * - `+z` is back and `-z` is front
  * - The coordinate system is right-handed.
  * - Euler order is `OrientationEuler3DOrder.YawPitchRoll`
