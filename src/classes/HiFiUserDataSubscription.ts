@@ -21,19 +21,21 @@ export enum AvailableUserDataSubscriptionComponents {
  * receives new User Data from the High Fidelity Audio API Server.
  */
 export class UserDataSubscription {
-    providedUserID: string;
-    components: Array<AvailableUserDataSubscriptionComponents>;
-    callback: Function;
-    
     /**
-     *
-     * @param {Object} __namedParameters
-     * @param providedUserID - The user's `providedUserID` associated with the Subscription. See {@link HiFiAudioAPIData}. Optional. If unset, the Subscription callback
+     * The user's `providedUserID` associated with the Subscription. See {@link HiFiAudioAPIData}. Optional. If unset, the Subscription callback
      * will be called for all users' data when it changes.
-     * @param components - The User Data components to which we want to subscribe, such as Position, OrientationEuler, or VolumeDecibels.
-     * @param callback - The callback function to call when the client receives new User Data associated with the `component` from the server.
+     */
+    providedUserID: string;
+    /**
+     * The User Data components to which we want to subscribe, such as Position, OrientationEuler, or VolumeDecibels.
+     */
+    components: Array<AvailableUserDataSubscriptionComponents>;
+    /**
+     * The callback function to call when the client receives new User Data associated with the `component` from the server.
      * The first and only argument to the callback function will be of type `Array<ReceivedHiFiAudioAPIData>`.
      */
+    callback: Function;
+    
     constructor({ providedUserID = null, components, callback }: { providedUserID?: string, components: Array<AvailableUserDataSubscriptionComponents>, callback: Function }) {
         this.providedUserID = providedUserID;
         this.components = components;
