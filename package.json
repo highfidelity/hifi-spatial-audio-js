@@ -1,7 +1,7 @@
 {
   "name": "hifi-spatial-audio",
   "version": "0.5.1-4",
-  "description": "hifi-spatial-audio allows developers to integrate High Fidelity's spatial audio technology into their JavaScript projects.",
+  "description": "The High Fidelity Audio Client Library allows developers to integrate High Fidelity's spatial audio technology into their projects.",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "files": [
@@ -21,12 +21,15 @@
     "test:generateReport": "jest --reporters default jest-stare",
     "publishNewRelease": "npm run clean && npm run docs:buildAndUpload && npm run build:node && npm publish && npm run build:web:prod"
   },
-  "repository": "git://github.com/highfidelity/hifi-spatial-audio-js.git",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/highfidelity/hifi-spatial-audio-js.git"
+  },
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"
   },
-  "author": "High Fidelity",
+  "author": "High Fidelity, Inc.",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/highfidelity/hifi-spatial-audio-js/issues"
@@ -49,5 +52,11 @@
     "pako": "^2.0.3",
     "wrtc": "^0.4.7",
     "ws": "^7.4.2"
-  }
+  },
+  "keywords": ["audio", "spatial audio", "3d"],
+  "maintainers": [
+    "Zach Fox (fox@highfidelity.com)",
+    "Maia Hansen (maia@highfidelity.com)",
+    "Joy Scharmen (joy@highfidelity.com)"
+  ]
 }
