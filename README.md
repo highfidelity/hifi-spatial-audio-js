@@ -38,7 +38,7 @@ Here's a super basic version of how to use the High Fidelity Spatial Audio Clien
     // They'll be standing at the origin, facing "forward".
     let initialHiFiAudioAPIData = new HighFidelityAudio.HiFiAudioAPIData({
         position: new HighFidelityAudio.Point3D({ "x": 0, "y": 0, "z": 0 }),
-        orientationEuler: new HighFidelityAudio.OrientationEuler3D({ "pitch": 0, "yaw": 0, "roll": 0 })
+        orientation: new HighFidelityAudio.OrientationQuat3D({ "w": 1, "x": 0, "y": 0, "z": 0 })
     });
 
     // Set up our `HiFiCommunicator` object, supplying our media stream and initial user data.

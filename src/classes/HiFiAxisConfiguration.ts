@@ -4,7 +4,7 @@
  */
 
 import { HiFiLogger } from "../utilities/HiFiLogger";
-import { OrientationEuler3D, Point3D } from "./HiFiAudioAPIData";
+import { OrientationQuat3D, Point3D, OrientationEuler3DOrder, OrientationEuler3D } from "./HiFiAudioAPIData";
 
 export enum HiFiAxes {
     PositiveX = "Positive X",
@@ -20,6 +20,21 @@ export enum HiFiHandedness {
     LeftHand = "Left Hand"
 }
 
+/**
+ * The axis configuration describes the 3d frame of reference in which are expressed the position and orientation of the HifiCommunicator peers.
+ * All position and orientation send or received from the api calls are expected to be expressed using that space convention.
+ * On the wire and in the mixer, the HiFi Spatial Audio system is using a single unified convention called 'MixerSpace' which is the same as the 
+ * default value, see {@link ourHiFiAxisConfiguration}.
+ * 
+ * When converting the orientationEuler, to or from the quaternion representation, the Library relies on the HiFiCommunicator's axisConfiguration
+ * to apply the expected convention and correct conversion.
+ * The 'eulerOrder' field of the axis configuration is used for this conversion.
+ * 
+ * ⚠ WARNING ⚠ 
+ * The axis configuration fields (rightAxis, leftAxis, intoScreenAxis, outOfScreenAxis, upAxis, downAxis, handedness) are not in use yet
+ * Only the default value for this fields will result in the expected behavior.
+ * The eulerOrder field is working correclty and can be configured at the creation of the HiFiCommunicator
+ */
 export class HiFiAxisConfiguration {
     rightAxis: HiFiAxes;
     leftAxis: HiFiAxes;
@@ -32,17 +47,20 @@ export class HiFiAxisConfiguration {
 
     handedness: HiFiHandedness;
 
-    constructor({rightAxis, leftAxis, intoScreenAxis, outOfScreenAxis, upAxis, downAxis, handedness }: {rightAxis: HiFiAxes, leftAxis: HiFiAxes, intoScreenAxis: HiFiAxes, outOfScreenAxis: HiFiAxes, upAxis: HiFiAxes, downAxis: HiFiAxes, handedness: HiFiHandedness }) {
-        Object.assign(this, { rightAxis, leftAxis, intoScreenAxis, outOfScreenAxis, upAxis, downAxis, handedness });
+    eulerOrder: OrientationEuler3DOrder;
+
+    constructor({rightAxis, leftAxis, intoScreenAxis, outOfScreenAxis, upAxis, downAxis, handedness, eulerOrder}: {rightAxis: HiFiAxes, leftAxis: HiFiAxes, intoScreenAxis: HiFiAxes, outOfScreenAxis: HiFiAxes, upAxis: HiFiAxes, downAxis: HiFiAxes, handedness: HiFiHandedness, eulerOrder: OrientationEuler3DOrder }) {
+        Object.assign(this, { rightAxis, leftAxis, intoScreenAxis, outOfScreenAxis, upAxis, downAxis, handedness, eulerOrder });
     }
 }
 
 /**
  * Contains the application's 3D axis configuration. By default:
  * - `+x` is to the right and `-x` is to the left
- * - `+y` is into the screen and `-y` is out of the screen towards the user
- * - `+z` is up and `-z` is down
+ * - `+y` is up and `-z` is down
+ * - `+z` is back and `-z` is front
  * - The coordinate system is right-handed.
+ * - Euler order is `OrientationEuler3DOrder.YawPitchRoll`
  */
 export let ourHiFiAxisConfiguration = new HiFiAxisConfiguration({
     rightAxis: HiFiAxes.PositiveX,
@@ -52,6 +70,7 @@ export let ourHiFiAxisConfiguration = new HiFiAxisConfiguration({
     upAxis: HiFiAxes.PositiveZ,
     downAxis: HiFiAxes.NegativeZ,
     handedness: HiFiHandedness.RightHand,
+    eulerOrder: OrientationEuler3DOrder.YawPitchRoll,
 });
 
 export class HiFiAxisUtilities {
@@ -153,20 +172,16 @@ export class HiFiAxisUtilities {
         return isValid;
     }
 
-    /**
-     * ⚠ WARNING ⚠ The code in this function might be wrong, because 3D math is really hard. The default configuration works fine,
-     * but it's challenging to verify that other configurations work as expected until we have a better 3D example app.
-     * TODO: Verify that this is actually doing what we want for it to be doing.
-     * 
-     * The HiFi Axis Configuration must have been verified using `HiFiAxisConfiguration.verify()` before this function is called.
-     * Otherwise, undefined behavior will occur.
+    /** 
+     * ⚠ WARNING ⚠ The code in this function IS wrong.
+     * TODO: implement the function, just a NO OP at the moment.
      * 
      * @param axisConfiguration 
      * @param inputPoint3D 
      */
     static translatePoint3DToMixerSpace(axisConfiguration: HiFiAxisConfiguration, inputPoint3D: Point3D): Point3D {
         let retval = new Point3D();
-
+        /*
         let inputXIsNumber = typeof (inputPoint3D.x) === "number";
         let inputYIsNumber = typeof (inputPoint3D.y) === "number";
         let inputZIsNumber = typeof (inputPoint3D.z) === "number";
@@ -212,41 +227,47 @@ export class HiFiAxisUtilities {
         } else if (axisConfiguration.downAxis === HiFiAxes.PositiveZ && inputZIsNumber) {
             retval.z = -inputPoint3D.z;
         }
-            
+        */
+        retval = inputPoint3D;
         return retval;
     }
 
     /**
-     * ⚠ WARNING ⚠ The code in this function might be wrong, because 3D math is really hard. The default configuration works fine,
-     * but it's challenging to verify that other configurations work as expected until we have a better 3D example app.
-     * TODO: Verify that this is actually doing what we want for it to be doing.
+     * ⚠ WARNING ⚠ The code in this function IS wrong.
+     * TODO: implement the function, just a NO OP at the moment.
      * 
      * @param axisConfiguration 
-     * @param inputOrientationEuler3D 
+     * @param inputOrientationQuat3D 
      */
-    static translateOrientationEuler3DToMixerSpace(axisConfiguration: HiFiAxisConfiguration, inputOrientationEuler3D: OrientationEuler3D): OrientationEuler3D {
-        let retval = new OrientationEuler3D();
+    static translatePoint3DFromMixerSpace(axisConfiguration: HiFiAxisConfiguration, mixerPoint3D: Point3D): Point3D {
+        let retval = new Point3D();
+        retval = mixerPoint3D;
+        return retval;
+    }
 
-        if (typeof (inputOrientationEuler3D.pitchDegrees) !== "number") {
-            inputOrientationEuler3D.pitchDegrees = 0;
-        }
-        if (typeof (inputOrientationEuler3D.yawDegrees) !== "number") {
-            inputOrientationEuler3D.yawDegrees = 0;
-        }
-        if (typeof (inputOrientationEuler3D.rollDegrees) !== "number") {
-            inputOrientationEuler3D.rollDegrees = 0;
-        }
+    /**
+     * ⚠ WARNING ⚠ The code in this function IS wrong.
+     * TODO: implement the function, just a NO OP at the moment.
+     * 
+     * @param axisConfiguration 
+     * @param inputOrientationQuat3D 
+     */
+    static translateOrientationQuat3DToMixerSpace(axisConfiguration: HiFiAxisConfiguration, inputOrientationQuat3D: OrientationQuat3D): OrientationQuat3D {
+        let retval = new OrientationQuat3D();
+        retval = inputOrientationQuat3D;
+        return retval;
+    }
 
-        if (axisConfiguration.handedness === HiFiHandedness.RightHand) {
-            retval.pitchDegrees = inputOrientationEuler3D.pitchDegrees;
-            retval.yawDegrees = inputOrientationEuler3D.yawDegrees;
-            retval.rollDegrees = inputOrientationEuler3D.rollDegrees;
-        } else if (axisConfiguration.handedness === HiFiHandedness.LeftHand) {
-            retval.pitchDegrees = inputOrientationEuler3D.pitchDegrees;
-            retval.yawDegrees = -inputOrientationEuler3D.yawDegrees;
-            retval.rollDegrees = inputOrientationEuler3D.rollDegrees;
-        }
-
+    /**
+     * ⚠ WARNING ⚠ The code in this function IS wrong.
+     * TODO: implement the function, just a NO OP at the moment.
+     * 
+     * @param axisConfiguration 
+     * @param inputOrientationQuat3D 
+     */
+    static translateOrientationQuat3DFromMixerSpace(axisConfiguration: HiFiAxisConfiguration, mixerOrientationQuat3D: OrientationQuat3D): OrientationQuat3D {
+        let retval = new OrientationQuat3D();
+        retval = mixerOrientationQuat3D;
         return retval;
     }
 }

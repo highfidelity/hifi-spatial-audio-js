@@ -1,6 +1,16 @@
 declare var HIFI_API_VERSION: string;
 
-import { HiFiAudioAPIData, ReceivedHiFiAudioAPIData, OrientationEuler3D, OrientationQuat3D, Point3D } from "./classes/HiFiAudioAPIData";
+// Check for browser compatibility
+import { checkBrowserCompatibility } from "./utilities/HiFiUtilities";
+let isBrowserContext = typeof self !== 'undefined';
+if (isBrowserContext) {
+    exports.HiFiAPIVersion = HIFI_API_VERSION;
+    exports.apiVersion = HIFI_API_VERSION;
+    exports.checkBrowserCompatibility = checkBrowserCompatibility;
+    checkBrowserCompatibility();
+}
+
+import { HiFiAudioAPIData, ReceivedHiFiAudioAPIData, OrientationEuler3D, OrientationQuat3D, Point3D, eulerToQuaternion, eulerFromQuaternion} from "./classes/HiFiAudioAPIData";
 import { HiFiCommunicator, HiFiConnectionStates, HiFiUserDataStreamingScopes } from "./classes/HiFiCommunicator";
 import { AvailableUserDataSubscriptionComponents, UserDataSubscription } from "./classes/HiFiUserDataSubscription";
 import { HiFiLogLevel, HiFiLogger } from "./utilities/HiFiLogger";
@@ -16,11 +26,6 @@ import { HiFiAxes, HiFiHandedness, HiFiAxisConfiguration } from "./classes/HiFiA
 // so we also offer shorter synonyms for every Library entry point.
 // Scroll down to check out those shorter synonyms.
 
-let isBrowserContext = typeof self !== 'undefined';
-if (isBrowserContext) {
-    exports.HiFiAPIVersion = HIFI_API_VERSION;
-}
-
 exports.HiFiCommunicator = HiFiCommunicator;
 exports.HiFiConnectionStates = HiFiConnectionStates;
 exports.HiFiUserDataStreamingScopes = HiFiUserDataStreamingScopes;
@@ -33,6 +38,8 @@ exports.HiFiAudioAPIData = HiFiAudioAPIData;
 exports.Point3D = Point3D;
 exports.OrientationEuler3D = OrientationEuler3D;
 exports.OrientationQuat3D = OrientationQuat3D;
+exports.eulerToQuaternion = eulerToQuaternion;
+exports.eulerFromQuaternion = eulerFromQuaternion;
 
 exports.HiFiLogger = HiFiLogger;
 exports.HiFiLogLevel = HiFiLogLevel;
@@ -50,10 +57,6 @@ exports.HiFiAxisConfiguration = HiFiAxisConfiguration;
 // Short synonyms for the above start here!
 // Please let us know if any of these `exports` cause namespace collisions
 // in your application.
-
-if (isBrowserContext) {
-    exports.apiVersion = HIFI_API_VERSION;
-}
 
 exports.Communicator = HiFiCommunicator;
 exports.ConnectionStates = HiFiConnectionStates;
