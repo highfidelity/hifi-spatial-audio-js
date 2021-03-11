@@ -89,7 +89,7 @@ export class HiFiCommunicator {
     /**
      * Constructor for the HiFiCommunicator object. Once you have created a HiFiCommunicator, you can use the
      * {@link setInputAudioMediaStream} method to assign an input audio stream to the connection, and
-     * once the connection has been established, use the {@link getOutputAudioMediaStrem} method to
+     * once the connection has been established, use the {@link getOutputAudioMediaStream} method to
      * retrieve the output audio from the server.
      * @param {Object} __namedParameters
      * @param initialHiFiAudioAPIData - The initial position, orientation, etc of the user.
