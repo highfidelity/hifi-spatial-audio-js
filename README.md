@@ -2,14 +2,14 @@
 
 &nbsp;  
 
-![npm](https://img.shields.io/npm/v/hifi-spatial-audio?style=flat-square)
-![npm](https://img.shields.io/npm/dm/hifi-spatial-audio?style=flat-square)
+[![npm](https://img.shields.io/npm/v/hifi-spatial-audio?style=flat-square)](https://www.npmjs.com/package/hifi-spatial-audio)
+[![npm](https://img.shields.io/npm/dm/hifi-spatial-audio?style=flat-square)](https://www.npmjs.com/package/hifi-spatial-audio)
 
-![GitHub Workflow Status (event)](https://img.shields.io/github/workflow/status/highfidelity/hifi-spatial-audio-js/Run-Jest-Unit-Tests?label=automated%20tests&style=flat-square)
-![GitHub issues](https://img.shields.io/github/issues/highfidelity/hifi-spatial-audio-js?style=flat-square)
+[![GitHub Workflow Status (event)](https://img.shields.io/github/workflow/status/highfidelity/hifi-spatial-audio-js/Run-Jest-Unit-Tests?label=automated%20tests&style=flat-square)](https://github.com/highfidelity/hifi-spatial-audio-js/actions/workflows/run-unit-tests.yml)
+[![GitHub issues](https://img.shields.io/github/issues/highfidelity/hifi-spatial-audio-js?style=flat-square)](https://github.com/highfidelity/hifi-spatial-audio-js/issues)
 
-![Discord](https://img.shields.io/discord/789545374837768242?label=discord&style=flat-square)
-![Twitter Follow](https://img.shields.io/twitter/follow/HighFidelityXR?style=flat-square)
+[![Discord](https://img.shields.io/discord/789545374837768242?label=discord&style=flat-square)](https://discord.gg/GrhxWPrp)
+[![Twitter Follow](https://img.shields.io/twitter/follow/HighFidelityXR?style=flat-square)](https://twitter.com/HighFidelityXR)
 
 The High Fidelity Spatial Audio Client Library allows developers to integrate High Fidelity's spatial audio technology into their projects.
 
