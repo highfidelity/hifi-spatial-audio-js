@@ -58,7 +58,7 @@ export class OrientationQuat3D {
     z: number;
 
     /**
-     * Construct a new `OrientationQuat3D` object. All parameters are required.
+     * Construct a new `OrientationQuat3D` object.
      */
     constructor({ w = 1, x = 0, y = 0, z = 0 }: { w?: number, x?: number, y?: number, z?: number } = {}) {
         this.w = clampNonan(w, -1, 1, 1);
@@ -371,40 +371,39 @@ export function eulerFromQuaternion(quat: OrientationQuat3D, order: OrientationE
  * Member data of this class that is sent to the Server will affect the final mixed spatial audio for all listeners in the server's virtual space.
  */
 export class HiFiAudioAPIData {
-    position: Point3D;
-    orientationQuat: OrientationQuat3D;
-    orientationEuler: OrientationEuler3D;
-    volumeThreshold: number;
-    hiFiGain: number;
-    userAttenuation: number;
-    userRolloff: number;
-
     /**
-     * 
-     * @param __namedParameters
-     * @param position If you don't supply a `position` when constructing instantiations of this class, `position` will be `null`.
+     * If you don't supply a `position` when constructing instantiations of this class, `position` will be `null`.
      * 
      * ✔ The client sends `position` data to the server when `_transmitHiFiAudioAPIDataToServer()` is called.
      * 
      * ✔ The server sends `position` data to all clients connected to a server during "peer updates".
-     * @param orientationQuat If you don't supply an `orientationQuat` when constructing instantiations of this class, `orientationQuat` will be `null`.
+     */
+    position: Point3D;
+    /**
+     * If you don't supply an `orientationQuat` when constructing instantiations of this class, `orientationQuat` will be `null`.
      * 
      * ✔ The client sends `orientationQuat` data to the server when `_transmitHiFiAudioAPIDataToServer()` is called.
      * 
      * ✔ The server sends `orientationQuat` data to all clients connected to a server during "peer updates".
-     * @param orientationEuler For convenience, a Euler representation of the orientation is supported.
-     *  This is an alternative way to specify the orientationQuat field in the AudioData to send to or received from the server.
+     */
+    orientationQuat: OrientationQuat3D;
+    /**
+     * For convenience, a Euler representation of the orientation is supported.
+     * This is an alternative way to specify the `orientationQuat` field in the `HiFiAudioAPIData` that is sent to or received from the server.
      * 
-     *  ✔ When using euler representation to update the client orientation, the equivalent quaternion is evaluated in _updateUserData
-     *  ✔ When requesting orientation euler from server updates, the euler representation is evaluated in _handleUserDataUpdates
+     *  ✔ When using euler representation to update the client orientation, the equivalent Quaternion is evaluated in `_updateUserData()`
      * 
-     *
-     * @param volumeThreshold A volume level below this value is considered background noise and will be smoothly gated off.
+     *  ✔ When requesting orientation Euler from server updates, the Euler representation is evaluated in `_handleUserDataUpdates()`
+     */
+    orientationEuler: OrientationEuler3D;
+    /**
+     * A volume level below this value is considered background noise and will be smoothly gated off.
      * The floating point value is specified in dBFS (decibels relative to full scale) with values between -96 dB (indicating no gating)
      * and 0 dB. It is in the same decibel units as the VolumeDecibels component of UserDataSubscription.
-     *
-
-     * @param hiFiGain This value affects how loud User A will sound to User B at a given distance in 3D space.
+     */
+    volumeThreshold: number;
+    /**
+     * This value affects how loud User A will sound to User B at a given distance in 3D space.
      * This value also affects the distance at which User A can be heard in 3D space.
      * Higher values for User A means that User A will sound louder to other users around User A, and it also means that User A will be audible from a greater distance.
      * If you don't supply an `hiFiGain` when constructing instantiations of this class, `hiFiGain` will be `null`.
@@ -412,8 +411,10 @@ export class HiFiAudioAPIData {
      * ✔ The client sends `hiFiGain` data to the server when `_transmitHiFiAudioAPIDataToServer()` is called.
      * 
      * ✔ The server sends `hiFiGain` data to all clients connected to a server during "peer updates".
-
-     * @param userAttenuation This value affects how far a user's sound will travel in 3D space, without affecting the user's loudness.
+     */
+    hiFiGain: number;
+    /**
+     * This value affects how far a user's sound will travel in 3D space, without affecting the user's loudness.
      * By default, there is a global attenuation value (set for a given space) that applies to all users in a space. This default space
      * attenuation is usually 0.5, which represents a reasonable approximation of a real-world fall-off in sound over distance.
      * Lower numbers represent less attenuation (i.e. sound travels farther); higher numbers represent more attenuation (i.e. sound drops
@@ -437,7 +438,9 @@ export class HiFiAudioAPIData {
      * ✔ The client sends `userAttenuation` data to the server when `_transmitHiFiAudioAPIDataToServer()` is called.
      * 
      * ❌ The server never sends `userAttenuation` data.
-     *
+     */
+    userAttenuation: number;
+    /**
      * @param userRolloff This value represents the progressive high frequency roll-off in meters, a measure of how the higher frequencies 
      * in a user's sound are dampened as the user gets further away. By default, there is a global roll-off value (set for a given space), currently 16 
      * meters, which applies to all users in a space. This value represents the distance for a 1kHz rolloff. Values in the range of 
@@ -452,6 +455,8 @@ export class HiFiAudioAPIData {
      * 
      * ❌ The server never sends `userRolloff` data.
      */
+    userRolloff: number;
+    
     constructor({ position = null, orientationQuat = null, orientationEuler = null, volumeThreshold = null, hiFiGain = null, userAttenuation = null, userRolloff = null }: { position?: Point3D, orientationQuat?: OrientationQuat3D, orientationEuler?: OrientationEuler3D, volumeThreshold?: number, hiFiGain?: number, userAttenuation?: number, userRolloff?: number } = {}) {
         this.position = position;
         this.orientationQuat = orientationQuat;
@@ -470,24 +475,31 @@ export class HiFiAudioAPIData {
  * See {@link HiFiAudioAPIData} for data that can both be sent to and received from the Server (i.e. `position`).
  */
 export class ReceivedHiFiAudioAPIData extends HiFiAudioAPIData {
-    providedUserID: string;
-    hashedVisitID: string;
-    volumeDecibels: number;
-    
     /**
-     * 
-     * @param params 
-     * @param params.providedUserID This User ID is an arbitrary string provided by an application developer which can be used to identify the user associated with a client.
+     * This User ID is an arbitrary string provided by an application developer which can be used to identify the user associated with a client.
      * We recommend that this `providedUserID` is unique across all users, but the High Fidelity API will not enforce uniqueness across clients for this value.
-     * @param params.hashedVisitID This string is a hashed version of the random UUID that is generated automatically.
+     */
+    providedUserID: string;
+    /**
+     * This string is a hashed version of the random UUID that is generated automatically.
+     * 
      * A connecting client sends this value as the `session` key inside the argument to the `audionet.init` command.
+     * 
      * It is used to identify a given client across a cloud of mixers and is guaranteed ("guaranteed" given the context of random UUIDS) to be unique.
      * Application developers should not need to interact with or make use of this value, unless they want to use it internally for tracking or other purposes.
+     * 
      * This value cannot be set by the application developer.
-     * @param params.volumeDecibels The current volume of the user in decibels.
+     */
+    hashedVisitID: string;
+    /**
+     * The current volume of the user in decibels.
+     * 
      * ❌ The client never sends `volumeDecibels` data to the server.
+     * 
      * ✔ The server sends `volumeDecibels` data to all clients connected to a server during "peer updates".
      */
+    volumeDecibels: number;
+    
     constructor(params: { providedUserID?: string, hashedVisitID?: string, volumeDecibels?: number, position?: Point3D, orientationQuat?: OrientationQuat3D, hiFiGain?: number } = {}) {
         super(params);
         this.providedUserID = params.providedUserID;
