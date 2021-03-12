@@ -1,0 +1,132 @@
+{
+    "latestRelease": {
+        "version": "v0.5.1",
+        "lastModified": "2021-03-11T20:28:50.000Z",
+        "webJSZip": "https://hifi-spatial-audio-api.s3.amazonaws.com/releases/latest/highfidelity-hifi-audio-web.zip",
+        "webJSAudio": "https://hifi-spatial-audio-api.s3.amazonaws.com/releases/latest/HighFidelityAudio-latest.js",
+        "webJSControls": "https://hifi-spatial-audio-api.s3.amazonaws.com/releases/latest/HighFidelityControls-latest.js",
+        "npm": "npm i hifi-spatial-audio"
+    },
+    "allReleases": [
+        {
+            "version": "v0.1.4",
+            "lastModified": "2021-02-02T17:51:06.000Z",
+            "webJSZip": "https://hifi-spatial-audio-api.s3.amazonaws.com/releases/v0.1.4/highfidelity-hifi-audio-web.zip",
+            "webJSAudio": "https://hifi-spatial-audio-api.s3.amazonaws.com/releases/v0.1.4/HighFidelityAudio-latest.js",
+            "webJSControls": "https://hifi-spatial-audio-api.s3.amazonaws.com/releases/v0.1.4/HighFidelityControls-latest.js",
+            "npm": "npm i hifi-spatial-audio@0.1.4"
+        },
+        {
+            "version": "v0.1.7",
+            "lastModified": "2021-02-03T21:54:02.000Z",
+            "webJSZip": "https://hifi-spatial-audio-api.s3.amazonaws.com/releases/v0.1.7/highfidelity-hifi-audio-web.zip",
+            "webJSAudio": "https://hifi-spatial-audio-api.s3.amazonaws.com/releases/v0.1.7/HighFidelityAudio-latest.js",
+            "webJSControls": "https://hifi-spatial-audio-api.s3.amazonaws.com/releases/v0.1.7/HighFidelityControls-latest.js",
+            "npm": "npm i hifi-spatial-audio@0.1.7"
+        },
+        {
+            "version": "v0.1.8",
+            "lastModified": "2021-02-05T19:10:26.000Z",
+            "webJSZip": "https://hifi-spatial-audio-api.s3.amazonaws.com/releases/v0.1.8/highfidelity-hifi-audio-web.zip",
+            "webJSAudio": "https://hifi-spatial-audio-api.s3.amazonaws.com/releases/v0.1.8/HighFidelityAudio-latest.js",
+            "webJSControls": "https://hifi-spatial-audio-api.s3.amazonaws.com/releases/v0.1.8/HighFidelityControls-latest.js",
+            "npm": "npm i hifi-spatial-audio@0.1.8"
+        },
+        {
+            "version": "v0.2.0",
+            "lastModified": "2021-02-08T17:32:28.000Z",
+            "webJSZip": "https://hifi-spatial-audio-api.s3.amazonaws.com/releases/v0.2.0/highfidelity-hifi-audio-web.zip",
+            "webJSAudio": "https://hifi-spatial-audio-api.s3.amazonaws.com/releases/v0.2.0/HighFidelityAudio-latest.js",
+            "webJSControls": "https://hifi-spatial-audio-api.s3.amazonaws.com/releases/v0.2.0/HighFidelityControls-latest.js",
+            "npm": "npm i hifi-spatial-audio@0.2.0"
+        },
+        {
+            "version": "v0.2.1",
+            "lastModified": "2021-02-08T22:11:47.000Z",
+            "webJSZip": "https://hifi-spatial-audio-api.s3.amazonaws.com/releases/v0.2.1/highfidelity-hifi-audio-web.zip",
+            "webJSAudio": "https://hifi-spatial-audio-api.s3.amazonaws.com/releases/v0.2.1/HighFidelityAudio-latest.js",
+            "webJSControls": "https://hifi-spatial-audio-api.s3.amazonaws.com/releases/v0.2.1/HighFidelityControls-latest.js",
+            "npm": "npm i hifi-spatial-audio@0.2.1"
+        },
+        {
+            "version": "v0.2.2",
+            "lastModified": "2021-02-09T19:25:19.000Z",
+            "webJSZip": "https://hifi-spatial-audio-api.s3.amazonaws.com/releases/v0.2.2/highfidelity-hifi-audio-web.zip",
+            "webJSAudio": "https://hifi-spatial-audio-api.s3.amazonaws.com/releases/v0.2.2/HighFidelityAudio-latest.js",
+            "webJSControls": "https://hifi-spatial-audio-api.s3.amazonaws.com/releases/v0.2.2/HighFidelityControls-latest.js",
+            "npm": "npm i hifi-spatial-audio@0.2.2"
+        },
+        {
+            "version": "v0.2.7",
+            "lastModified": "2021-02-16T20:32:36.000Z",
+            "webJSZip": "https://hifi-spatial-audio-api.s3.amazonaws.com/releases/v0.2.7/highfidelity-hifi-audio-web.zip",
+            "webJSAudio": "https://hifi-spatial-audio-api.s3.amazonaws.com/releases/v0.2.7/HighFidelityAudio-latest.js",
+            "webJSControls": "https://hifi-spatial-audio-api.s3.amazonaws.com/releases/v0.2.7/HighFidelityControls-latest.js",
+            "npm": "npm i hifi-spatial-audio@0.2.7"
+        },
+        {
+            "version": "v0.2.8",
+            "lastModified": "2021-02-16T20:44:41.000Z",
+            "webJSZip": "https://hifi-spatial-audio-api.s3.amazonaws.com/releases/v0.2.8/highfidelity-hifi-audio-web.zip",
+            "webJSAudio": "https://hifi-spatial-audio-api.s3.amazonaws.com/releases/v0.2.8/HighFidelityAudio-latest.js",
+            "webJSControls": "https://hifi-spatial-audio-api.s3.amazonaws.com/releases/v0.2.8/HighFidelityControls-latest.js",
+            "npm": "npm i hifi-spatial-audio@0.2.8"
+        },
+        {
+            "version": "v0.3.0",
+            "lastModified": "2021-02-26T18:01:52.000Z",
+            "webJSZip": "https://hifi-spatial-audio-api.s3.amazonaws.com/releases/v0.3.0/highfidelity-hifi-audio-web.zip",
+            "webJSAudio": "https://hifi-spatial-audio-api.s3.amazonaws.com/releases/v0.3.0/HighFidelityAudio-latest.js",
+            "webJSControls": "https://hifi-spatial-audio-api.s3.amazonaws.com/releases/v0.3.0/HighFidelityControls-latest.js",
+            "npm": "npm i hifi-spatial-audio@0.3.0"
+        },
+        {
+            "version": "v0.4.0",
+            "lastModified": "2021-03-04T20:16:25.000Z",
+            "webJSZip": "https://hifi-spatial-audio-api.s3.amazonaws.com/releases/v0.4.0/highfidelity-hifi-audio-web.zip",
+            "webJSAudio": "https://hifi-spatial-audio-api.s3.amazonaws.com/releases/v0.4.0/HighFidelityAudio-latest.js",
+            "webJSControls": "https://hifi-spatial-audio-api.s3.amazonaws.com/releases/v0.4.0/HighFidelityControls-latest.js",
+            "npm": "npm i hifi-spatial-audio@0.4.0"
+        },
+        {
+            "version": "v0.4.1",
+            "lastModified": "2021-03-04T21:32:59.000Z",
+            "webJSZip": "https://hifi-spatial-audio-api.s3.amazonaws.com/releases/v0.4.1/highfidelity-hifi-audio-web.zip",
+            "webJSAudio": "https://hifi-spatial-audio-api.s3.amazonaws.com/releases/v0.4.1/HighFidelityAudio-latest.js",
+            "webJSControls": "https://hifi-spatial-audio-api.s3.amazonaws.com/releases/v0.4.1/HighFidelityControls-latest.js",
+            "npm": "npm i hifi-spatial-audio@0.4.1"
+        },
+        {
+            "version": "v0.4.2",
+            "lastModified": "2021-03-05T02:50:00.000Z",
+            "webJSZip": "https://hifi-spatial-audio-api.s3.amazonaws.com/releases/v0.4.2/highfidelity-hifi-audio-web.zip",
+            "webJSAudio": "https://hifi-spatial-audio-api.s3.amazonaws.com/releases/v0.4.2/HighFidelityAudio-latest.js",
+            "webJSControls": "https://hifi-spatial-audio-api.s3.amazonaws.com/releases/v0.4.2/HighFidelityControls-latest.js",
+            "npm": "npm i hifi-spatial-audio@0.4.2"
+        },
+        {
+            "version": "v0.4.3",
+            "lastModified": "2021-03-05T15:57:33.000Z",
+            "webJSZip": "https://hifi-spatial-audio-api.s3.amazonaws.com/releases/v0.4.3/highfidelity-hifi-audio-web.zip",
+            "webJSAudio": "https://hifi-spatial-audio-api.s3.amazonaws.com/releases/v0.4.3/HighFidelityAudio-latest.js",
+            "webJSControls": "https://hifi-spatial-audio-api.s3.amazonaws.com/releases/v0.4.3/HighFidelityControls-latest.js",
+            "npm": "npm i hifi-spatial-audio@0.4.3"
+        },
+        {
+            "version": "v0.5.0",
+            "lastModified": "2021-03-11T20:09:19.000Z",
+            "webJSZip": "https://hifi-spatial-audio-api.s3.amazonaws.com/releases/v0.5.0/highfidelity-hifi-audio-web.zip",
+            "webJSAudio": "https://hifi-spatial-audio-api.s3.amazonaws.com/releases/v0.5.0/HighFidelityAudio-latest.js",
+            "webJSControls": "https://hifi-spatial-audio-api.s3.amazonaws.com/releases/v0.5.0/HighFidelityControls-latest.js",
+            "npm": "npm i hifi-spatial-audio@0.5.0"
+        },
+        {
+            "version": "v0.5.1",
+            "lastModified": "2021-03-11T20:28:50.000Z",
+            "webJSZip": "https://hifi-spatial-audio-api.s3.amazonaws.com/releases/v0.5.1/highfidelity-hifi-audio-web.zip",
+            "webJSAudio": "https://hifi-spatial-audio-api.s3.amazonaws.com/releases/v0.5.1/HighFidelityAudio-latest.js",
+            "webJSControls": "https://hifi-spatial-audio-api.s3.amazonaws.com/releases/v0.5.1/HighFidelityControls-latest.js",
+            "npm": "npm i hifi-spatial-audio@0.5.1"
+        }
+    ]
+}
