@@ -16,31 +16,54 @@ s3.listObjectsV2(params, (err, data) => {
     let releaseVersions = [];
     for (data of data.Contents) {
         let releaseVersion = data.Key.split('/')[1];
-        if (releaseVersion !== "latest" &&
-            releaseVersion !== "main" &&
-            releaseVersion.length > 0 &&
-            !releaseVersions.find((version) => { return version.version === releaseVersion; })) {
-            releaseVersions.push({
-                version: releaseVersion,
-                lastModified: data.LastModified,
-                webJSZip: `https://hifi-spatial-audio-api.s3.amazonaws.com/releases/${releaseVersion}/highfidelity-hifi-audio-web.zip`,
-                webJSAudio: `https://hifi-spatial-audio-api.s3.amazonaws.com/releases/${releaseVersion}/HighFidelityAudio-latest.js`,
-                webJSControls: `https://hifi-spatial-audio-api.s3.amazonaws.com/releases/${releaseVersion}/HighFidelityControls-latest.js`,
-                npm: `npm i hifi-spatial-audio@${releaseVersion.replace('v', '')}`
-            });
+        if (releaseVersion !== "latest" && releaseVersion !== "releases.json" && releaseVersion.length > 0) {
+            let isMainVersion = releaseVersion === "main";
+
+            let isRecentEnough = true;
+            if (!isMainVersion) {
+                let testString = releaseVersion.replace('v', '');
+                let split = testString.split('.');
+                let majorVersion = parseInt(split[0]);
+                let minorVersion = parseInt(split[1]);
+                let patchVersion = parseInt(split[2]);
+
+                if (majorVersion === 0 && minorVersion < 4) {
+                    isRecentEnough = false;
+                }
+            }
+            
+            let versionNotAlreadyPushed = false;
+            if (!releaseVersions.find((version) => { return version.version === releaseVersion; })) {
+                versionNotAlreadyPushed = true;
+            }
+
+            if ((isMainVersion || isRecentEnough) && versionNotAlreadyPushed) {
+                releaseVersions.push({
+                    version: releaseVersion,
+                    lastModified: data.LastModified,
+                    webJSZip: `${releaseVersion}/highfidelity-hifi-audio-web.zip`,
+                    webJSAudio: `${releaseVersion}/HighFidelityAudio-latest.js`,
+                    webJSControls: `${releaseVersion}/HighFidelityControls-latest.js`,
+                    npm: `npm i hifi-spatial-audio@${releaseVersion.replace('v', '')}`
+                });
+            }
         }
     }
     const latestRelease = {};
     Object.assign(latestRelease, releaseVersions[releaseVersions.length - 1])
-    latestRelease.webJSZip = `https://hifi-spatial-audio-api.s3.amazonaws.com/releases/latest/highfidelity-hifi-audio-web.zip`;
-    latestRelease.webJSAudio = `https://hifi-spatial-audio-api.s3.amazonaws.com/releases/latest/HighFidelityAudio-latest.js`;
-    latestRelease.webJSControls = `https://hifi-spatial-audio-api.s3.amazonaws.com/releases/latest/HighFidelityControls-latest.js`;
+    latestRelease.webJSZip = `latest/highfidelity-hifi-audio-web.zip`;
+    latestRelease.webJSAudio = `latest/HighFidelityAudio-latest.js`;
+    latestRelease.webJSControls = `latest/HighFidelityControls-latest.js`;
     latestRelease.npm = `npm i hifi-spatial-audio`;
-    
+
     const allReleaseInfo = {
+        "releaseJSONVersion": "v1.0.0",
+        "baseReleaseURL": "https://hifi-spatial-audio-api.s3.amazonaws.com/releases/",
         "latestRelease": latestRelease,
         "allReleases": releaseVersions
     };
+
+    console.log(allReleaseInfo)
 
     let uploadParams = {
         Bucket: 'hifi-spatial-audio-api',
