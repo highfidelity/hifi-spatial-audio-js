@@ -32,6 +32,6 @@ After you click "Publish release", [this GitHub Action](./.github/workflows/depl
 6. Create a `.zip` file containing the two Client Library files (base "Audio" library and optional "Controls" library)
 7. Upload the `.zip` file and the two Client Library files to the `latest` folder inside the releases S3 bucket.
 8. Upload the `.zip` file and the two Client Library files to a folder corresponding to the current version of the Library inside the releases S3 bucket.
-9. Echo a message to the GHA logs about the fact that the Action does not automatically update `https://www.highfidelity.com/api/download`, which must be updated manually.
-10. Build the NodeJS version of the library.
-11. Publish the NodeJS library module to [npmjs.com/package/hifi-spatial-audio](https://www.npmjs.com/package/hifi-spatial-audio).
+9. Build the NodeJS version of the library.
+10. Publish the NodeJS library module to [npmjs.com/package/hifi-spatial-audio](https://www.npmjs.com/package/hifi-spatial-audio).
+11. Creates and uploads a new `releases.json` to [a specific place on S3](https://hifi-spatial-audio-api.s3.amazonaws.com/releases/releases.json), which will then cause [our Downloads page](https://highfidelity.com/api/download) to automatically update for visitors.
