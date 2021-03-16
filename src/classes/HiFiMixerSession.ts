@@ -184,7 +184,6 @@ export class HiFiMixerSession {
                     this.mixerInfo["build_type"] = parsedResponse.build_type;
                     this.mixerInfo["build_version"] = parsedResponse.build_version;
                     this.mixerInfo["visit_id_hash"] = parsedResponse.visit_id_hash;
-                    parsedResponse["unhashedVisitID"] = this._raviSession.getUUID();
                     resolve({
                         success: true,
                         audionetInitResponse: parsedResponse
