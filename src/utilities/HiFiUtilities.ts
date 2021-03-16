@@ -190,26 +190,16 @@ export function preciseInterval(callback: Function, intervalMS: number): any {
 export function checkBrowserCompatibility(): Boolean {
     let requiredFeatures: Array<string> = [
         // Navigator mediaDevices
-        "navigator",
-        "navigator.permissions",
-        "navigator.permissions.query",
-        "navigator.mediaDevices.getUserMedia",
-        "navigator.mediaDevices.getSupportedConstraints",
+        "navigator", // Found on source code HiFiMixerSession.ts, RaviStreamController.ts
+        "navigator.permissions", // Found on source code HiFiMixerSession.ts (ln.544)
+        "navigator.permissions.query", // Found on source code HiFiMixerSession.ts (ln.544)
+        "navigator.mediaDevices.getUserMedia", // Found on source code HiFiMixerSession.ts (ln.590)
+        "navigator.mediaDevices.getSupportedConstraints", // Found on source code HiFiUtilities (ln. 130, 134, 138)
         // WebRTC
-        "window.MediaStream",
-        "window.MediaStreamTrack",
-        "window.RTCDataChannel",
-        "window.RTCDataChannelEvent",
-        "window.RTCDtlsTransport",
-        "window.RTCIceCandidate",
-        "window.RTCIceTransport",
-        "window.RTCPeerConnection",
-        "window.RTCPeerConnectionIceEvent",
-        "window.RTCRtpReceiver",
-        "window.RTCRtpSender",
-        "window.RTCRtpTransceiver",
-        "window.RTCSctpTransport",
-        "window.RTCSessionDescription"
+        "window.MediaStream", // Found on source code HiFiCommunicator.ts, HiFiMixerSession.ts, RaviSession.ts, RaviStreamController.ts
+        "window.RTCDataChannel", // Found on source code RaviCommandController.ts (ln.151)
+        "window.RTCPeerConnection", // Found on source code RaviSession.ts (ln.603)
+        "window.RTCSessionDescription" // Found on source code RaviSession.ts (ln.604)
     ]
     for (let i = 0; i < requiredFeatures.length; i++) {
         if (typeof(eval(requiredFeatures[i])) === "undefined") {
