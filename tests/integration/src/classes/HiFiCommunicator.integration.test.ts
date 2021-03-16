@@ -4,10 +4,10 @@ import { TOKEN_GEN_TYPES, generateJWT } from '../../../testUtilities/testUtils';
 const stackData = require('../../../secrets/auth.json').stackData;
 
 describe('Non admin server connections', () => {
-    let nonAdminSigned: string;
+    let nonAdminSigned: string; // APP 2
     let adminSigned: string;
     let nonAdminUnsigned: string;
-    let nonAdminNonexistantSpaceID: string;
+    let nonAdminNonexistentSpaceID: string;
     let nonAdminNewSpaceName: string;
     let nonAdminTimed: string;
     let nonAdminExpired: string;
@@ -18,7 +18,7 @@ describe('Non admin server connections', () => {
             nonAdminSigned = await generateJWT(TOKEN_GEN_TYPES.NON_ADMIN_ID_APP2_SPACE1_SIGNED);
             adminSigned = await generateJWT(TOKEN_GEN_TYPES.ADMIN_ID_APP2_SPACE1_SIGNED);
             nonAdminUnsigned = await generateJWT(TOKEN_GEN_TYPES.NON_ADMIN_ID_APP2_SPACE1_UNSIGNED);
-            nonAdminNonexistantSpaceID = await generateJWT(TOKEN_GEN_TYPES.NON_ADMIN_APP2_SPACE_ID_NONEXISTANT_SIGNED);
+            nonAdminNonexistentSpaceID = await generateJWT(TOKEN_GEN_TYPES.NON_ADMIN_APP2_SPACE_ID_NONEXISTENT_SIGNED);
             nonAdminNewSpaceName = await generateJWT(TOKEN_GEN_TYPES.NON_ADMIN_APP2_NEW_SPACE_NAME_SIGNED);
             nonAdminTimed = await generateJWT(TOKEN_GEN_TYPES.NON_ADMIN_APP2_SPACE1_TIMED_SIGNED);
             nonAdminExpired = await generateJWT(TOKEN_GEN_TYPES.NON_ADMIN_APP2_SPACE1_TIMED_EXPIRED);
@@ -50,7 +50,7 @@ describe('Non admin server connections', () => {
                 })
             }
         } catch (err) {
-            console.error(`Unable to ensure the nonexistant space does not exist. Please check your app. ERR: ${err}`);
+            console.error(`Unable to ensure the nonexistent space does not exist. Please check your app. ERR: ${err}`);
             throw err;
         }
     });
@@ -123,11 +123,11 @@ describe('Non admin server connections', () => {
     });
 
     test(`CANNOT connect to a space on staging that doesn’t exist (i.e. token contains an invalid space ID)`, async () => {
-        await expect(hifiCommunicator.connectToHiFiAudioAPIServer(nonAdminNonexistantSpaceID, stackData.url))
+        await expect(hifiCommunicator.connectToHiFiAudioAPIServer(nonAdminNonexistentSpaceID, stackData.url))
             .rejects.toMatchObject({ error: expect.stringMatching(/Unexpected server response: 501/) });
     });
 
-    test(`CAN create a space by trying to connect with SIGNED token with nonexistant space NAME and no space ID and correct stack URL`, async () => {
+    test(`CAN create a space by trying to connect with SIGNED token with nonexistent space NAME and no space ID and correct stack URL`, async () => {
         await hifiCommunicator.connectToHiFiAudioAPIServer(nonAdminNewSpaceName, stackData.url)
             .then(data => {
                 expect(data.audionetInitResponse.success).toBe(true);
