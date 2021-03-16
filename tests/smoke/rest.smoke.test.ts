@@ -21,16 +21,6 @@ describe('HiFi API REST Calls', () => {
         }
     });
 
-    beforeAll(async () => {
-        try {
-            adminToken = await generateJWT(TOKEN_GEN_TYPES.ADMIN_ID_APP1_SPACE1_SIGNED);
-            nonAdminToken = await generateJWT(TOKEN_GEN_TYPES.NON_ADMIN_ID_APP1_SPACE1_SIGNED);
-        } catch (err) {
-            console.error("Unable to create non admin token for testing REST calls. ERR: ", err);
-            process.exit();
-        }
-    });
-
     describe('Creating and deleting spaces', () => {
         describe('Admin CAN create and delete a space', () => {
             let newSpaceName = "newSpace";
@@ -60,7 +50,8 @@ describe('HiFi API REST Calls', () => {
             test(`Create a space`, async () => {
                 let returnMessage = await fetch(`${stackData.url}/api/v1/spaces/create?token=${nonAdminToken}&name=${newSpaceName}`)
                 let returnMessageJSON = await returnMessage.json();
-                expect(returnMessageJSON.error).toBe("token isn't an admin token");
+                expect(returnMessageJSON.code).toBe(401);
+                expect(returnMessageJSON.errors).toMatchObject({ description: expect.stringMatching(/token isn't an admin token/) });
             });
 
             test(`Delete a space`, async () => {
@@ -77,7 +68,8 @@ describe('HiFi API REST Calls', () => {
                 });
                 let returnMessageJSON: any = {};
                 returnMessageJSON = await returnMessage.json();
-                expect(returnMessageJSON.error).toBe("token isn't an admin token");
+                expect(returnMessageJSON.code).toBe(401);
+                expect(returnMessageJSON.errors).toMatchObject({ description: expect.stringMatching(/token isn't an admin token/) });
                 try {
                     await fetch(`${stackData.url}/api/v1/spaces/${spaceToDelete}?token=${adminToken}`, {
                         method: 'DELETE'
@@ -90,6 +82,27 @@ describe('HiFi API REST Calls', () => {
     });
 
     describe('Reading app spaces', () => {
+        beforeAll(async () => {
+            try {
+                let returnMessage = await fetch(`${stackData.url}/api/v1/spaces/?token=${adminToken}`);
+
+                let spacesListJSON: any = {};
+                spacesListJSON = await returnMessage.json();
+                spacesListJSON.forEach(async (space: any) => {
+                    let match = false;
+                    for (var key in stackData.apps.app1.spaces) {
+                        if (stackData.apps.app1.spaces[key].id === space['space-id']) { match = true; }
+                    }
+                    if (!match) {
+                        await fetch(`${stackData.url}/api/v1/spaces/${space['space-id']}?token=${adminToken}`, {
+                            method: 'DELETE'
+                        });
+                    };
+                });
+            } catch (err) {
+                console.error("Failed to remove extra spaces before test. Please manually remove them and then rerun the test.");
+            }
+        });
         describe(`Admin CAN read accurate list of spaces for an app`, () => {
             test(`Read the list of spaces`, async () => {
                 let returnMessage = await fetch(`${stackData.url}/api/v1/spaces/?token=${adminToken}`);
@@ -171,13 +184,14 @@ describe('HiFi API REST Calls', () => {
             });
         });
 
-        describe(`Non admin CANNOT read settings for a space`, () => {
+        describe(`Nonadmin CANNOT read settings for a space`, () => {
             test(`Read all space settings simultaneously`, async () => {
                 let returnMessage = await fetch(`${stackData.url}/api/v1/spaces/${stackData.apps.app1.spaces.space1.id}/settings?token=${nonAdminToken}`);
 
                 let returnMessageJSON: any = {};
                 returnMessageJSON = await returnMessage.json();
-                expect(returnMessageJSON.error).toBe("token isn't an admin token");
+                expect(returnMessageJSON.code).toBe(401);
+                expect(returnMessageJSON.errors).toMatchObject({ description: expect.stringMatching(/token isn't an admin token/) });
             });
 
             test(`Read the 'space-id' setting`, async () => {
@@ -185,7 +199,8 @@ describe('HiFi API REST Calls', () => {
 
                 let returnMessageJSON: any = {};
                 returnMessageJSON = await returnMessage.json();
-                expect(returnMessageJSON.error).toBe("token isn't an admin token");
+                expect(returnMessageJSON.code).toBe(401);
+                expect(returnMessageJSON.errors).toMatchObject({ description: expect.stringMatching(/token isn't an admin token/) });
             });
 
             test(`Read the 'app-id' setting`, async () => {
@@ -193,7 +208,8 @@ describe('HiFi API REST Calls', () => {
 
                 let returnMessageJSON: any = {};
                 returnMessageJSON = await returnMessage.json();
-                expect(returnMessageJSON.error).toBe("token isn't an admin token");
+                expect(returnMessageJSON.code).toBe(401);
+                expect(returnMessageJSON.errors).toMatchObject({ description: expect.stringMatching(/token isn't an admin token/) });
             });
 
             test(`Read the 'ignore-token-signing' setting`, async () => {
@@ -201,7 +217,8 @@ describe('HiFi API REST Calls', () => {
 
                 let returnMessageJSON: any = {};
                 returnMessageJSON = await returnMessage.json();
-                expect(returnMessageJSON.error).toBe("token isn't an admin token");
+                expect(returnMessageJSON.code).toBe(401);
+                expect(returnMessageJSON.errors).toMatchObject({ description: expect.stringMatching(/token isn't an admin token/) });
             });
 
             test(`Read the 'name' setting`, async () => {
@@ -209,7 +226,8 @@ describe('HiFi API REST Calls', () => {
 
                 let returnMessageJSON: any = {};
                 returnMessageJSON = await returnMessage.json();
-                expect(returnMessageJSON.error).toBe("token isn't an admin token");
+                expect(returnMessageJSON.code).toBe(401);
+                expect(returnMessageJSON.errors).toMatchObject({ description: expect.stringMatching(/token isn't an admin token/) });
             });
 
             test(`Read the 'new-connections-allowed' setting`, async () => {
@@ -217,7 +235,8 @@ describe('HiFi API REST Calls', () => {
 
                 let returnMessageJSON: any = {};
                 returnMessageJSON = await returnMessage.json();
-                expect(returnMessageJSON.error).toBe("token isn't an admin token");
+                expect(returnMessageJSON.code).toBe(401);
+                expect(returnMessageJSON.errors).toMatchObject({ description: expect.stringMatching(/token isn't an admin token/) });
             });
         });
     });
@@ -353,7 +372,8 @@ describe('HiFi API REST Calls', () => {
 
                 let returnMessageJSON: any = {};
                 returnMessageJSON = await returnMessage.json();
-                expect(returnMessageJSON.error).toBe("token isn't an admin token");
+                expect(returnMessageJSON.code).toBe(401);
+                expect(returnMessageJSON.errors).toMatchObject({ description: expect.stringMatching(/token isn't an admin token/) });
             });
 
             test(`Change multiple settings simultaneously using 'POST'`, async () => {
@@ -371,7 +391,8 @@ describe('HiFi API REST Calls', () => {
 
                 let returnMessageJSON: any = {};
                 returnMessageJSON = await returnMessage.json();
-                expect(returnMessageJSON.error).toBe("token isn't an admin token");
+                expect(returnMessageJSON.code).toBe(401);
+                expect(returnMessageJSON.errors).toMatchObject({ description: expect.stringMatching(/token isn't an admin token/) });
             });
 
             test(`Make a space not joinable`, async () => {
@@ -379,7 +400,8 @@ describe('HiFi API REST Calls', () => {
 
                 let returnMessageJSON: any = {};
                 returnMessageJSON = await returnMessage.json();
-                expect(returnMessageJSON.error).toBe("token isn't an admin token");
+                expect(returnMessageJSON.code).toBe(401);
+                expect(returnMessageJSON.errors).toMatchObject({ description: expect.stringMatching(/token isn't an admin token/) });
 
             });
 
@@ -388,7 +410,8 @@ describe('HiFi API REST Calls', () => {
 
                 let returnMessageJSON: any = {};
                 returnMessageJSON = await returnMessage.json();
-                expect(returnMessageJSON.error).toBe("token isn't an admin token");
+                expect(returnMessageJSON.code).toBe(401);
+                expect(returnMessageJSON.errors).toMatchObject({ description: expect.stringMatching(/token isn't an admin token/) });
             });
 
             test(`Change the space name`, async () => {
@@ -397,7 +420,8 @@ describe('HiFi API REST Calls', () => {
 
                 let returnMessageJSON: any = {};
                 returnMessageJSON = await returnMessage.json();
-                expect(returnMessageJSON.error).toBe("token isn't an admin token");
+                expect(returnMessageJSON.code).toBe(401);
+                expect(returnMessageJSON.errors).toMatchObject({ description: expect.stringMatching(/token isn't an admin token/) });
             });
 
             test(`Set space to ignore token signing`, async () => {
@@ -405,7 +429,8 @@ describe('HiFi API REST Calls', () => {
 
                 let returnMessageJSON: any = {};
                 returnMessageJSON = await returnMessage.json();
-                expect(returnMessageJSON.error).toBe("token isn't an admin token");
+                expect(returnMessageJSON.code).toBe(401);
+                expect(returnMessageJSON.errors).toMatchObject({ description: expect.stringMatching(/token isn't an admin token/) });
             });
 
             test(`Set space to not ignore token signing`, async () => {
@@ -413,87 +438,8 @@ describe('HiFi API REST Calls', () => {
 
                 let returnMessageJSON: any = {};
                 returnMessageJSON = await returnMessage.json();
-                expect(returnMessageJSON.error).toBe("token isn't an admin token");
-            });
-        });
-    });
-
-    describe('Kicking users', () => {
-        const numberTestUsers = 1;
-        let testUsers: Array<any> = [];
-
-        beforeAll(async () => {
-            jest.setTimeout(10000); // these tests need longer to complete
-        });
-
-        afterAll(async () => {
-            jest.setTimeout(5000); // restore to default
-        });
-
-        beforeEach(async () => {
-            testUsers = [];
-            for (let i = 0; i < numberTestUsers; i++) {
-                let tokenData = TOKEN_GEN_TYPES.USER_APP1_SPACE1_SIGNED
-                tokenData['user_id'] = generateUUID();
-                testUsers.push(new TestUser(tokenData['user_id']));
-                let token = await generateJWT(tokenData);
-                await testUsers[i].communicator.connectToHiFiAudioAPIServer(token, stackData.url);
-                expect(testUsers[i].connectionState).toBe(HiFiConnectionStates.Connected);
-            }
-        });
-
-        afterEach(async () => {
-            // disconnect communicators to avoid using too many mixers
-            for (let i = 0; i < numberTestUsers; i++) {
-                await testUsers[i].communicator.disconnectFromHiFiAudioAPIServer();
-                expect(testUsers[i].connectionState).toBe(HiFiConnectionStates.Disconnected);
-            }
-        });
-
-        describe('Admin CAN kick users', () => {
-            test(`Kick one user`, async () => {
-                await fetch(`${stackData.url}/api/v1/spaces/${stackData.apps.app1.spaces.space1.id}/users${testUsers[0]['user_id']}?token=${adminToken}`, {
-                    method: 'DELETE'
-                });
-                for (let i = 0; i < numberTestUsers; i++) {
-                    if (i === 0) expect(testUsers[i].connectionState).toBe(HiFiConnectionStates.Disconnected);
-                    else expect(testUsers[i].connectionState).toBe(HiFiConnectionStates.Connected);
-                }
-            });
-
-            test(`Kick all users`, async () => {
-                await fetch(`${stackData.url}/api/v1/spaces/${stackData.apps.app1.spaces.space1.id}/users?token=${adminToken}`, {
-                    method: 'DELETE'
-                });
-                for (let i = 0; i < numberTestUsers; i++) {
-                    expect(testUsers[i].connectionState).toBe(HiFiConnectionStates.Disconnected);
-                }
-            });
-        });
-
-        describe('Nonadmin CANNOT kick users', () => {
-            test(`Kick one user`, async () => {
-                let returnMessage = await fetch(`${stackData.url}/api/v1/spaces/${stackData.apps.app1.spaces.space1.id}/users/${testUsers[0]['user_id']}?token=${nonAdminToken}`, {
-                    method: 'DELETE'
-                });
-                let returnMessageJSON: any = {};
-                returnMessageJSON = await returnMessage.json();
-                expect(returnMessageJSON.error).toBe("token isn't an admin token");
-                for (let i = 0; i < numberTestUsers; i++) {
-                    expect(testUsers[i].connectionState).toBe(HiFiConnectionStates.Connected);
-                }
-            });
-
-            test(`Kick all users`, async () => {
-                let returnMessage = await fetch(`${stackData.url}/api/v1/spaces/${stackData.apps.app1.spaces.space1.id}/users?token=${nonAdminToken}`, {
-                    method: 'DELETE'
-                });
-                let returnMessageJSON: any = {};
-                returnMessageJSON = await returnMessage.json();
-                expect(returnMessageJSON.error).toBe("token isn't an admin token");
-                for (let i = 0; i < numberTestUsers; i++) {
-                    expect(testUsers[i].connectionState).toBe(HiFiConnectionStates.Connected);
-                }
+                expect(returnMessageJSON.code).toBe(401);
+                expect(returnMessageJSON.errors).toMatchObject({ description: expect.stringMatching(/token isn't an admin token/) });
             });
         });
     });
@@ -505,7 +451,8 @@ describe('HiFi API REST Calls', () => {
 
                 let returnMessageJSON: any = {};
                 returnMessageJSON = await returnMessage.json();
-                expect(returnMessageJSON.error).toBe('space/app mismatch');
+                expect(returnMessageJSON.code).toBe(422);
+                expect(returnMessageJSON.errors).toMatchObject({ description: expect.stringMatching(/space\/app mismatch/) });
             });
         });
     });
