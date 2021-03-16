@@ -10,22 +10,27 @@
     font-family: Graphik;
     src: url('https://hifi-spatial-audio-api.s3.us-west-2.amazonaws.com/includes/fonts/Graphik-Regular.ttf')
 }
+
 @font-face {
     font-family: Graphik-Medium;
     src: url('https://hifi-spatial-audio-api.s3.us-west-2.amazonaws.com/includes/fonts/Graphik-Medium.ttf')
 }
+
 @font-face {
     font-family: Graphik-Semibold;
     src: url('https://hifi-spatial-audio-api.s3.us-west-2.amazonaws.com/includes/fonts/Graphik-Semibold.ttf')
 }
+
 @font-face {
     font-family: Graphik-Bold;
     src: url('https://hifi-spatial-audio-api.s3.us-west-2.amazonaws.com/includes/fonts/Graphik-Bold.ttf')
 }
+
 @font-face {
     font-family: RobotoMono;
     src: url('https://hifi-spatial-audio-api.s3.us-west-2.amazonaws.com/includes/fonts/RobotoMono-Regular.ttf')
 }
+
 @font-face {
     font-family: RobotoMono-Bold;
     src: url('https://hifi-spatial-audio-api.s3.us-west-2.amazonaws.com/includes/fonts/RobotoMono-Bold.ttf')
@@ -33,4 +38,38 @@
 
 body {
     font-family: 'Graphik', "Segoe UI", sans-serif;
+}
+
+@media screen and (min-width: 600px) {
+    .search {
+        width: 500px !important;
+    }
+    .searchDropdown {
+        padding-right: 90px;
+    }
+}
+
+.table-wrap {
+    width: auto !important;
+}
+
+#tsd-search.has-focus {
+    background-color: white;
+}
+
+#tsd-search .field input {
+    top: 0;
+    opacity: 1 !important;
+}
+
+#tsd-search .field label {
+    left: 100%;
+}
+
+.results li {
+    overflow: hidden;
+}
+
+.results li:hover {
+    overflow: visible;
 }
