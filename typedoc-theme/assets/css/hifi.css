@@ -53,6 +53,10 @@ body {
     width: auto !important;
 }
 
+#searchTable {
+    margin: 0 auto;
+}
+
 #tsd-search.has-focus {
     background-color: white;
 }
@@ -60,10 +64,22 @@ body {
 #tsd-search .field input {
     top: 0;
     opacity: 1 !important;
+    height: 30px;
+    box-shadow: 0 0 2px rgb(0 0 0 / 35%);
+    border-radius: 4px;
+}
+
+#tsd-search .field input:focus {
+    border: solid 2px gray;
+    border-radius: 4px;
 }
 
 #tsd-search .field label {
     left: 100%;
+}
+
+.results {
+    margin-left: -7px;
 }
 
 .results li {
