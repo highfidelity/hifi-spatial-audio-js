@@ -33,10 +33,10 @@ async function uploadCurrentVersionDocs() {
 
             let folderInfo = [
                 {
-                    "name": `v${VERSION}`,
+                    "name": `js/v${VERSION}`,
                     "numFilesUploaded": 0
                 }, {
-                    "name": `latest`,
+                    "name": `js/latest`,
                     "numFilesUploaded": 0
                 }
             ];
@@ -88,50 +88,6 @@ async function uploadCurrentVersionDocs() {
     });
 }
 
-async function uploadDefaultRootObject() {
-    return new Promise((resolve, reject) => {
-        console.log(`Creating and uploading default root object to redirect to Docs version \`latest\`...`);
-
-        let uploadBody;
-        let redirectURL = `https://docs.highfidelity.com/latest/index.html`;
-
-        uploadBody = `<!DOCTYPE html>
-        <html>
-            <head>
-                <script>
-                    window.onload = () => {
-                        window.location.href = "${redirectURL}";
-                    }
-                </script>
-                <meta http-equiv="refresh" content="time; URL=${redirectURL}" />
-            </head>
-            <body>
-                <p>Redirecting you to the latest version of the API documentation at <a href="${redirectURL}">${redirectURL}</a>...</p>
-            </body>
-        </html>`;
-
-        let uploadParams = {
-            Bucket: 'hifi-spatial-audio-api-docs',
-            ContentType: 'text/html',
-            Key: 'index.html',
-            Body: uploadBody,
-            CacheControl: 'no-cache',
-            ACL: 'public-read'
-        };
-
-        s3.upload(uploadParams, (err, data) => {
-            if (err) {
-                console.log(`Error uploading file to S3:\n${err}`);
-                process.exit();
-                return reject(err);
-            } if (data) {
-                console.log(`Upload success: ${data.Location}`);
-                resolve();
-            }
-        });
-    });
-}
-
 function invalidateOldDocs() {
     return new Promise((resolve, reject) => {
         console.log(`Invaliding old documentation for version \`v${VERSION}\`on CloudFront...`);
@@ -139,9 +95,8 @@ function invalidateOldDocs() {
         let cloudfront = new AWS.CloudFront();
 
         let paths = [
-            '/index.html',
-            `/v${VERSION}/*`,
-            `/latest/*`
+            `/js/v${VERSION}/*`,
+            `/js/latest/*`
         ];
 
         let params = {
@@ -171,7 +126,6 @@ function invalidateOldDocs() {
 
 async function start() {
     await uploadCurrentVersionDocs();
-    await uploadDefaultRootObject();
     await invalidateOldDocs();
 }
 
