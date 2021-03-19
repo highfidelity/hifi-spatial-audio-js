@@ -24,7 +24,7 @@ jobs:
       run: npm i
 
     - name: Run Jest Unit Tests
-      run: jest unit -- --ci
+      run: jest unit --ci
 
     - name: Unit Tests Passed
       if: ${{ success() }}
