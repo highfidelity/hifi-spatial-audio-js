@@ -10,7 +10,9 @@ declare var BUILD_ENVIRONMENT: string;
 declare var HIFI_API_VERSION: string;
 
 import { HiFiConstants } from "../constants/HiFiConstants";
+import { RaviSessionParams } from "../libravi/RaviSession";
 import { HiFiLogger } from "../utilities/HiFiLogger";
+import { HiFiUtilities } from "../utilities/HiFiUtilities";
 import { HiFiAudioAPIData, ReceivedHiFiAudioAPIData, Point3D, OrientationQuat3D, OrientationEuler3D, OrientationEuler3DOrder, eulerToQuaternion, eulerFromQuaternion } from "./HiFiAudioAPIData";
 import { HiFiAxisConfiguration, HiFiAxisUtilities, ourHiFiAxisConfiguration } from "./HiFiAxisConfiguration";
 import { HiFiMixerSession } from "./HiFiMixerSession";
@@ -86,6 +88,8 @@ export class HiFiCommunicator {
     // This contains data dealing with the mixer session, such as the RAVI session, WebRTC address, etc.
     private _mixerSession: HiFiMixerSession;
 
+    private _raviSessionParams: RaviSessionParams;
+
     /**
      * Constructor for the HiFiCommunicator object. Once you have created a HiFiCommunicator, you can use the
      * {@link setInputAudioMediaStream} method to assign an input audio stream to the connection, and
@@ -98,6 +102,7 @@ export class HiFiCommunicator {
      * @param transmitRateLimitTimeoutMS - User Data updates will not be sent to the server any more frequently than this number in milliseconds.
      * @param userDataStreamingScope - Cannot be set later. See {@link HiFiUserDataStreamingScopes}.
      * @param hiFiAxisConfiguration - Cannot be set later. The 3D axis configuration. See {@link ourHiFiAxisConfiguration} for defaults.
+     * @param raviSessionParams - Cannot be set later. The RAVI session parameters used when connecting to the API servers. See {@link RaviSessionParams} for details.
      */
     constructor({
         initialHiFiAudioAPIData = new HiFiAudioAPIData(),
@@ -105,14 +110,16 @@ export class HiFiCommunicator {
         onUsersDisconnected,
         transmitRateLimitTimeoutMS = HiFiConstants.DEFAULT_TRANSMIT_RATE_LIMIT_TIMEOUT_MS,
         userDataStreamingScope = HiFiUserDataStreamingScopes.All,
-        hiFiAxisConfiguration
+        hiFiAxisConfiguration,
+        raviSessionParams
     }: {
         initialHiFiAudioAPIData?: HiFiAudioAPIData,
         onConnectionStateChanged?: Function,
         onUsersDisconnected?: Function,
         transmitRateLimitTimeoutMS?: number,
         userDataStreamingScope?: HiFiUserDataStreamingScopes,
-        hiFiAxisConfiguration?: HiFiAxisConfiguration
+        hiFiAxisConfiguration?: HiFiAxisConfiguration,
+        raviSessionParams?: RaviSessionParams
     } = {}) {
         // Make minimum 10ms
         if (transmitRateLimitTimeoutMS < HiFiConstants.MIN_TRANSMIT_RATE_LIMIT_TIMEOUT_MS) {
@@ -139,6 +146,16 @@ export class HiFiCommunicator {
         this._lastTransmittedHiFiAudioAPIData = new HiFiAudioAPIData();
 
         this._userDataSubscriptions = [];
+
+        if (raviSessionParams.audioMinJitterBufferDuration && (raviSessionParams.audioMinJitterBufferDuration < 0.0 || raviSessionParams.audioMinJitterBufferDuration > 10.0)) {
+            HiFiLogger.warn(`The value of \`raviSessionParams.audioMinJitterBufferDuration\` (${raviSessionParams.audioMinJitterBufferDuration}) will be clamped to (0.0, 10.0).`);
+            raviSessionParams.audioMinJitterBufferDuration = HiFiUtilities.clamp(raviSessionParams.audioMinJitterBufferDuration, 0.0, 10.0);
+        }
+        if (raviSessionParams.audioMaxJitterBufferDuration && (raviSessionParams.audioMaxJitterBufferDuration < 0.0 || raviSessionParams.audioMaxJitterBufferDuration > 10.0)) {
+            HiFiLogger.warn(`The value of \`raviSessionParams.audioMaxJitterBufferDuration\` (${raviSessionParams.audioMaxJitterBufferDuration}) will be clamped to (0.0, 10.0).`);
+            raviSessionParams.audioMaxJitterBufferDuration = HiFiUtilities.clamp(raviSessionParams.audioMaxJitterBufferDuration, 0.0, 10.0);
+        }
+        this._raviSessionParams = raviSessionParams;
 
         if (hiFiAxisConfiguration) {
             if (HiFiAxisUtilities.verify(hiFiAxisConfiguration)) {
@@ -224,7 +241,7 @@ export class HiFiCommunicator {
 
             HiFiLogger.log(`Using WebRTC Signaling Address:\n${webRTCSignalingAddress}<token redacted>`);
 
-            mixerConnectionResponse = await this._mixerSession.connect();
+            mixerConnectionResponse = await this._mixerSession.connectToHiFiMixer({ raviSessionParams: this._raviSessionParams });
         } catch (errorConnectingToMixer) {
             let errMsg = `Error when connecting to mixer! Error:\n${errorConnectingToMixer}`;
             return Promise.reject({

@@ -1,20 +1,19 @@
 declare var HIFI_API_VERSION: string;
 
 // Check for browser compatibility
-import { checkBrowserCompatibility } from "./utilities/HiFiUtilities";
+import { HiFiUtilities } from "./utilities/HiFiUtilities";
 let isBrowserContext = typeof self !== 'undefined';
 if (isBrowserContext) {
     exports.HiFiAPIVersion = HIFI_API_VERSION;
     exports.apiVersion = HIFI_API_VERSION;
-    exports.checkBrowserCompatibility = checkBrowserCompatibility;
-    checkBrowserCompatibility();
+    exports.checkBrowserCompatibility = HiFiUtilities.checkBrowserCompatibility;
+    HiFiUtilities.checkBrowserCompatibility();
 }
 
 import { HiFiAudioAPIData, ReceivedHiFiAudioAPIData, OrientationEuler3D, OrientationQuat3D, Point3D, eulerToQuaternion, eulerFromQuaternion} from "./classes/HiFiAudioAPIData";
 import { HiFiCommunicator, HiFiConnectionStates, HiFiUserDataStreamingScopes } from "./classes/HiFiCommunicator";
 import { AvailableUserDataSubscriptionComponents, UserDataSubscription } from "./classes/HiFiUserDataSubscription";
 import { HiFiLogLevel, HiFiLogger } from "./utilities/HiFiLogger";
-import { getBestAudioConstraints, preciseInterval } from "./utilities/HiFiUtilities";
 import { HiFiConstants } from "./constants/HiFiConstants";
 import { HiFiAxes, HiFiHandedness, HiFiAxisConfiguration } from "./classes/HiFiAxisConfiguration";
 
@@ -44,8 +43,9 @@ exports.eulerFromQuaternion = eulerFromQuaternion;
 exports.HiFiLogger = HiFiLogger;
 exports.HiFiLogLevel = HiFiLogLevel;
 
-exports.getBestAudioConstraints = getBestAudioConstraints;
-exports.preciseInterval = preciseInterval;
+exports.HiFiUtilities = HiFiUtilities;
+exports.getBestAudioConstraints = HiFiUtilities.getBestAudioConstraints;
+exports.preciseInterval = HiFiUtilities.preciseInterval;
 
 exports.HiFiConstants = HiFiConstants;
 
@@ -74,8 +74,9 @@ exports.OrientationQuat3D = OrientationQuat3D;
 exports.Logger = HiFiLogger;
 exports.LogLevel = HiFiLogLevel;
 
-exports.getBestAudioConstraints = getBestAudioConstraints;
-exports.preciseInterval = preciseInterval;
+exports.Utilities = HiFiUtilities;
+exports.getBestAudioConstraints = HiFiUtilities.getBestAudioConstraints;
+exports.preciseInterval = HiFiUtilities.preciseInterval;
 
 exports.Constants = HiFiConstants;
 
