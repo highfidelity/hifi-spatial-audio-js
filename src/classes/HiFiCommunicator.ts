@@ -273,7 +273,7 @@ export class HiFiCommunicator {
         this._currentHiFiAudioAPIData = undefined;
         this._lastTransmittedHiFiAudioAPIData = new HiFiAudioAPIData();
 
-        return this._mixerSession.disconnect();
+        return this._mixerSession.disconnectFromHiFiMixer();
     }
 
     /**
