@@ -22,6 +22,24 @@ export enum RaviSessionStates {
   CLOSED = "closed"
 };
 
+export interface RaviSessionParams {
+  /**
+   * The minimum jitter buffer duration. Units are seconds. The default is 0 seconds.
+   * 
+   * In practice, this should always be set to 0 seconds, which is the default. Setting the minimum jitter buffer duration to X seconds means
+   * that all audio sent to the server will always be buffered at least by X seconds. This is rarely desirable; lower latency is almost always preferred.
+   * You may, however, want to set the maximum jitter buffer duration if your users are experiencing frequent audio drop-outs; refer to `audioMaxJitterBufferDuration` below for more details.
+   */
+  audioMinJitterBufferDuration?: number;
+  /**
+   * The maximum jitter buffer duration. Units are seconds. The default is 1 second.
+   * 
+   * Set the jitter buffer duration high to reduce the possibility of audio dropouts at the cost
+   * of potentially higher round-trip audio latency on poor connections.
+   */
+  audioMaxJitterBufferDuration?: number;
+};
+
 /** 
  *
  * @class
@@ -177,17 +195,15 @@ export class RaviSession {
    * Open a RAVI connection using the provided RaviSignalingConnection. Returns a Promise
    * that will resolve with the connected state once the RaviSession is connected.
    * 
-   * @param {RaviSignalingConnection} signalingConnection
-   * @param {number} timeout A timout in ms after which to timeout the attempt to connect. Defaults to 5000 (5 seconds).
-   * @param {object} params An optional configuration object applied to the server side of the session
-   *                        default value is null implying to rely on the default values as defined on the server side.
-   *                        Supported fields are:
-   *                        "audioMinJitterBufferDuration": <number>  with valid values in the range 0.0s to 10.0s
-   *                        "audioMaxJitterBufferDuration": <number>  with valid values in the range 0.0s to 10.0s
+   * @param {Object} __namedParameters
+   * @param signalingConnection
+   * @param timeout A timout in ms after which to timeout the attempt to connect. Defaults to 5000 (5 seconds).
+   * @param params An optional configuration object applied to the server side of the session. The default value is null,
+   * meaning that we'll rely on the default values as defined on the server.
    *            
    * @returns {Promise}
    */
-  open(signalingConnection: RaviSignalingConnection, timeout=5000, params: any = null) {
+  openRAVISession({signalingConnection, timeout = 5000, params = null}: { signalingConnection: RaviSignalingConnection, timeout?: number, params?: RaviSessionParams}) {
     var raviSession = this;
 
     // Tell our connection implementation about this signaling connection --
