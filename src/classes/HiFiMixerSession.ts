@@ -167,7 +167,7 @@ export class HiFiMixerSession {
             }
 
             let initTimeout = setTimeout(() => {
-                this.disconnect();
+                this.disconnectFromHiFiMixer();
                 return Promise.reject({
                     success: false,
                     error: `Couldn't connect to mixer: Call to \`init\` timed out!`
@@ -394,7 +394,7 @@ export class HiFiMixerSession {
     async connectToHiFiMixer({ raviSessionParams }: { raviSessionParams?: RaviSessionParams }): Promise<any> {
         if (!this.webRTCAddress) {
             let errMsg = `Couldn't connect: \`this.webRTCAddress\` is falsey!`;
-            this.disconnect();
+            this.disconnectFromHiFiMixer();
             return Promise.reject(errMsg);
         }
 
@@ -404,7 +404,7 @@ export class HiFiMixerSession {
             await this._raviSignalingConnection.open(this.webRTCAddress)
         } catch (errorOpeningSignalingConnection) {
             let errMsg = `Couldn't open signaling connection to \`${this.webRTCAddress.slice(0, this.webRTCAddress.indexOf("token="))}<token redacted>\`! Error:\n${errorOpeningSignalingConnection}`;
-            this.disconnect();
+            this.disconnectFromHiFiMixer();
             return Promise.reject(errMsg);
         }
 
@@ -412,7 +412,7 @@ export class HiFiMixerSession {
             await this._raviSession.openRAVISession({ signalingConnection: this._raviSignalingConnection, params: raviSessionParams });
         } catch (errorOpeningRAVISession) {
             let errMsg = `Couldn't open RAVI session associated with \`${this.webRTCAddress.slice(0, this.webRTCAddress.indexOf("token="))}<token redacted>\`! Error:\n${errorOpeningRAVISession}`;
-            this.disconnect();
+            this.disconnectFromHiFiMixer();
             return Promise.reject(errMsg);
         }
 
@@ -421,7 +421,7 @@ export class HiFiMixerSession {
             audionetInitResponse = await this.promiseToRunAudioInit();
         } catch (initError) {
             let errMsg = `\`audionet.init\` command failed! Error:\n${initError.error}`;
-            this.disconnect();
+            this.disconnectFromHiFiMixer();
             return Promise.reject(errMsg);
         }
 
@@ -434,7 +434,7 @@ export class HiFiMixerSession {
      * Disconnects from the Mixer. Closes the RAVI Signaling Connection and the RAVI Session.
      * @returns A Promise that _always_ Resolves with a "success" status string.
      */
-    async disconnect(): Promise<string> {
+    async disconnectFromHiFiMixer(): Promise<string> {
         async function close(thingToClose: (RaviSignalingConnection | RaviSession), nameOfThingToClose: string, closedState: string) {
             if (thingToClose) {
                 let state = thingToClose.getState();
@@ -640,7 +640,7 @@ export class HiFiMixerSession {
                 if (this.onConnectionStateChanged) {
                     this.onConnectionStateChanged(this._currentHiFiConnectionState);
                 }
-                this.disconnect();
+                this.disconnectFromHiFiMixer();
                 break;
         }
     }
@@ -671,6 +671,8 @@ export class HiFiMixerSession {
                 if (this.onConnectionStateChanged) {
                     this.onConnectionStateChanged(this._currentHiFiConnectionState);
                 }
+
+                this.disconnectFromHiFiMixer();
                 break;
             case RaviSessionStates.FAILED:
                 if (this._currentHiFiConnectionState === HiFiConnectionStates.Unavailable) {
