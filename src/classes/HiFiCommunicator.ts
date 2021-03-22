@@ -102,7 +102,8 @@ export class HiFiCommunicator {
      * @param transmitRateLimitTimeoutMS - User Data updates will not be sent to the server any more frequently than this number in milliseconds.
      * @param userDataStreamingScope - Cannot be set later. See {@link HiFiUserDataStreamingScopes}.
      * @param hiFiAxisConfiguration - Cannot be set later. The 3D axis configuration. See {@link ourHiFiAxisConfiguration} for defaults.
-     * @param raviSessionParams - Cannot be set later. The RAVI session parameters used when connecting to the API servers. See {@link RaviSessionParams} for details.
+     * @param webrtcSessionParams - Cannot be set later. Extra parameters used for configuring the underlying WebRTC connection to the API servers.
+     * These settings are not frequently used; they are primarily for specific jitter buffer configurations. See {@link RaviSessionParams} for details.
      */
     constructor({
         initialHiFiAudioAPIData = new HiFiAudioAPIData(),
@@ -111,7 +112,7 @@ export class HiFiCommunicator {
         transmitRateLimitTimeoutMS = HiFiConstants.DEFAULT_TRANSMIT_RATE_LIMIT_TIMEOUT_MS,
         userDataStreamingScope = HiFiUserDataStreamingScopes.All,
         hiFiAxisConfiguration,
-        raviSessionParams
+        webrtcSessionParams
     }: {
         initialHiFiAudioAPIData?: HiFiAudioAPIData,
         onConnectionStateChanged?: Function,
@@ -119,7 +120,7 @@ export class HiFiCommunicator {
         transmitRateLimitTimeoutMS?: number,
         userDataStreamingScope?: HiFiUserDataStreamingScopes,
         hiFiAxisConfiguration?: HiFiAxisConfiguration,
-        raviSessionParams?: RaviSessionParams
+        webrtcSessionParams?: RaviSessionParams
     } = {}) {
         // Make minimum 10ms
         if (transmitRateLimitTimeoutMS < HiFiConstants.MIN_TRANSMIT_RATE_LIMIT_TIMEOUT_MS) {
@@ -147,15 +148,15 @@ export class HiFiCommunicator {
 
         this._userDataSubscriptions = [];
 
-        if (raviSessionParams.audioMinJitterBufferDuration && (raviSessionParams.audioMinJitterBufferDuration < 0.0 || raviSessionParams.audioMinJitterBufferDuration > 10.0)) {
-            HiFiLogger.warn(`The value of \`raviSessionParams.audioMinJitterBufferDuration\` (${raviSessionParams.audioMinJitterBufferDuration}) will be clamped to (0.0, 10.0).`);
-            raviSessionParams.audioMinJitterBufferDuration = HiFiUtilities.clamp(raviSessionParams.audioMinJitterBufferDuration, 0.0, 10.0);
+        if (webrtcSessionParams.audioMinJitterBufferDuration && (webrtcSessionParams.audioMinJitterBufferDuration < 0.0 || webrtcSessionParams.audioMinJitterBufferDuration > 10.0)) {
+            HiFiLogger.warn(`The value of \`webrtcSessionParams.audioMinJitterBufferDuration\` (${webrtcSessionParams.audioMinJitterBufferDuration}) will be clamped to (0.0, 10.0).`);
+            webrtcSessionParams.audioMinJitterBufferDuration = HiFiUtilities.clamp(webrtcSessionParams.audioMinJitterBufferDuration, 0.0, 10.0);
         }
-        if (raviSessionParams.audioMaxJitterBufferDuration && (raviSessionParams.audioMaxJitterBufferDuration < 0.0 || raviSessionParams.audioMaxJitterBufferDuration > 10.0)) {
-            HiFiLogger.warn(`The value of \`raviSessionParams.audioMaxJitterBufferDuration\` (${raviSessionParams.audioMaxJitterBufferDuration}) will be clamped to (0.0, 10.0).`);
-            raviSessionParams.audioMaxJitterBufferDuration = HiFiUtilities.clamp(raviSessionParams.audioMaxJitterBufferDuration, 0.0, 10.0);
+        if (webrtcSessionParams.audioMaxJitterBufferDuration && (webrtcSessionParams.audioMaxJitterBufferDuration < 0.0 || webrtcSessionParams.audioMaxJitterBufferDuration > 10.0)) {
+            HiFiLogger.warn(`The value of \`webrtcSessionParams.audioMaxJitterBufferDuration\` (${webrtcSessionParams.audioMaxJitterBufferDuration}) will be clamped to (0.0, 10.0).`);
+            webrtcSessionParams.audioMaxJitterBufferDuration = HiFiUtilities.clamp(webrtcSessionParams.audioMaxJitterBufferDuration, 0.0, 10.0);
         }
-        this._raviSessionParams = raviSessionParams;
+        this._raviSessionParams = webrtcSessionParams;
 
         if (hiFiAxisConfiguration) {
             if (HiFiAxisUtilities.verify(hiFiAxisConfiguration)) {

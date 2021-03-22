@@ -24,19 +24,18 @@ export enum RaviSessionStates {
 
 export interface RaviSessionParams {
   /**
-   * The minimum jitter buffer duration.
+   * The minimum jitter buffer duration. Units are seconds. The default is 0 seconds.
    * 
-   * The lower the jitter buffer duration, the lower the round-trip audio latency.
-   * However: set the jitter buffer duration too low on an unreliable connection, and users receiving an audio stream may hear interruptions or
-   * "drop-outs" in the audio stream. Set the jitter buffer duration high to reduce the possibility of dropouts at the cost of higher round-trip audio latency.
+   * In practice, this should always be set to 0 seconds, which is the default. Setting the minimum jitter buffer duration to X seconds means
+   * that all audio sent to the server will always be buffered at least by X seconds. This is rarely desirable; lower latency is almost always preferred.
+   * You may, however, want to set the maximum jitter buffer duration if your users are experiencing frequent audio drop-outs; refer to `audioMaxJitterBufferDuration` below for more details.
    */
   audioMinJitterBufferDuration?: number;
   /**
-   * The maximum jitter buffer duration.
+   * The maximum jitter buffer duration. Units are seconds. The default is 1 second.
    * 
-   * The lower the jitter buffer duration, the lower the round-trip audio latency.
-   * However: set the jitter buffer duration too low on an unreliable connection, and users receiving an audio stream may hear interruptions or
-   * "drop-outs" in the audio stream. Set the jitter buffer duration high to reduce the possibility of dropouts at the cost of higher round-trip audio latency.
+   * Set the jitter buffer duration high to reduce the possibility of audio dropouts at the cost
+   * of potentially higher round-trip audio latency on poor connections.
    */
   audioMaxJitterBufferDuration?: number;
 };
