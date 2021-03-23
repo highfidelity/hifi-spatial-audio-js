@@ -221,7 +221,7 @@ export class RaviSession {
         reject(Error("RaviSession.open timed out"));
         // Close the session; this should trigger the state change
         // handler to clean up. This would also reject the promise if we didn't do so explicitly above.
-        raviSession.close();
+        raviSession.closeRAVISession();
       }, timeout);
       
       // Add a state change handler that will resolve the
@@ -288,7 +288,7 @@ export class RaviSession {
    *
    * @returns {Promise}
    */
-  close() {
+  closeRAVISession() {
     var raviSession = this;
    
     // Start by closing out command controller
