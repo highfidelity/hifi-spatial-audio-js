@@ -6,7 +6,6 @@
  * @packageDocumentation
  */
 
-declare var BUILD_ENVIRONMENT: string;
 declare var HIFI_API_VERSION: string;
 
 import { HiFiConstants } from "../constants/HiFiConstants";
@@ -88,7 +87,7 @@ export class HiFiCommunicator {
     // This contains data dealing with the mixer session, such as the RAVI session, WebRTC address, etc.
     private _mixerSession: HiFiMixerSession;
 
-    private _raviSessionParams: RaviSessionParams;
+    private _raviSessionParams?: RaviSessionParams;
 
     /**
      * Constructor for the HiFiCommunicator object. Once you have created a HiFiCommunicator, you can use the
@@ -148,11 +147,11 @@ export class HiFiCommunicator {
 
         this._userDataSubscriptions = [];
 
-        if (webrtcSessionParams.audioMinJitterBufferDuration && (webrtcSessionParams.audioMinJitterBufferDuration < 0.0 || webrtcSessionParams.audioMinJitterBufferDuration > 10.0)) {
+        if (webrtcSessionParams && webrtcSessionParams.audioMinJitterBufferDuration && (webrtcSessionParams.audioMinJitterBufferDuration < 0.0 || webrtcSessionParams.audioMinJitterBufferDuration > 10.0)) {
             HiFiLogger.warn(`The value of \`webrtcSessionParams.audioMinJitterBufferDuration\` (${webrtcSessionParams.audioMinJitterBufferDuration}) will be clamped to (0.0, 10.0).`);
             webrtcSessionParams.audioMinJitterBufferDuration = HiFiUtilities.clamp(webrtcSessionParams.audioMinJitterBufferDuration, 0.0, 10.0);
         }
-        if (webrtcSessionParams.audioMaxJitterBufferDuration && (webrtcSessionParams.audioMaxJitterBufferDuration < 0.0 || webrtcSessionParams.audioMaxJitterBufferDuration > 10.0)) {
+        if (webrtcSessionParams && webrtcSessionParams.audioMaxJitterBufferDuration && (webrtcSessionParams.audioMaxJitterBufferDuration < 0.0 || webrtcSessionParams.audioMaxJitterBufferDuration > 10.0)) {
             HiFiLogger.warn(`The value of \`webrtcSessionParams.audioMaxJitterBufferDuration\` (${webrtcSessionParams.audioMaxJitterBufferDuration}) will be clamped to (0.0, 10.0).`);
             webrtcSessionParams.audioMaxJitterBufferDuration = HiFiUtilities.clamp(webrtcSessionParams.audioMaxJitterBufferDuration, 0.0, 10.0);
         }
@@ -344,7 +343,7 @@ export class HiFiCommunicator {
         };
 
         let isBrowserContext = typeof self !== 'undefined';
-        if (isBrowserContext && HIFI_API_VERSION) {
+        if (isBrowserContext && typeof (HIFI_API_VERSION) === "string") {
             retval.clientInfo["apiVersion"] = HIFI_API_VERSION;
         }
 

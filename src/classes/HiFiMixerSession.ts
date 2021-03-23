@@ -400,27 +400,31 @@ export class HiFiMixerSession {
 
         this._currentHiFiConnectionState = undefined;
 
-        try {
-            await this._raviSignalingConnection.openRAVISignalingConnection(this.webRTCAddress)
-        } catch (errorOpeningSignalingConnection) {
-            let errMsg = `Couldn't open signaling connection to \`${this.webRTCAddress.slice(0, this.webRTCAddress.indexOf("token="))}<token redacted>\`! Error:\n${errorOpeningSignalingConnection}`;
-            this.disconnectFromHiFiMixer();
-            return Promise.reject(errMsg);
-        }
-
         const tempUnavailableStateHandler = (event: any) => {
             if (event && event.state === RaviSignalingStates.UNAVAILABLE) {
                 let errMsg = `High Fidelity server is at capacity; service is unavailable.`;
+                this._raviSignalingConnection.removeStateChangeHandler(tempUnavailableStateHandler);
+                this._raviSession.closeRAVISession();
                 return Promise.reject(errMsg);
             }
         }
         this._raviSignalingConnection.addStateChangeHandler(tempUnavailableStateHandler);
 
         try {
+            await this._raviSignalingConnection.openRAVISignalingConnection(this.webRTCAddress)
+        } catch (errorOpeningSignalingConnection) {
+            let errMsg = `Couldn't open signaling connection to \`${this.webRTCAddress.slice(0, this.webRTCAddress.indexOf("token="))}<token redacted>\`! Error:\n${errorOpeningSignalingConnection}`;
+            this.disconnectFromHiFiMixer();
+            this._raviSignalingConnection.removeStateChangeHandler(tempUnavailableStateHandler);
+            return Promise.reject(errMsg);
+        }
+
+        try {
             await this._raviSession.openRAVISession({ signalingConnection: this._raviSignalingConnection, params: raviSessionParams });
         } catch (errorOpeningRAVISession) {
             let errMsg = `Couldn't open RAVI session associated with \`${this.webRTCAddress.slice(0, this.webRTCAddress.indexOf("token="))}<token redacted>\`! Error:\n${errorOpeningRAVISession}`;
             this.disconnectFromHiFiMixer();
+            this._raviSignalingConnection.removeStateChangeHandler(tempUnavailableStateHandler);
             return Promise.reject(errMsg);
         }
 
@@ -430,6 +434,7 @@ export class HiFiMixerSession {
         } catch (initError) {
             let errMsg = `\`audionet.init\` command failed! Error:\n${initError.error}`;
             this.disconnectFromHiFiMixer();
+            this._raviSignalingConnection.removeStateChangeHandler(tempUnavailableStateHandler);
             return Promise.reject(errMsg);
         }
 

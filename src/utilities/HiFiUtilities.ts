@@ -6,18 +6,20 @@
 
 import { HiFiLogger } from "./HiFiLogger";
 
+function dynamicRequire(mod: any, requireString: string): any {
+    return mod.require(requireString);
+}
+
 let now:any;
 if (typeof self === 'undefined') {
     // node context
     try {
-        now = require('perf_hooks').performance.now; // Used with `preciseInterval()`.
+        now = dynamicRequire(module, 'perf_hooks').performance.now; // Used with `preciseInterval()`.
     } catch {}
 }
 
 export class HiFiUtilities {
-    constructor() {
-
-    }
+    constructor() { }
 
     /**
      * Returns a JS Object containing the differences between the two passed objects.
@@ -33,48 +35,48 @@ export class HiFiUtilities {
         if (!obj2 || Object.prototype.toString.call(obj2) !== '[object Object]') {
             return obj1;
         }
-    
+
         //
         // Variables
         //
         let diffs: any = {};
         let key;
-        
+
         let doArraysMatch = (arr1: Array<any>, arr2: Array<any>) => {
             // Check if the arrays are the same length
             if (arr1.length !== arr2.length) {
                 return false;
             }
-    
+
             // Check if all items exist and are in the same order
             for (let i = 0; i < arr1.length; i++) {
                 if (arr1[i] !== arr2[i]) {
                     return false;
                 }
             }
-    
+
             // Otherwise, return true
             return true;
         };
-    
+
         // Compare two items and push non-matches to object
         let compare = (item1: any, item2: any, key: string) => {
             // Get the object type
             let type1 = Object.prototype.toString.call(item1);
             let type2 = Object.prototype.toString.call(item2);
-    
+
             // If type2 is undefined it has been removed
             if (type2 === '[object Undefined]') {
                 diffs[key] = null;
                 return;
             }
-    
+
             // If items are different types
             if (type1 !== type2) {
                 diffs[key] = item2;
                 return;
             }
-    
+
             // If an object, compare recursively
             if (type1 === '[object Object]') {
                 let objDiff = HiFiUtilities.recursivelyDiffObjects(item1, item2);
@@ -83,7 +85,7 @@ export class HiFiUtilities {
                 }
                 return;
             }
-    
+
             // If an array, compare
             if (type1 === '[object Array]') {
                 if (!doArraysMatch(item1, item2)) {
@@ -91,7 +93,7 @@ export class HiFiUtilities {
                 }
                 return;
             }
-    
+
             // Else if it's a function, convert to a string and compare
             // Otherwise, just compare
             if (type1 === '[object Function]') {
@@ -104,14 +106,14 @@ export class HiFiUtilities {
                 }
             }
         };
-    
+
         // Loop through the first object
         for (key in obj1) {
             if (obj1.hasOwnProperty(key)) {
                 compare(obj1[key], obj2[key], key);
             }
         }
-    
+
         // Loop through the second object and find missing items
         for (key in obj2) {
             if (obj2.hasOwnProperty(key)) {
@@ -120,7 +122,7 @@ export class HiFiUtilities {
                 }
             }
         }
-    
+
         // Return the object of differences
         return diffs;
     };
@@ -131,19 +133,19 @@ export class HiFiUtilities {
      */
     static getBestAudioConstraints(): any {
         let audioConstraints: any = {};
-    
+
         if (typeof (navigator) !== "undefined" && typeof (navigator.mediaDevices) !== "undefined" && typeof (navigator.mediaDevices.getSupportedConstraints) !== "undefined" && navigator.mediaDevices.getSupportedConstraints().echoCancellation) {
             audioConstraints.echoCancellation = false;
         }
-    
+
         if (typeof (navigator) !== "undefined" && typeof (navigator.mediaDevices) !== "undefined" && typeof (navigator.mediaDevices.getSupportedConstraints) !== "undefined" && navigator.mediaDevices.getSupportedConstraints().noiseSuppression) {
             audioConstraints.noiseSuppression = false;
         }
-    
+
         if (typeof (navigator) !== "undefined" && typeof (navigator.mediaDevices) !== "undefined" && typeof (navigator.mediaDevices.getSupportedConstraints) !== "undefined" && navigator.mediaDevices.getSupportedConstraints().autoGainControl) {
             audioConstraints.autoGainControl = false;
         }
-    
+
         return audioConstraints;
     }
 
@@ -207,7 +209,7 @@ export class HiFiUtilities {
             "window.RTCSessionDescription" // Found on source code RaviSession.ts (ln.604)
         ]
         for (let i = 0; i < requiredFeatures.length; i++) {
-            if (typeof(eval(requiredFeatures[i])) === "undefined") {
+            if (typeof (eval(requiredFeatures[i])) === "undefined") {
                 HiFiLogger.error("HiFi Audio API: The browser does not support: " + requiredFeatures[i]);
                 if (requiredFeatures[i] === "navigator.mediaDevices.getUserMedia") {
                     HiFiLogger.error("HiFi Audio API: Your browser may be preventing access to this feature if you are running in an insecure context, i.e. an `http` server.");
@@ -218,16 +220,16 @@ export class HiFiUtilities {
         return true;
     }
 
-    static nonan(v: number, ifnan: number ): number {
+    static nonan(v: number, ifnan: number): number {
         return (isNaN(v) ? ifnan : v);
     }
-    
+
     static clamp(v: number, min: number, max: number): number {
         // if v is Nan returns Nan
-        return (v > max ? max : ( v < min ? min :v));
+        return (v > max ? max : (v < min ? min : v));
     }
-    
+
     static clampNonan(v: number, min: number, max: number, ifnan: number): number {
-        return (v > max ? max : ( v < min ? min : HiFiUtilities.nonan(v, ifnan)));
+        return (v > max ? max : (v < min ? min : HiFiUtilities.nonan(v, ifnan)));
     }
 }

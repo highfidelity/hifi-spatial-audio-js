@@ -4,8 +4,8 @@ declare var HIFI_API_VERSION: string;
 import { HiFiUtilities } from "./utilities/HiFiUtilities";
 let isBrowserContext = typeof self !== 'undefined';
 if (isBrowserContext) {
-    exports.HiFiAPIVersion = HIFI_API_VERSION;
-    exports.apiVersion = HIFI_API_VERSION;
+    exports.HiFiAPIVersion = typeof (HIFI_API_VERSION) === "string" ? HIFI_API_VERSION : "unknown";
+    exports.apiVersion = typeof (HIFI_API_VERSION) === "string" ? HIFI_API_VERSION : "unknown";
     exports.checkBrowserCompatibility = HiFiUtilities.checkBrowserCompatibility;
     HiFiUtilities.checkBrowserCompatibility();
 }
@@ -75,8 +75,6 @@ exports.Logger = HiFiLogger;
 exports.LogLevel = HiFiLogLevel;
 
 exports.Utilities = HiFiUtilities;
-exports.getBestAudioConstraints = HiFiUtilities.getBestAudioConstraints;
-exports.preciseInterval = HiFiUtilities.preciseInterval;
 
 exports.Constants = HiFiConstants;
 
