@@ -408,4 +408,3 @@ class RaviSignalingWebSocketImplementation {
   }
 }
 
-module.exports.RaviSignalingStates = RaviSignalingStates;
