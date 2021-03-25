@@ -6,13 +6,13 @@
 
 import { HiFiAudioAPIData, OrientationQuat3D, Point3D, ReceivedHiFiAudioAPIData } from "./HiFiAudioAPIData";
 import { HiFiLogger } from "../utilities/HiFiLogger";
-import { HiFiConnectionStates, HiFiUserDataStreamingScopes } from "./HiFiCommunicator";
+import { HiFiConnectionStates, HiFiUserDataStreamingScopes, WebRTCSessionParams } from "./HiFiCommunicator";
 
 // We use @ts-ignore here so TypeScript doesn't complain about importing these plain JS modules.
 // @ts-ignore
 import { RaviUtils } from "../libravi/RaviUtils";
 // @ts-ignore
-import { RaviSession, RaviSessionParams, RaviSessionStates } from "../libravi/RaviSession";
+import { RaviSession, RaviSessionStates } from "../libravi/RaviSession";
 // @ts-ignore
 import { RaviSignalingConnection, RaviSignalingStates } from "../libravi/RaviSignalingConnection";
 import { HiFiAxisUtilities, ourHiFiAxisConfiguration } from "./HiFiAxisConfiguration";
@@ -388,10 +388,10 @@ export class HiFiMixerSession {
      * Connect to the Mixer given `this.webRTCAddress`.
      * 
      * @param __namedParameters
-     * @param raviSessionParams - Parameters passed to the RAVI session when opening that session.
+     * @param webRTCSessionParams - Parameters passed to the RAVI session when opening that session.
      * @returns A Promise that rejects with an error message string upon failure, or resolves with the response from `audionet.init` as a string.
      */
-    async connectToHiFiMixer({ raviSessionParams }: { raviSessionParams?: RaviSessionParams }): Promise<any> {
+    async connectToHiFiMixer({ webRTCSessionParams }: { webRTCSessionParams?: WebRTCSessionParams }): Promise<any> {
         if (!this.webRTCAddress) {
             let errMsg = `Couldn't connect: \`this.webRTCAddress\` is falsey!`;
             this.disconnectFromHiFiMixer();
@@ -420,7 +420,7 @@ export class HiFiMixerSession {
         }
 
         try {
-            await this._raviSession.openRAVISession({ signalingConnection: this._raviSignalingConnection, params: raviSessionParams });
+            await this._raviSession.openRAVISession({ signalingConnection: this._raviSignalingConnection, params: webRTCSessionParams });
         } catch (errorOpeningRAVISession) {
             let errMsg = `Couldn't open RAVI session associated with \`${this.webRTCAddress.slice(0, this.webRTCAddress.indexOf("token="))}<token redacted>\`! Error:\n${errorOpeningRAVISession}`;
             this.disconnectFromHiFiMixer();
