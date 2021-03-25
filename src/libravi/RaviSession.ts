@@ -3,10 +3,27 @@ import { RaviSignalingConnection } from './RaviSignalingConnection';
 import { RaviStreamController } from './RaviStreamController';
 import { RaviUtils } from './RaviUtils';
 import { RaviCommandController } from './RaviCommandController';
-import { WebRTCSessionParams } from '../classes/HiFiCommunicator';
 
+export interface WebRTCSessionParams {
+  /**
+   * The minimum jitter buffer duration. Units are seconds. The default is 0 seconds.
+   * 
+   * In practice, this should always be set to 0 seconds, which is the default. Setting the minimum jitter buffer duration to X seconds means
+   * that all audio sent to the server will always be buffered at least by X seconds. This is rarely desirable; lower latency is almost always preferred.
+   * You may, however, want to set the maximum jitter buffer duration if your users are experiencing frequent audio drop-outs; refer to `audioMaxJitterBufferDuration` below for more details.
+   */
+  audioMinJitterBufferDuration?: number;
+  /**
+   * The maximum jitter buffer duration. Units are seconds. The default is 1 second.
+   * 
+   * Set the jitter buffer duration high to reduce the possibility of audio dropouts at the cost
+   * of potentially higher round-trip audio latency on poor connections.
+   */
+  audioMaxJitterBufferDuration?: number;
+};
 
 /**
+ * @internal
  * Enum for representing different possible states
  * that a RAVI session might be in.
  * 
@@ -24,7 +41,7 @@ export enum RaviSessionStates {
 };
 
 /** 
- *
+ * @internal
  * @class
  * @classdesc Represents a communications session between a RAVI JS client and a RAVI server.
  * This class should be instantiated by the RAVI consumer, and then used to open, work with, and close 
@@ -409,6 +426,7 @@ export class RaviSession {
 
 /*************************************************************************** */
  /**
+  * @internal
  * Constants used as the default filter for the stats collected in the RaviStatsWatcher
  */
 const STATS_WATCHER_FILTER = new Map([
@@ -417,6 +435,7 @@ const STATS_WATCHER_FILTER = new Map([
 ]);
 
 /**
+ * @internal
  * StatsWatcher is the object responsible for calling getStats from the
  * RTCPeerConnection at regular intervals.
  * The captured metrics are filtered and passed on to the statsObserver(s).
@@ -588,6 +607,7 @@ methods when it has data channel and track channels ready.
 */
 
 /**
+ * @internal
  * Use the correct classes depending on whether we're being 
  * called from node or the browser.
  */
@@ -604,6 +624,7 @@ if (typeof self === 'undefined') {
 }
 
 /**
+ * @internal
  * Constants used during session negotiation
  */
 const peerConnectionConfig = {
@@ -617,6 +638,7 @@ const peerConnectionConfig = {
 };
 
 /** 
+ * @internal
  * A WebRTC implementation for a RAVI peer connection
  * @private
  */

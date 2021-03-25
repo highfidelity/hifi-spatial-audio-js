@@ -6,13 +6,13 @@
 
 import { HiFiAudioAPIData, OrientationQuat3D, Point3D, ReceivedHiFiAudioAPIData } from "./HiFiAudioAPIData";
 import { HiFiLogger } from "../utilities/HiFiLogger";
-import { HiFiConnectionStates, HiFiUserDataStreamingScopes, WebRTCSessionParams } from "./HiFiCommunicator";
+import { HiFiConnectionStates, HiFiUserDataStreamingScopes } from "./HiFiCommunicator";
 
 // We use @ts-ignore here so TypeScript doesn't complain about importing these plain JS modules.
 // @ts-ignore
 import { RaviUtils } from "../libravi/RaviUtils";
 // @ts-ignore
-import { RaviSession, RaviSessionStates } from "../libravi/RaviSession";
+import { RaviSession, RaviSessionStates, WebRTCSessionParams } from "../libravi/RaviSession";
 // @ts-ignore
 import { RaviSignalingConnection, RaviSignalingStates } from "../libravi/RaviSignalingConnection";
 import { HiFiAxisUtilities, ourHiFiAxisConfiguration } from "./HiFiAxisConfiguration";

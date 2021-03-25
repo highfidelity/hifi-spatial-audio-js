@@ -9,6 +9,7 @@
 declare var HIFI_API_VERSION: string;
 
 import { HiFiConstants } from "../constants/HiFiConstants";
+import { WebRTCSessionParams } from "../libravi/RaviSession";
 import { HiFiLogger } from "../utilities/HiFiLogger";
 import { HiFiUtilities } from "../utilities/HiFiUtilities";
 import { HiFiAudioAPIData, ReceivedHiFiAudioAPIData, Point3D, OrientationQuat3D, OrientationEuler3D, OrientationEuler3DOrder, eulerToQuaternion, eulerFromQuaternion } from "./HiFiAudioAPIData";
@@ -50,24 +51,6 @@ export enum HiFiUserDataStreamingScopes {
      * will be streamed from the Server to the Client.
      */
     All = "all"
-};
-
-export interface WebRTCSessionParams {
-  /**
-   * The minimum jitter buffer duration. Units are seconds. The default is 0 seconds.
-   * 
-   * In practice, this should always be set to 0 seconds, which is the default. Setting the minimum jitter buffer duration to X seconds means
-   * that all audio sent to the server will always be buffered at least by X seconds. This is rarely desirable; lower latency is almost always preferred.
-   * You may, however, want to set the maximum jitter buffer duration if your users are experiencing frequent audio drop-outs; refer to `audioMaxJitterBufferDuration` below for more details.
-   */
-  audioMinJitterBufferDuration?: number;
-  /**
-   * The maximum jitter buffer duration. Units are seconds. The default is 1 second.
-   * 
-   * Set the jitter buffer duration high to reduce the possibility of audio dropouts at the cost
-   * of potentially higher round-trip audio latency on poor connections.
-   */
-  audioMaxJitterBufferDuration?: number;
 };
 
 /**
