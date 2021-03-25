@@ -3,19 +3,8 @@
  * @packageDocumentation
  */
 
+import { HiFiUtilities } from "../utilities/HiFiUtilities";
 
-function nonan(v: number, ifnan: number ): number {
-    return (isNaN(v) ? ifnan : v);
-}
-
-function clamp(v: number, min: number, max: number): number {
-    // if v is Nan returns Nan
-    return (v > max ? max : ( v < min ? min :v));
-}
-
-function clampNonan(v: number, min: number, max: number, ifnan: number): number {
-    return (v > max ? max : ( v < min ? min : nonan(v, ifnan)));
-}
 
 /**
  * Instantiations of this class define a position in 3D space. The position of a user affects the way the mixed spatial
@@ -61,10 +50,10 @@ export class OrientationQuat3D {
      * Construct a new `OrientationQuat3D` object.
      */
     constructor({ w = 1, x = 0, y = 0, z = 0 }: { w?: number, x?: number, y?: number, z?: number } = {}) {
-        this.w = clampNonan(w, -1, 1, 1);
-        this.x = clampNonan(x, -1, 1, 0);
-        this.y = clampNonan(y, -1, 1, 0);
-        this.z = clampNonan(z, -1, 1, 0);
+        this.w = HiFiUtilities.clampNonan(w, -1, 1, 1);
+        this.x = HiFiUtilities.clampNonan(x, -1, 1, 0);
+        this.y = HiFiUtilities.clampNonan(y, -1, 1, 0);
+        this.z = HiFiUtilities.clampNonan(z, -1, 1, 0);
     }
 }
 

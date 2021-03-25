@@ -12,7 +12,7 @@ import { HiFiConnectionStates, HiFiUserDataStreamingScopes } from "./HiFiCommuni
 // @ts-ignore
 import { RaviUtils } from "../libravi/RaviUtils";
 // @ts-ignore
-import { RaviSession, RaviSessionStates } from "../libravi/RaviSession";
+import { RaviSession, RaviSessionParams, RaviSessionStates } from "../libravi/RaviSession";
 // @ts-ignore
 import { RaviSignalingConnection, RaviSignalingStates } from "../libravi/RaviSignalingConnection";
 import { HiFiAxisUtilities, ourHiFiAxisConfiguration } from "./HiFiAxisConfiguration";
@@ -126,19 +126,19 @@ export class HiFiMixerSession {
         this._mixerPeerKeyToStateCacheDict = {};
 
         RaviUtils.setDebug(false);
-        
+
         this._raviSignalingConnection = new RaviSignalingConnection();
         this._raviSignalingConnection.addStateChangeHandler((event: any) => {
             this.onRAVISignalingStateChanged(event);
         });
-        
+
         this._raviSession = new RaviSession();
         this._raviSession.addStateChangeHandler((event: any) => {
             this.onRAVISessionStateChanged(event);
         });
-        
+
         this.onConnectionStateChanged = onConnectionStateChanged;
-        
+
         this._resetMixerInfo();
     }
 
@@ -167,7 +167,7 @@ export class HiFiMixerSession {
             }
 
             let initTimeout = setTimeout(() => {
-                this.disconnect();
+                this.disconnectFromHiFiMixer();
                 return Promise.reject({
                     success: false,
                     error: `Couldn't connect to mixer: Call to \`init\` timed out!`
@@ -206,7 +206,7 @@ export class HiFiMixerSession {
         let unGZippedData = pako.ungzip(data, { to: 'string' });
         let jsonData = JSON.parse(unGZippedData);
 
-        if (jsonData.deleted_visit_ids) {            
+        if (jsonData.deleted_visit_ids) {
             let allDeletedUserData: Array<ReceivedHiFiAudioAPIData> = [];
 
             let deletedVisitIDs = jsonData.deleted_visit_ids;
@@ -221,11 +221,11 @@ export class HiFiMixerSession {
                 for (const mixerPeerKey of mixerPeerKeys) {
                     if (this._mixerPeerKeyToStateCacheDict[mixerPeerKey].hashedVisitID === hashedVisitID) {
                         if (this._mixerPeerKeyToStateCacheDict[mixerPeerKey].providedUserID) {
-                           deletedUserData.providedUserID = this._mixerPeerKeyToStateCacheDict[mixerPeerKey].providedUserID;
+                            deletedUserData.providedUserID = this._mixerPeerKeyToStateCacheDict[mixerPeerKey].providedUserID;
                         }
                         break;
                     }
-                }                
+                }
 
                 allDeletedUserData.push(deletedUserData);
             }
@@ -245,7 +245,7 @@ export class HiFiMixerSession {
                 let peerDataFromMixer = jsonData.peers[peerKeys[itr]];
 
                 // See {@link this._mixerPeerKeyToStateCacheDict}.
-                let userDataCache : ReceivedHiFiAudioAPIData;
+                let userDataCache: ReceivedHiFiAudioAPIData;
                 // If it is a knwon peer, we should have an entry for it in the cache dict
                 if (this._mixerPeerKeyToStateCacheDict[peerKeys[itr]]) {
                     userDataCache = this._mixerPeerKeyToStateCacheDict[peerKeys[itr]] as ReceivedHiFiAudioAPIData;
@@ -307,7 +307,7 @@ export class HiFiMixerSession {
                     // Mixer sends position data in millimeters
                     userDataCache.position.z = peerDataFromMixer.z / 1000;
                     serverSentNewPosition = true;
-                }  
+                }
                 // We received a new position and updated the cache entry.
                 // Need to add the new position value in the newUserData
                 if (serverSentNewPosition) {
@@ -355,7 +355,7 @@ export class HiFiMixerSession {
                     newUserData.orientationQuat = HiFiAxisUtilities.translateOrientationQuat3DFromMixerSpace(ourHiFiAxisConfiguration, userDataCache.orientationQuat);
                     serverSentNewUserData = true;
                 }
-                
+
 
                 // `ReceivedHiFiAudioAPIData.hiFiGain`
                 if (typeof (peerDataFromMixer.g) === "number") {
@@ -386,30 +386,45 @@ export class HiFiMixerSession {
 
     /**
      * Connect to the Mixer given `this.webRTCAddress`.
+     * 
+     * @param __namedParameters
+     * @param raviSessionParams - Parameters passed to the RAVI session when opening that session.
      * @returns A Promise that rejects with an error message string upon failure, or resolves with the response from `audionet.init` as a string.
      */
-    async connect(): Promise<any> {
+    async connectToHiFiMixer({ raviSessionParams }: { raviSessionParams?: RaviSessionParams }): Promise<any> {
         if (!this.webRTCAddress) {
             let errMsg = `Couldn't connect: \`this.webRTCAddress\` is falsey!`;
-            this.disconnect();
+            this.disconnectFromHiFiMixer();
             return Promise.reject(errMsg);
         }
 
         this._currentHiFiConnectionState = undefined;
 
+        const tempUnavailableStateHandler = (event: any) => {
+            if (event && event.state === RaviSignalingStates.UNAVAILABLE) {
+                let errMsg = `High Fidelity server is at capacity; service is unavailable.`;
+                this._raviSignalingConnection.removeStateChangeHandler(tempUnavailableStateHandler);
+                this._raviSession.closeRAVISession();
+                return Promise.reject(errMsg);
+            }
+        }
+        this._raviSignalingConnection.addStateChangeHandler(tempUnavailableStateHandler);
+
         try {
-            await this._raviSignalingConnection.open(this.webRTCAddress)
+            await this._raviSignalingConnection.openRAVISignalingConnection(this.webRTCAddress)
         } catch (errorOpeningSignalingConnection) {
             let errMsg = `Couldn't open signaling connection to \`${this.webRTCAddress.slice(0, this.webRTCAddress.indexOf("token="))}<token redacted>\`! Error:\n${errorOpeningSignalingConnection}`;
-            this.disconnect();
+            this.disconnectFromHiFiMixer();
+            this._raviSignalingConnection.removeStateChangeHandler(tempUnavailableStateHandler);
             return Promise.reject(errMsg);
         }
 
         try {
-            await this._raviSession.open(this._raviSignalingConnection);
+            await this._raviSession.openRAVISession({ signalingConnection: this._raviSignalingConnection, params: raviSessionParams });
         } catch (errorOpeningRAVISession) {
             let errMsg = `Couldn't open RAVI session associated with \`${this.webRTCAddress.slice(0, this.webRTCAddress.indexOf("token="))}<token redacted>\`! Error:\n${errorOpeningRAVISession}`;
-            this.disconnect();
+            this.disconnectFromHiFiMixer();
+            this._raviSignalingConnection.removeStateChangeHandler(tempUnavailableStateHandler);
             return Promise.reject(errMsg);
         }
 
@@ -418,9 +433,12 @@ export class HiFiMixerSession {
             audionetInitResponse = await this.promiseToRunAudioInit();
         } catch (initError) {
             let errMsg = `\`audionet.init\` command failed! Error:\n${initError.error}`;
-            this.disconnect();
+            this.disconnectFromHiFiMixer();
+            this._raviSignalingConnection.removeStateChangeHandler(tempUnavailableStateHandler);
             return Promise.reject(errMsg);
         }
+
+        this._raviSignalingConnection.removeStateChangeHandler(tempUnavailableStateHandler);
 
         this._raviSession.getCommandController().addBinaryHandler((data: any) => { this.handleRAVISessionBinaryData(data) }, true);
 
@@ -431,7 +449,7 @@ export class HiFiMixerSession {
      * Disconnects from the Mixer. Closes the RAVI Signaling Connection and the RAVI Session.
      * @returns A Promise that _always_ Resolves with a "success" status string.
      */
-    async disconnect(): Promise<string> {
+    async disconnectFromHiFiMixer(): Promise<string> {
         async function close(thingToClose: (RaviSignalingConnection | RaviSession), nameOfThingToClose: string, closedState: string) {
             if (thingToClose) {
                 let state = thingToClose.getState();
@@ -439,7 +457,11 @@ export class HiFiMixerSession {
                     HiFiLogger.log(`The RAVI ${nameOfThingToClose} was already closed.`);
                 } else {
                     try {
-                        await thingToClose.close();
+                        if (thingToClose instanceof RaviSignalingConnection) {
+                            await thingToClose.closeRAVISignalingConnection();
+                        } else if (thingToClose instanceof RaviSession) {
+                            await thingToClose.closeRAVISession();
+                        }
                         HiFiLogger.log(`The RAVI ${nameOfThingToClose} closed successfully from state ${state}.`);
                     } catch (e) {
                         HiFiLogger.warn(`The RAVI ${nameOfThingToClose} didn't close successfully from state ${state}! Error:\n${e}`);
@@ -637,7 +659,7 @@ export class HiFiMixerSession {
                 if (this.onConnectionStateChanged) {
                     this.onConnectionStateChanged(this._currentHiFiConnectionState);
                 }
-                this.disconnect();
+                this.disconnectFromHiFiMixer();
                 break;
         }
     }
@@ -668,6 +690,8 @@ export class HiFiMixerSession {
                 if (this.onConnectionStateChanged) {
                     this.onConnectionStateChanged(this._currentHiFiConnectionState);
                 }
+
+                this.disconnectFromHiFiMixer();
                 break;
             case RaviSessionStates.FAILED:
                 if (this._currentHiFiConnectionState === HiFiConnectionStates.Unavailable) {
@@ -681,7 +705,7 @@ export class HiFiMixerSession {
                 }
                 break;
         }
-    }    
+    }
 
     startCollectingWebRTCStats(callback: Function) {
         if (!this._raviSession) {
@@ -725,10 +749,10 @@ export class HiFiMixerSession {
 
         // if a position is specified with valid components, let's consider adding position payload
         if (currentHifiAudioAPIData.position && (typeof (currentHifiAudioAPIData.position.x) === "number")
-                                             && (typeof (currentHifiAudioAPIData.position.y) === "number")
-                                             && (typeof (currentHifiAudioAPIData.position.z) === "number")) {
+            && (typeof (currentHifiAudioAPIData.position.y) === "number")
+            && (typeof (currentHifiAudioAPIData.position.z) === "number")) {
             // Detect the position components which have really changed compared to the previous state known from the server
-            let changedComponents : { x: boolean, y: boolean, z: boolean, changed: boolean} = {x: false, y: false, z: false, changed: false};
+            let changedComponents: { x: boolean, y: boolean, z: boolean, changed: boolean } = { x: false, y: false, z: false, changed: false };
             if (previousHifiAudioAPIData && previousHifiAudioAPIData.position) {
                 if (currentHifiAudioAPIData.position.x !== previousHifiAudioAPIData.position.x) {
                     changedComponents.x = true;
@@ -748,7 +772,7 @@ export class HiFiMixerSession {
                 changedComponents.z = true;
                 changedComponents.changed = true;
             }
-            
+
             // Some position components have changed, let's fill in the payload
             if (changedComponents.changed) {
                 let translatedPosition = HiFiAxisUtilities.translatePoint3DToMixerSpace(ourHiFiAxisConfiguration, currentHifiAudioAPIData.position);
@@ -768,11 +792,11 @@ export class HiFiMixerSession {
 
         // if orientation is specified with valid components, let's consider adding orientation payload
         if (currentHifiAudioAPIData.orientationQuat && (typeof (currentHifiAudioAPIData.orientationQuat.w) === "number")
-                                                && (typeof (currentHifiAudioAPIData.orientationQuat.x) === "number")
-                                                && (typeof (currentHifiAudioAPIData.orientationQuat.y) === "number")
-                                                && (typeof (currentHifiAudioAPIData.orientationQuat.z) === "number") ) {
+            && (typeof (currentHifiAudioAPIData.orientationQuat.x) === "number")
+            && (typeof (currentHifiAudioAPIData.orientationQuat.y) === "number")
+            && (typeof (currentHifiAudioAPIData.orientationQuat.z) === "number")) {
             // Detect the orientation components which have really changed compared to the previous state known from the server
-            let changedComponents : { w: boolean, x: boolean, y: boolean, z: boolean, changed: boolean} = {w: false, x: false, y: false, z: false, changed: false};
+            let changedComponents: { w: boolean, x: boolean, y: boolean, z: boolean, changed: boolean } = { w: false, x: false, y: false, z: false, changed: false };
             if (previousHifiAudioAPIData && previousHifiAudioAPIData.orientationQuat) {
                 if (currentHifiAudioAPIData.orientationQuat.w !== previousHifiAudioAPIData.orientationQuat.w) {
                     changedComponents.w = true;
@@ -802,7 +826,7 @@ export class HiFiMixerSession {
             if (changedComponents.changed) {
                 // The mixer expects Quaternion components in its space and to be mulitiplied by 1000.
                 let translatedOrientation = HiFiAxisUtilities.translateOrientationQuat3DToMixerSpace(ourHiFiAxisConfiguration, currentHifiAudioAPIData.orientationQuat);
-         
+
                 if (changedComponents.w) {
                     dataForMixer["W"] = translatedOrientation.w * 1000;
                 }
@@ -814,7 +838,7 @@ export class HiFiMixerSession {
                 }
                 // if (changedComponents.z) {
                 // Need to send Z all the time at the moment until we merge the fix https://github.com/highfidelity/audionet-hifi/pull/271
-                    dataForMixer["Z"] = translatedOrientation.z * 1000;
+                dataForMixer["Z"] = translatedOrientation.z * 1000;
                 //}
             }
         }

@@ -185,7 +185,7 @@ export class RaviSignalingConnection {
    * @param {string} URL The URL of the signaling server's endpoint (e.g. 'wss://foo.bar.baz:8889')
    * @returns {Promise}
    */
-  open(URL: string) {
+  openRAVISignalingConnection(URL: string) {
     var signalingConnection = this;
 
     return new Promise((resolve, reject) => {
@@ -234,7 +234,7 @@ export class RaviSignalingConnection {
    *
    * @returns {Promise}
    */
-  close() {
+  closeRAVISignalingConnection() {
     var signalingConnection = this;
 
     return new Promise((resolve, reject) => {
@@ -408,4 +408,3 @@ class RaviSignalingWebSocketImplementation {
   }
 }
 
-module.exports.RaviSignalingStates = RaviSignalingStates;

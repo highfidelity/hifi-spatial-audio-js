@@ -9,7 +9,8 @@ const params = {
 };
 s3.listObjectsV2(params, (err, data) => {
     if (err) {
-        console.error(`Error when listing objects:\n${error}`);
+        console.error(`Error when listing objects:\n${err}`);
+        process.exit();
         return;
     }
 
