@@ -4,25 +4,7 @@ import { RaviStreamController } from './RaviStreamController';
 import { RaviUtils } from './RaviUtils';
 import { RaviCommandController } from './RaviCommandController';
 
-
-/**
- * Enum for representing different possible states
- * that a RAVI session might be in.
- * 
- * @readonly
- * @enum {string}
- */
-export enum RaviSessionStates {
-  NEW = "new",
-  CONNECTING = "checking",
-  CONNECTED = "connected",
-  COMPLETED = "completed",
-  DISCONNECTED = "disconnected",
-  FAILED = "failed",
-  CLOSED = "closed"
-};
-
-export interface RaviSessionParams {
+export interface WebRTCSessionParams {
   /**
    * The minimum jitter buffer duration. Units are seconds. The default is 0 seconds.
    * 
@@ -40,8 +22,26 @@ export interface RaviSessionParams {
   audioMaxJitterBufferDuration?: number;
 };
 
+/**
+ * @internal
+ * Enum for representing different possible states
+ * that a RAVI session might be in.
+ * 
+ * @readonly
+ * @enum {string}
+ */
+export enum RaviSessionStates {
+  NEW = "new",
+  CONNECTING = "checking",
+  CONNECTED = "connected",
+  COMPLETED = "completed",
+  DISCONNECTED = "disconnected",
+  FAILED = "failed",
+  CLOSED = "closed"
+};
+
 /** 
- *
+ * @internal
  * @class
  * @classdesc Represents a communications session between a RAVI JS client and a RAVI server.
  * This class should be instantiated by the RAVI consumer, and then used to open, work with, and close 
@@ -203,7 +203,7 @@ export class RaviSession {
    *            
    * @returns {Promise}
    */
-  openRAVISession({signalingConnection, timeout = 5000, params = null}: { signalingConnection: RaviSignalingConnection, timeout?: number, params?: RaviSessionParams}) {
+  openRAVISession({signalingConnection, timeout = 5000, params = null}: { signalingConnection: RaviSignalingConnection, timeout?: number, params?: WebRTCSessionParams}) {
     var raviSession = this;
 
     // Tell our connection implementation about this signaling connection --
@@ -426,6 +426,7 @@ export class RaviSession {
 
 /*************************************************************************** */
  /**
+  * @internal
  * Constants used as the default filter for the stats collected in the RaviStatsWatcher
  */
 const STATS_WATCHER_FILTER = new Map([
@@ -434,6 +435,7 @@ const STATS_WATCHER_FILTER = new Map([
 ]);
 
 /**
+ * @internal
  * StatsWatcher is the object responsible for calling getStats from the
  * RTCPeerConnection at regular intervals.
  * The captured metrics are filtered and passed on to the statsObserver(s).
@@ -605,6 +607,7 @@ methods when it has data channel and track channels ready.
 */
 
 /**
+ * @internal
  * Use the correct classes depending on whether we're being 
  * called from node or the browser.
  */
@@ -621,6 +624,7 @@ if (typeof self === 'undefined') {
 }
 
 /**
+ * @internal
  * Constants used during session negotiation
  */
 const peerConnectionConfig = {
@@ -634,6 +638,7 @@ const peerConnectionConfig = {
 };
 
 /** 
+ * @internal
  * A WebRTC implementation for a RAVI peer connection
  * @private
  */
