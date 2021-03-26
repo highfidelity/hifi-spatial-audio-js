@@ -232,4 +232,9 @@ export class HiFiUtilities {
     static clampNonan(v: number, min: number, max: number, ifnan: number): number {
         return (v > max ? max : (v < min ? min : HiFiUtilities.nonan(v, ifnan)));
     }
+
+    static clampNormalized(v: number): number {
+        // if v is Nan returns Nan
+        return (v > 1.0 ? 1.0 : (v < -1.0 ? -1.0 : v));
+    }
 }
