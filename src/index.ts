@@ -22,7 +22,7 @@ export { WebRTCSessionParams } from "./libravi/RaviSession";
 export { AvailableUserDataSubscriptionComponents, UserDataSubscription } from "./classes/HiFiUserDataSubscription";
 export { HiFiLogLevel, HiFiLogger } from "./utilities/HiFiLogger";
 export { HiFiConstants } from "./constants/HiFiConstants";
-export { HiFiAxes, HiFiHandedness, HiFiAxisConfiguration } from "./classes/HiFiAxisConfiguration";
+export { HiFiAxisConfiguration } from "./classes/HiFiAxisConfiguration";
 
 // Here are various explicit exports from within the `HiFiUtilities` class for convenience.
 let getBestAudioConstraints = HiFiUtilities.getBestAudioConstraints;
@@ -38,4 +38,4 @@ export { ReceivedHiFiAudioAPIData as ReceivedAudioAPIData, HiFiAudioAPIData as A
 export { HiFiLogger as Logger, HiFiLogLevel as LogLevel } from "./utilities/HiFiLogger";
 export { HiFiUtilities as Utilities } from "./utilities/HiFiUtilities";
 export { HiFiConstants as Constants } from "./constants/HiFiConstants";
-export { HiFiAxes as Axes, HiFiHandedness as Handedness, HiFiAxisConfiguration as AxisConfiguration } from "./classes/HiFiAxisConfiguration";
+export { HiFiAxisConfiguration as AxisConfiguration } from "./classes/HiFiAxisConfiguration";

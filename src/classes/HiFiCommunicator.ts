@@ -159,14 +159,17 @@ export class HiFiCommunicator {
 
         if (hiFiAxisConfiguration) {
             if (HiFiAxisUtilities.verify(hiFiAxisConfiguration)) {
-                ourHiFiAxisConfiguration.rightAxis = hiFiAxisConfiguration.rightAxis;
+         /*       ourHiFiAxisConfiguration.rightAxis = hiFiAxisConfiguration.rightAxis;
                 ourHiFiAxisConfiguration.leftAxis = hiFiAxisConfiguration.leftAxis;
                 ourHiFiAxisConfiguration.intoScreenAxis = hiFiAxisConfiguration.intoScreenAxis;
                 ourHiFiAxisConfiguration.outOfScreenAxis = hiFiAxisConfiguration.outOfScreenAxis;
                 ourHiFiAxisConfiguration.upAxis = hiFiAxisConfiguration.upAxis;
                 ourHiFiAxisConfiguration.downAxis = hiFiAxisConfiguration.downAxis;
-                ourHiFiAxisConfiguration.handedness = hiFiAxisConfiguration.handedness;
+                ourHiFiAxisConfiguration.handedness = hiFiAxisConfiguration.handedness;*/
+
+                ourHiFiAxisConfiguration.axesConvention = hiFiAxisConfiguration.axesConvention;
                 ourHiFiAxisConfiguration.eulerOrder = hiFiAxisConfiguration.eulerOrder;
+
             } else {
                 HiFiLogger.error(`There is an error with the passed \`HiFiAxisConfiguration\`, so the new axis configuration was not set. There are more error details in the logs above.`);
             }
