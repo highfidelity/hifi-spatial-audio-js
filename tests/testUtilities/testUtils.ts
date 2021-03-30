@@ -52,12 +52,12 @@ export const TOKEN_GEN_TYPES = {
         "space_id": stackData.apps.app2.spaces.space1.id,
         "app_secret": stackData.apps.app2.secret
     },
-    "NON_ADMIN_APP2_SPACE_ID_NONEXISTENT_SIGNED": {
+    "NON_ADMIN_APP2_SPACE_ID_NONEXISTANT_SIGNED": {
         "admin": false,
         "signed": true,
         "user_id": "qateamNonAdmin",
         "app_id": stackData.apps.app2.id,
-        "space_id": stackData.apps.app2.spaces.nonexistent.id,
+        "space_id": stackData.apps.app2.spaces.nonexistant.id,
         "app_secret": stackData.apps.app2.secret
     },
     "NON_ADMIN_APP2_NEW_SPACE_NAME_SIGNED": {
