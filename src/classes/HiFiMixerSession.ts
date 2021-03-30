@@ -536,16 +536,19 @@ export class HiFiMixerSession {
     /**
      * Sets the input audio stream to "muted" by _either_:
      * 1. Calling `stop()` on all of the `MediaStreamTrack`s associated with the user's input audio stream OR
-     * 2. Setting `track.enabled = false|true` on all of the tracks on the user's input audio stream
+     * 2. Setting `track.enabled = false|true` on all of the tracks on the user's input audio stream (the default behavior)
      * 
      * Method 1 will work if and only if:
      * 1. The developer has set the `tryToStopMicStream` argument to this function to `true` AND
      * 2. The application code is running in the browser context (not the NodeJS context) AND
      * 3. The user's browser gives the user the ability to permanently allow a website to access the user's microphone
+     *    and provides the `navigator.permissions` and `navigator.permissions.query` objects/methods.
+     *    (Refer to https://developer.mozilla.org/en-US/docs/Web/API/Permissions - as of March 2021, this
+     *    list does not include Safari on desktop or iOS.)
      * 
      * Reasons to use Method 1:
      * - Bluetooth Audio I/O devices will switch modes between mono out and stereo out when the user is muted,
-     * which yields significantly imrpoved audio output quality and proper audio spatialization.
+     * which yields significantly improved audio output quality and proper audio spatialization.
      * - When the user is muted, the browser will report that their microphone is not in use, which can improve
      * user trust in the application.
      * 
@@ -555,6 +558,7 @@ export class HiFiMixerSession {
      * - If a user is using a Bluetooth Audio I/O device, there is a delay between the moment the user un-mutes
      * and when a user can hear other users in a Space due to the fact that the Bluetooth audio device must
      * switch I/O profiles.
+     * - Not all browsers support the `navigator.permissions` API
      * @returns `true` if the stream was successfully muted/unmuted, `false` if it was not.
      */
     async setInputAudioMuted(newMutedValue: boolean, tryToStopMicStream: boolean = false): Promise<boolean> {
