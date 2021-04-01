@@ -400,12 +400,12 @@ export class HiFiMixerSession {
 
         this._currentHiFiConnectionState = undefined;
 
+        let mixerIsUnavailable = false;
         const tempUnavailableStateHandler = (event: any) => {
             if (event && event.state === RaviSignalingStates.UNAVAILABLE) {
-                let errMsg = `High Fidelity server is at capacity; service is unavailable.`;
+                mixerIsUnavailable = true;
                 this._raviSignalingConnection.removeStateChangeHandler(tempUnavailableStateHandler);
                 this._raviSession.closeRAVISession();
-                return Promise.reject(errMsg);
             }
         }
         this._raviSignalingConnection.addStateChangeHandler(tempUnavailableStateHandler);
@@ -423,6 +423,9 @@ export class HiFiMixerSession {
             await this._raviSession.openRAVISession({ signalingConnection: this._raviSignalingConnection, params: webRTCSessionParams });
         } catch (errorOpeningRAVISession) {
             let errMsg = `Couldn't open RAVI session associated with \`${this.webRTCAddress.slice(0, this.webRTCAddress.indexOf("token="))}<token redacted>\`! Error:\n${errorOpeningRAVISession}`;
+            if (mixerIsUnavailable) {
+                errMsg = `High Fidelity server is at capacity; service is unavailable.`;
+            }
             this.disconnectFromHiFiMixer();
             this._raviSignalingConnection.removeStateChangeHandler(tempUnavailableStateHandler);
             return Promise.reject(errMsg);
