@@ -38,7 +38,8 @@ jobs:
       - name: Run Jest Unit Tests
         shell: bash
         run: |
-          ./node_modules/.bin/jest unit --ci | tee testoutput && grep -v FAIL testoutput -q
+          ./node_modules/.bin/jest unit --ci 2>&1 | tee testoutput
+          grep FAIL testoutput && if [[ $? == 0 ]]; then `exit 1`; fi
           echo "Exited with '$?'"
 
      # Run integration tests
