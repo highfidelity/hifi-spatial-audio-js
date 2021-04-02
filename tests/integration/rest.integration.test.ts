@@ -31,7 +31,7 @@ describe('HiFi API REST Calls', () => {
                 // TODO ensure space does not already exist
                 let returnMessage = await fetch(`${stackURL}/api/v1/spaces/create?token=${adminToken}&name=${newSpaceName}`);
                 createdSpaceJSON = await returnMessage.json();
-                expect(createdSpaceJSON['space-id']).toBeDefined();
+                expect(createdSpaceJSON['space-id']).toBeNull();
                 expect(createdSpaceJSON['app-id']).toBe(stackData.apps.app1.id);
             });
 

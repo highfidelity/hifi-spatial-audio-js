@@ -39,8 +39,7 @@ jobs:
         shell: bash
         run: |
           ./node_modules/.bin/jest unit --ci --useStdErr 2>&1 | tee testoutput
-          grep FAIL testoutput && if [[ $? == 0 ]]; then `exit 1`; fi
-          echo "Exited with '$?'"
+          ./testfails.sh
 
      # Run integration tests
       - name: Decrypt auth file
@@ -52,7 +51,10 @@ jobs:
         
       - name: Run Jest Integration Tests
         if: always()
-        run: npm run test -- integration --ci
+        shell: bash
+        run: |
+          ./node_modules/.bin/jest integration --ci --useStderr 2>&1 | tee testoutput
+          ./testfails.sh
 
       # Final testing status for repo
       - name: All Tests Passed
