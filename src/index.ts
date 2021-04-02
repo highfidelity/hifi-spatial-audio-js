@@ -3,7 +3,10 @@ declare var HIFI_API_VERSION: string;
 // Check for browser compatibility
 import { HiFiUtilities } from "./utilities/HiFiUtilities";
 export { HiFiUtilities };
-HiFiUtilities.checkBrowserCompatibility();
+let isBrowserContext = typeof self !== 'undefined';
+if (isBrowserContext) {
+    HiFiUtilities.checkBrowserCompatibility();
+}
 let apiVersion = typeof (HIFI_API_VERSION) === "string" ? HIFI_API_VERSION : "unknown";
 export { apiVersion as hiFiAPIVersion }; 
 export { apiVersion }; 
