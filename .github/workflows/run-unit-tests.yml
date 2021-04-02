@@ -37,38 +37,29 @@ jobs:
       # Run unit tests
       - name: Run Jest Unit Tests
         run: |
-          ./node_modules/.bin/jest test -- unit --ci | tee testoutput
+          ./node_modules/.bin/jest unit --ci | tee testoutput
           grep -v FAIL testoutput
           echo "Exited with '$?'"
 
-      - name: Unit Tests Passed
-        if: ${{ success() }}
-        run: |
-          curl --request POST --url https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.sha }} --header 'authorization: Bearer ${{ secrets.GITHUB_TOKEN }}' --header 'content-type: application/json' --data '{ "context": "tests", "state": "success", "description": "Tests passed", "target_url": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}" }'
-      - name: Unit Tests Failed
-        if: ${{ failure() }}
-        run: |
-          curl --request POST --url https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.sha }} --header 'authorization: Bearer ${{ secrets.GITHUB_TOKEN }}' --header 'content-type: application/json' --data '{ "context": "tests", "state": "failure", "description": "Tests failed", "target_url": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}" }'
-
      # Run integration tests
       - name: Decrypt auth file
+        if: always()
         run: ./.github/scripts/decryptAuthFile.sh
         env:
           TESTING_AUTH_DECRYPTION_KEY: ${{ secrets.TESTING_AUTH_DECRYPTION_KEY }}
           STACKNAME: ${{ github.event.inputs.stackname || 'api-staging-latest.highfidelity.com' }}
         
-
       - name: Run Jest Integration Tests
+        if: always()
         run: npm run test -- integration --ci
 
-      # TODO
-      - name: Integration Tests Passed
-        if: ${{ success() }}
+      # Final testing status for repo
+      - name: All Tests Passed
+        if: success()
         run: |
           curl --request POST --url https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.sha }} --header 'authorization: Bearer ${{ secrets.GITHUB_TOKEN }}' --header 'content-type: application/json' --data '{ "context": "tests", "state": "success", "description": "Tests passed", "target_url": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}" }'
 
-      # TODO
-      - name: Integration Tests Failed
-        if: ${{ failure() }}
+      - name: Any Test Failed
+        if: failure()
         run: |
           curl --request POST --url https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.sha }} --header 'authorization: Bearer ${{ secrets.GITHUB_TOKEN }}' --header 'content-type: application/json' --data '{ "context": "tests", "state": "failure", "description": "Tests failed", "target_url": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}" }'
