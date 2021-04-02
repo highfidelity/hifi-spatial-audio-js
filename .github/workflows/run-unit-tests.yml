@@ -19,7 +19,7 @@ on:
 jobs:
   Run-Jest-Tests:
     runs-on: ubuntu-latest
-    if: github.event.pusher.namen != 'hifibuild'
+    if: github.event.pusher.name != 'hifibuild'
 
     steps:
       - name: View Commit Author
