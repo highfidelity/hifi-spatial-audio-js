@@ -38,7 +38,7 @@ jobs:
       - name: Run Jest Unit Tests
         run: |
           ./node_modules/.bin/jest unit --ci | tee testoutput
-          grep -v ^FAIL testoutput
+          grep -v FAIL testoutput -q
           echo "Exited with '$?'"
 
      # Run integration tests
