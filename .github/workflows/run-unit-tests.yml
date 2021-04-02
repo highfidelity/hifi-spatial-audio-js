@@ -38,7 +38,7 @@ jobs:
       - name: Run Jest Unit Tests
         shell: bash
         run: |
-          ./node_modules/.bin/jest unit --ci --useStdErr 2>&1 | tee testoutput
+          ./node_modules/.bin/jest unit --ci --useStderr 2>&1 | tee testoutput
           ./testfails.sh
 
      # Run integration tests
