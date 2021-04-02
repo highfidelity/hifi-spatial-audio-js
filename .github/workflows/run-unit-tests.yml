@@ -37,7 +37,8 @@ jobs:
       # Run unit tests
       - name: Run Jest Unit Tests
         run: |
-          ./node_modules/.bin/jest test -- unit --ci -b
+          ./node_modules/.bin/jest test -- unit --ci | tee testoutput
+          grep -v FAIL testoutput
           echo "Exited with '$?'"
 
       - name: Unit Tests Passed
