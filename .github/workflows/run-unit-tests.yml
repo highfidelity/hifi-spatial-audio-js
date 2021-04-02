@@ -38,8 +38,7 @@ jobs:
       - name: Run Jest Unit Tests
         shell: bash
         run: |
-          ./node_modules/.bin/jest unit --ci 2>&1 | tee testoutput
-          grep FAIL testoutput && if [[ $? == 0 ]]; then `exit 1`; fi
+          ./node_modules/.bin/jest unit --ci --useStderr
           echo "Exited with '$?'"
 
      # Run integration tests
@@ -52,7 +51,9 @@ jobs:
         
       - name: Run Jest Integration Tests
         if: always()
-        run: npm run test -- integration --ci
+        run: |
+          ./node_modules/.bin/jest integration --ci --useStderr
+          echo "Exited with '$?'"
 
       # Final testing status for repo
       - name: All Tests Passed
