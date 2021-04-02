@@ -400,12 +400,12 @@ export class HiFiMixerSession {
 
         this._currentHiFiConnectionState = undefined;
 
+        let mixerIsUnavailable = false;
         const tempUnavailableStateHandler = (event: any) => {
             if (event && event.state === RaviSignalingStates.UNAVAILABLE) {
-                let errMsg = `High Fidelity server is at capacity; service is unavailable.`;
+                mixerIsUnavailable = true;
                 this._raviSignalingConnection.removeStateChangeHandler(tempUnavailableStateHandler);
                 this._raviSession.closeRAVISession();
-                return Promise.reject(errMsg);
             }
         }
         this._raviSignalingConnection.addStateChangeHandler(tempUnavailableStateHandler);
@@ -423,6 +423,9 @@ export class HiFiMixerSession {
             await this._raviSession.openRAVISession({ signalingConnection: this._raviSignalingConnection, params: webRTCSessionParams });
         } catch (errorOpeningRAVISession) {
             let errMsg = `Couldn't open RAVI session associated with \`${this.webRTCAddress.slice(0, this.webRTCAddress.indexOf("token="))}<token redacted>\`! Error:\n${errorOpeningRAVISession}`;
+            if (mixerIsUnavailable) {
+                errMsg = `High Fidelity server is at capacity; service is unavailable.`;
+            }
             this.disconnectFromHiFiMixer();
             this._raviSignalingConnection.removeStateChangeHandler(tempUnavailableStateHandler);
             return Promise.reject(errMsg);
@@ -536,16 +539,19 @@ export class HiFiMixerSession {
     /**
      * Sets the input audio stream to "muted" by _either_:
      * 1. Calling `stop()` on all of the `MediaStreamTrack`s associated with the user's input audio stream OR
-     * 2. Setting `track.enabled = false|true` on all of the tracks on the user's input audio stream
+     * 2. Setting `track.enabled = false|true` on all of the tracks on the user's input audio stream (the default behavior)
      * 
      * Method 1 will work if and only if:
      * 1. The developer has set the `tryToStopMicStream` argument to this function to `true` AND
      * 2. The application code is running in the browser context (not the NodeJS context) AND
      * 3. The user's browser gives the user the ability to permanently allow a website to access the user's microphone
+     *    and provides the `navigator.permissions` and `navigator.permissions.query` objects/methods.
+     *    (Refer to https://developer.mozilla.org/en-US/docs/Web/API/Permissions - as of March 2021, this
+     *    list does not include Safari on desktop or iOS.)
      * 
      * Reasons to use Method 1:
      * - Bluetooth Audio I/O devices will switch modes between mono out and stereo out when the user is muted,
-     * which yields significantly imrpoved audio output quality and proper audio spatialization.
+     * which yields significantly improved audio output quality and proper audio spatialization.
      * - When the user is muted, the browser will report that their microphone is not in use, which can improve
      * user trust in the application.
      * 
@@ -555,6 +561,7 @@ export class HiFiMixerSession {
      * - If a user is using a Bluetooth Audio I/O device, there is a delay between the moment the user un-mutes
      * and when a user can hear other users in a Space due to the fact that the Bluetooth audio device must
      * switch I/O profiles.
+     * - Not all browsers support the `navigator.permissions` API
      * @returns `true` if the stream was successfully muted/unmuted, `false` if it was not.
      */
     async setInputAudioMuted(newMutedValue: boolean, tryToStopMicStream: boolean = false): Promise<boolean> {

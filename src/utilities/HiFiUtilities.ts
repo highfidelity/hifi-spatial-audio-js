@@ -198,8 +198,6 @@ export class HiFiUtilities {
         let requiredFeatures: Array<string> = [
             // Navigator mediaDevices
             "navigator", // Found on source code HiFiMixerSession.ts, RaviStreamController.ts
-            "navigator.permissions", // Found on source code HiFiMixerSession.ts (ln.544)
-            "navigator.permissions.query", // Found on source code HiFiMixerSession.ts (ln.544)
             "navigator.mediaDevices.getUserMedia", // Found on source code HiFiMixerSession.ts (ln.590)
             "navigator.mediaDevices.getSupportedConstraints", // Found on source code HiFiUtilities (ln. 130, 134, 138)
             // WebRTC
@@ -231,5 +229,10 @@ export class HiFiUtilities {
 
     static clampNonan(v: number, min: number, max: number, ifnan: number): number {
         return (v > max ? max : (v < min ? min : HiFiUtilities.nonan(v, ifnan)));
+    }
+
+    static clampNormalized(v: number): number {
+        // if v is Nan returns Nan
+        return (v > 1.0 ? 1.0 : (v < -1.0 ? -1.0 : v));
     }
 }
