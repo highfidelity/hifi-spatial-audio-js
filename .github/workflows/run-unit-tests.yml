@@ -11,6 +11,7 @@ on:
       - main
       - gha
   push:
+    pull_request:
     branches:
       - main
       - gha
