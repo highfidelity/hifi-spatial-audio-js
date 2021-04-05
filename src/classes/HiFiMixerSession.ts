@@ -313,7 +313,7 @@ export class HiFiMixerSession {
                 if (serverSentNewPosition) {
                     // Create the new position value for the newUserData and
                     // convert the received position (if any) to the user space
-                    newUserData.position = HiFiAxisUtilities.translatePoint3DFromMixerSpace(ourHiFiAxisConfiguration, userDataCache.position);
+                    newUserData.position = HiFiAxisUtilities.convertPoint3DFromMixerSpace(ourHiFiAxisConfiguration, userDataCache.position);
                     serverSentNewUserData = true;
                 }
 
@@ -352,7 +352,7 @@ export class HiFiMixerSession {
                 if (serverSentNewOrientation) {
                     // Create the new orientation value for the newUserData and
                     // convert the received orientation (if any) to the user space
-                    newUserData.orientationQuat = HiFiAxisUtilities.translateOrientationQuat3DFromMixerSpace(ourHiFiAxisConfiguration, userDataCache.orientationQuat);
+                    newUserData.orientationQuat = HiFiAxisUtilities.convertOrientationQuat3DFromMixerSpace(ourHiFiAxisConfiguration, userDataCache.orientationQuat);
                     serverSentNewUserData = true;
                 }
 
@@ -775,7 +775,7 @@ export class HiFiMixerSession {
 
             // Some position components have changed, let's fill in the payload
             if (changedComponents.changed) {
-                let translatedPosition = HiFiAxisUtilities.translatePoint3DToMixerSpace(ourHiFiAxisConfiguration, currentHifiAudioAPIData.position);
+                let translatedPosition = HiFiAxisUtilities.convertPoint3DToMixerSpace(ourHiFiAxisConfiguration, currentHifiAudioAPIData.position);
 
                 // Position data is sent in millimeters integers to reduce JSON size.
                 if (changedComponents.x) {
@@ -825,7 +825,7 @@ export class HiFiMixerSession {
             // Some orientation components have changed, let's fill in the payload
             if (changedComponents.changed) {
                 // The mixer expects Quaternion components in its space and to be mulitiplied by 1000.
-                let translatedOrientation = HiFiAxisUtilities.translateOrientationQuat3DToMixerSpace(ourHiFiAxisConfiguration, currentHifiAudioAPIData.orientationQuat);
+                let translatedOrientation = HiFiAxisUtilities.convertOrientationQuat3DToMixerSpace(ourHiFiAxisConfiguration, currentHifiAudioAPIData.orientationQuat);
 
                 if (changedComponents.w) {
                     dataForMixer["W"] = translatedOrientation.w * 1000;

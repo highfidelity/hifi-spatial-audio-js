@@ -4,9 +4,9 @@
  */
 
 import { HiFiLogger } from "../utilities/HiFiLogger";
-import { OrientationQuat3D, Point3D, OrientationEuler3DOrder, OrientationEuler3D } from "./HiFiAudioAPIData";
+import { OrientationQuat3D, Point3D, OrientationEuler3DOrder, OrientationEuler3D, eulerToQuaternion, eulerFromQuaternion } from "./HiFiAudioAPIData";
 
-export enum CoordinateAxesConvention {
+export enum CoordinateSystemConvention {
     // Yup 8 possibilities
     // 4 Right handed Yup
     X_right_Y_up_Z_back_RH = 0, //"YUP_0_RH", // Same as Mixer space
@@ -54,38 +54,7 @@ export enum CoordinateAxesConvention {
  * The eulerOrder field is working correclty and can be configured at the creation of the HiFiCommunicator
  */
 export class HiFiAxisConfiguration {
-    static ConvertPosFromDefaultSpace: Array< (p: Point3D) => Point3D> = [
-        (p: Point3D) => { return p; },
-        (p: Point3D) => { return { x: +p.z, y: p.y, z: -p.x}; },
-        (p: Point3D) => { return { x: -p.x, y: p.y, z: -p.z}; },
-        (p: Point3D) => { return { x: -p.z, y: p.y, z: +p.x}; },
-        
-        (p: Point3D) => { return { x: +p.x, y: p.y, z: -p.z}; },
-        (p: Point3D) => { return { x: -p.z, y: p.y, z: -p.x}; },
-        (p: Point3D) => { return { x: -p.x, y: p.y, z: +p.z}; },
-        (p: Point3D) => { return { x: +p.z, y: p.y, z: +p.x}; },
-    ];
-    static ConvertPosToDefaultSpace: Array< (p: Point3D) => Point3D> = [
-        (p: Point3D) => { return p; },
-        (p: Point3D) => { return { x: -p.z, y: p.y, z: +p.x}; },
-        (p: Point3D) => { return { x: +p.x, y: p.y, z: +p.z}; },
-        (p: Point3D) => { return { x: +p.z, y: p.y, z: -p.x}; },
-        
-        (p: Point3D) => { return { x: -p.x, y: p.y, z: +p.z}; },
-        (p: Point3D) => { return { x: +p.z, y: p.y, z: +p.x}; },
-        (p: Point3D) => { return { x: +p.x, y: p.y, z: -p.z}; },
-        (p: Point3D) => { return { x: -p.z, y: p.y, z: -p.x}; },
-    ];
-    static ConvertQuatFromDefaultSpace: Array< (q: OrientationQuat3D) => OrientationQuat3D> = [
-        (q: OrientationQuat3D) => { return q; },
-
-    ];
-    static ConvertQuatToDefaultSpace: Array< (q: OrientationQuat3D) => OrientationQuat3D> = [
-        (q: OrientationQuat3D) => { return q; },
-
-    ];
-
-    axesConvention: CoordinateAxesConvention;
+    coordinateSystemConvention: CoordinateSystemConvention;
     eulerOrder: OrientationEuler3DOrder;
 
     _convertPosFromDefaultSpace: (p: Point3D) => Point3D;
@@ -93,12 +62,12 @@ export class HiFiAxisConfiguration {
     _convertQuatFromDefaultSpace: (q: OrientationQuat3D) => OrientationQuat3D;
     _convertQuatToDefaultSpace: (q: OrientationQuat3D) => OrientationQuat3D;
     
-    constructor({axesConvention, eulerOrder}: {axesConvention: CoordinateAxesConvention, eulerOrder: OrientationEuler3DOrder }) {
-        Object.assign(this, { axesConvention, eulerOrder});
-        this._convertPosFromDefaultSpace = HiFiAxisConfiguration.ConvertPosFromDefaultSpace[axesConvention];
-        this._convertPosToDefaultSpace = HiFiAxisConfiguration.ConvertPosToDefaultSpace[axesConvention];
-        this._convertQuatFromDefaultSpace = HiFiAxisConfiguration.ConvertQuatFromDefaultSpace[axesConvention];
-        this._convertQuatToDefaultSpace = HiFiAxisConfiguration.ConvertQuatToDefaultSpace[axesConvention];
+    constructor({coordinateSystemConvention, eulerOrder}: {coordinateSystemConvention: CoordinateSystemConvention, eulerOrder: OrientationEuler3DOrder }) {
+        Object.assign(this, { coordinateSystemConvention, eulerOrder});
+        this._convertPosFromDefaultSpace = HiFiAxisUtilities.ConvertPosFromDefaultSpace[coordinateSystemConvention];
+        this._convertPosToDefaultSpace = HiFiAxisUtilities.ConvertPosToDefaultSpace[coordinateSystemConvention];
+        this._convertQuatFromDefaultSpace = HiFiAxisUtilities.ConvertQuatFromDefaultSpace[coordinateSystemConvention];
+        this._convertQuatToDefaultSpace = HiFiAxisUtilities.ConvertQuatToDefaultSpace[coordinateSystemConvention];
     }
 
   /*  constructor({rightAxis, leftAxis, intoScreenAxis, outOfScreenAxis, upAxis, downAxis, handedness, eulerOrder}: {rightAxis: HiFiAxes, leftAxis: HiFiAxes, intoScreenAxis: HiFiAxes, outOfScreenAxis: HiFiAxes, upAxis: HiFiAxes, downAxis: HiFiAxes, handedness: HiFiHandedness, eulerOrder: OrientationEuler3DOrder }) {
@@ -115,11 +84,58 @@ export class HiFiAxisConfiguration {
  * - Euler order is `OrientationEuler3DOrder.YawPitchRoll`
  */
 export let ourHiFiAxisConfiguration = new HiFiAxisConfiguration({
-    axesConvention: CoordinateAxesConvention.X_right_Y_up_Z_back_RH,
+    coordinateSystemConvention: CoordinateSystemConvention.X_right_Y_up_Z_back_RH,
     eulerOrder: OrientationEuler3DOrder.YawPitchRoll,
 });
 
 export class HiFiAxisUtilities {
+   
+    static ConvertPosFromDefaultSpace: Array< (p: Point3D) => Point3D> = [
+        (p: Point3D) => { return p; },
+        (p: Point3D) => { return p.rotateY90(); },
+        (p: Point3D) => { return p.rotateY180(); },
+        (p: Point3D) => { return p.rotateY270(); },
+        
+        (p: Point3D) => { return p.rightToLeftHanded(); },
+        (p: Point3D) => { return p.rightToLeftHanded().rotateY90(); },
+        (p: Point3D) => { return p.rightToLeftHanded().rotateY180(); },
+        (p: Point3D) => { return p.rightToLeftHanded().rotateY270(); },
+    ];
+    static ConvertPosToDefaultSpace: Array< (p: Point3D) => Point3D> = [
+        (p: Point3D) => { return p; },
+        (p: Point3D) => { return p.rotateY270(); },
+        (p: Point3D) => { return p.rotateY180(); },
+        (p: Point3D) => { return p.rotateY90(); },
+        
+        (p: Point3D) => { return p.leftToRightHanded(); },
+        (p: Point3D) => { return p.rotateY270().leftToRightHanded(); },
+        (p: Point3D) => { return p.rotateY180().leftToRightHanded(); },
+        (p: Point3D) => { return p.rotateY90().leftToRightHanded(); },
+    ];
+    static ConvertQuatFromDefaultSpace: Array< (q: OrientationQuat3D) => OrientationQuat3D> = [
+        (q: OrientationQuat3D) => { return q; },
+        (q: OrientationQuat3D) => { return q.rotateY90(); },
+        (q: OrientationQuat3D) => { return q.rotateY180(); },
+        (q: OrientationQuat3D) => { return q.rotateY270(); },
+        
+        (q: OrientationQuat3D) => { return q.rightToLeftHanded(); },
+        (q: OrientationQuat3D) => { return q.rightToLeftHanded().rotateY90(); },
+        (q: OrientationQuat3D) => { return q.rightToLeftHanded().rotateY180(); },
+        (q: OrientationQuat3D) => { return q.rightToLeftHanded().rotateY270(); },
+    ];
+    static ConvertQuatToDefaultSpace: Array< (q: OrientationQuat3D) => OrientationQuat3D> = [
+        (q: OrientationQuat3D) => { return q; },
+        (q: OrientationQuat3D) => { return q.rotateY270(); },
+        (q: OrientationQuat3D) => { return q.rotateY180(); },
+        (q: OrientationQuat3D) => { return q.rotateY90(); },
+        
+        (q: OrientationQuat3D) => { return q.leftToRightHanded(); },
+        (q: OrientationQuat3D) => { return q.rotateY270().leftToRightHanded(); },
+        (q: OrientationQuat3D) => { return q.rotateY180().leftToRightHanded(); },
+        (q: OrientationQuat3D) => { return q.rotateY90().leftToRightHanded(); },
+    ];
+
+
     static verify(axisConfiguration: HiFiAxisConfiguration) {
         let isValid = true;
 
@@ -133,11 +149,7 @@ export class HiFiAxisUtilities {
      * @param axisConfiguration 
      * @param inputPoint3D 
      */
-    static translatePoint3DToMixerSpace(axisConfiguration: HiFiAxisConfiguration, inputPoint3D: Point3D): Point3D {
-        /*let retval = new Point3D();
-        retval = inputPoint3D;
-        return retval;
-*/
+    static convertPoint3DToMixerSpace(axisConfiguration: HiFiAxisConfiguration, inputPoint3D: Point3D): Point3D {
         return axisConfiguration._convertPosToDefaultSpace(inputPoint3D);
 
     }
@@ -149,12 +161,8 @@ export class HiFiAxisUtilities {
      * @param axisConfiguration 
      * @param inputOrientationQuat3D 
      */
-    static translatePoint3DFromMixerSpace(axisConfiguration: HiFiAxisConfiguration, mixerPoint3D: Point3D): Point3D {
-       // let retval = new Point3D();
-       // retval = mixerPoint3D;
-
+    static convertPoint3DFromMixerSpace(axisConfiguration: HiFiAxisConfiguration, mixerPoint3D: Point3D): Point3D {
         return axisConfiguration._convertPosFromDefaultSpace(mixerPoint3D);
-       // return retval;
     }
 
     /**
@@ -164,13 +172,8 @@ export class HiFiAxisUtilities {
      * @param axisConfiguration 
      * @param inputOrientationQuat3D 
      */
-    static translateOrientationQuat3DToMixerSpace(axisConfiguration: HiFiAxisConfiguration, inputOrientationQuat3D: OrientationQuat3D): OrientationQuat3D {
-      /*  let retval = new OrientationQuat3D();
-        retval = inputOrientationQuat3D;
-        return retval;*/
-
+    static convertOrientationQuat3DToMixerSpace(axisConfiguration: HiFiAxisConfiguration, inputOrientationQuat3D: OrientationQuat3D): OrientationQuat3D {
         return axisConfiguration._convertQuatToDefaultSpace(inputOrientationQuat3D);
-
     }
 
     /**
@@ -180,10 +183,25 @@ export class HiFiAxisUtilities {
      * @param axisConfiguration 
      * @param inputOrientationQuat3D 
      */
-    static translateOrientationQuat3DFromMixerSpace(axisConfiguration: HiFiAxisConfiguration, mixerOrientationQuat3D: OrientationQuat3D): OrientationQuat3D {
-      /*  let retval = new OrientationQuat3D();
-        retval = mixerOrientationQuat3D;
-        return retval;*/
+    static convertOrientationQuat3DFromMixerSpace(axisConfiguration: HiFiAxisConfiguration, mixerOrientationQuat3D: OrientationQuat3D): OrientationQuat3D {
         return axisConfiguration._convertQuatFromDefaultSpace(mixerOrientationQuat3D);
     }
+
+
+    static eulerToQuaternionAndCoordinateSystem(axisConfiguration: HiFiAxisConfiguration, inputEuler: OrientationEuler3D): OrientationQuat3D {
+        // generate a quat from euler in default coordinate space
+        let quat = eulerToQuaternion(inputEuler, axisConfiguration.eulerOrder);
+
+        // then convert to the destination axis configuration
+        return axisConfiguration._convertQuatFromDefaultSpace(quat);
+    }
+
+    static eulerFromQuaternionAndCoordinateSystem(axisConfiguration: HiFiAxisConfiguration, inputQuat: OrientationQuat3D): OrientationEuler3D {
+        // convert the input quat to default space
+        let quatDefault = axisConfiguration._convertQuatToDefaultSpace(inputQuat);
+
+        // Generate the euler from there
+        return eulerFromQuaternion(quatDefault, axisConfiguration.eulerOrder);
+    }
+
 }

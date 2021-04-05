@@ -159,15 +159,7 @@ export class HiFiCommunicator {
 
         if (hiFiAxisConfiguration) {
             if (HiFiAxisUtilities.verify(hiFiAxisConfiguration)) {
-         /*       ourHiFiAxisConfiguration.rightAxis = hiFiAxisConfiguration.rightAxis;
-                ourHiFiAxisConfiguration.leftAxis = hiFiAxisConfiguration.leftAxis;
-                ourHiFiAxisConfiguration.intoScreenAxis = hiFiAxisConfiguration.intoScreenAxis;
-                ourHiFiAxisConfiguration.outOfScreenAxis = hiFiAxisConfiguration.outOfScreenAxis;
-                ourHiFiAxisConfiguration.upAxis = hiFiAxisConfiguration.upAxis;
-                ourHiFiAxisConfiguration.downAxis = hiFiAxisConfiguration.downAxis;
-                ourHiFiAxisConfiguration.handedness = hiFiAxisConfiguration.handedness;*/
-
-                ourHiFiAxisConfiguration.axesConvention = hiFiAxisConfiguration.axesConvention;
+                ourHiFiAxisConfiguration.coordinateSystemConvention = hiFiAxisConfiguration.coordinateSystemConvention;
                 ourHiFiAxisConfiguration.eulerOrder = hiFiAxisConfiguration.eulerOrder;
 
             } else {

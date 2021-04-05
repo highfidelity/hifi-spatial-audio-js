@@ -49,6 +49,7 @@
     "webpack-cli": "^4.4.0"
   },
   "dependencies": {
+    "hifi-spatial-audio": "^0.7.1",
     "pako": "^2.0.3",
     "wrtc": "^0.4.7",
     "ws": "^7.4.2"

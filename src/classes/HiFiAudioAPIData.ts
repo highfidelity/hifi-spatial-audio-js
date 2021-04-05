@@ -32,6 +32,33 @@ export class Point3D {
         this.y = y;
         this.z = z;
     }
+
+
+    rightToLeftHanded() {
+        this.z = -this.z;
+        return this;
+    }
+    leftToRightHanded() {
+        this.z = -this.z;
+        return this;
+    }
+    rotateY90() {
+        let t = this.x;
+        this.x = this.z;
+        this.z = -t;
+        return this;
+    }
+    rotateY180() {
+        this.x = -this.x;
+        this.z = -this.z;
+        return this;
+    }
+    rotateY270() {
+        let t = this.x;
+        this.x = -this.z;
+        this.z = t;
+        return this;
+    }
 }
 
 /**
@@ -54,6 +81,37 @@ export class OrientationQuat3D {
         this.x = HiFiUtilities.clampNonan(x, -1, 1, 0);
         this.y = HiFiUtilities.clampNonan(y, -1, 1, 0);
         this.z = HiFiUtilities.clampNonan(z, -1, 1, 0);
+    }
+
+
+    rightToLeftHanded() {
+        this.x = -this.x;
+        this.y = -this.y;
+        this.z = -this.z;
+        return this;
+    }
+    leftToRightHanded() {
+        this.x = -this.x;
+        this.y = -this.y;
+        this.z = -this.z;
+        return this;
+    }
+    rotateY90() {
+        let t = this.x;
+        this.x = this.z;
+        this.z = -t;
+        return this;
+    }
+    rotateY180() {
+        this.x = -this.x;
+        this.z = -this.z;
+        return this;
+    }
+    rotateY270() {
+        let t = this.x;
+        this.x = -this.z;
+        this.z = t;
+        return this;
     }
 }
 
