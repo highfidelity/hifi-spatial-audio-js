@@ -258,6 +258,54 @@ export class HiFiCommunicator {
     }
 
     /**
+     * Adjusts the perceived volume of another user for this communicator's current connection only.
+     * This can be used to provide a more comfortable listening experience for the client. If you need to perform moderation actions which apply to all users, use the {@link https://docs.highfidelity.com/rest/latest/index.html|Administrative REST API}.
+     * 
+     * To use this command, the communicator must currently be connected to a space. You can connect to a space using {@link connectToHiFiAudioAPIServer}.
+     * 
+     * @param hashedVisitId  The hashed visit ID of the user whose volume will be adjusted.
+     * Use {@link addUserDataSubscription} and {@link HiFiCommunicator.onUsersDisconnected} to keep track of the hashed visit IDs of currently connected users.
+     *
+     * @param gain  The relative volume to apply to the other user. By default, this is `1.0`. The gain can be any value greater or equal to `0.0`.
+     * For example: a gain of `2.0` will double the volume of the user, while a gain of `0.5` will halve the user's volume. A gain of `0.0` will effectively mute the user.
+     * 
+     * @returns If this operation is successful, the Promise will resolve with `{ success: true, personalVolumeAdjustResponse: <The response to `audionet.personal_volume_adjust` from the server in Object format> }`.
+     * If unsuccessful, the Promise will reject with `{ success: false, error: <an error message> }`.
+     */
+    async adjustPersonalVolume(visitIdHash: String, gain: Number): Promise<any> {
+        let adjustPersonalVolumeResponse;
+
+        if (!this._mixerSession) {
+            let errMsg = `\`this._mixerSession\` is falsey!`;
+            return Promise.reject({
+                success: false,
+                error: errMsg
+            });
+        }
+
+        try {
+            adjustPersonalVolumeResponse = await this._mixerSession.adjustPersonalVolume(visitIdHash, gain);
+        } catch (errorAdjustingPersonalVolume) {
+            let errorReason : any;
+            if (errorAdjustingPersonalVolume.error) {
+                errorReason = errorAdjustingPersonalVolume.error;
+            } else {
+                errorReason = JSON.stringify(errorAdjustingPersonalVolume);
+            }
+            let errMsg = `Error when adjusting personal volume. Error: \n${errorReason}`;
+            return Promise.reject({
+                success: false,
+                error: errMsg
+            });
+        }
+
+        return Promise.resolve({
+            success: true,
+            adjustPersonalVolumeResponse: adjustPersonalVolumeResponse.audionetAdjustPersonalVolumeResponse
+        });
+    }
+
+    /**
      * Disconnects from the High Fidelity Audio API. After this call, user data will no longer be transmitted to High Fidelity, the audio
      * input stream will not be transmitted to High Fidelity, and the user will no longer be able to hear the audio stream from High Fidelity.
      */
@@ -691,6 +739,8 @@ export class HiFiCommunicator {
      * User Data about other Users. For example, if you set up a User Data Subscription for your own User Data, you can use that subscription 
      * to ensure that the data on the High Fidelity Audio API Server is the same as the data you are sending
      * to it from the client. 
+     * 
+     * To check if a user has disconnected, use {@link HiFiCommunicator.onUsersDisconnected}.
      * 
      * @param newSubscription - The new User Data Subscription associated with a user. 
      */
