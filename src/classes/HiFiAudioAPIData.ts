@@ -3,19 +3,8 @@
  * @packageDocumentation
  */
 
+import { HiFiUtilities } from "../utilities/HiFiUtilities";
 
-function nonan(v: number, ifnan: number ): number {
-    return (isNaN(v) ? ifnan : v);
-}
-
-function clamp(v: number, min: number, max: number): number {
-    // if v is Nan returns Nan
-    return (v > max ? max : ( v < min ? min :v));
-}
-
-function clampNonan(v: number, min: number, max: number, ifnan: number): number {
-    return (v > max ? max : ( v < min ? min : nonan(v, ifnan)));
-}
 
 /**
  * Instantiations of this class define a position in 3D space. The position of a user affects the way the mixed spatial
@@ -61,10 +50,10 @@ export class OrientationQuat3D {
      * Construct a new `OrientationQuat3D` object.
      */
     constructor({ w = 1, x = 0, y = 0, z = 0 }: { w?: number, x?: number, y?: number, z?: number } = {}) {
-        this.w = clampNonan(w, -1, 1, 1);
-        this.x = clampNonan(x, -1, 1, 0);
-        this.y = clampNonan(y, -1, 1, 0);
-        this.z = clampNonan(z, -1, 1, 0);
+        this.w = HiFiUtilities.clampNonan(w, -1, 1, 1);
+        this.x = HiFiUtilities.clampNonan(x, -1, 1, 0);
+        this.y = HiFiUtilities.clampNonan(y, -1, 1, 0);
+        this.z = HiFiUtilities.clampNonan(z, -1, 1, 0);
     }
 }
 
@@ -304,7 +293,7 @@ export function eulerFromQuaternion(quat: OrientationQuat3D, order: OrientationE
     const ONE_MINUS_EPSILON = 0.9999999;
     switch (order) {
     case OrientationEuler3DOrder.PitchYawRoll: {
-        yaw = Math.asin( r02 );
+        yaw = Math.asin( HiFiUtilities.clampNormalized(r02) );
         if ( Math.abs( r02 ) < ONE_MINUS_EPSILON ) {
             pitch = Math.atan2( -r12, r22);
             roll = Math.atan2( -r01, r00);
@@ -313,7 +302,7 @@ export function eulerFromQuaternion(quat: OrientationQuat3D, order: OrientationE
         }       
     } break;
     case OrientationEuler3DOrder.YawPitchRoll: {
-        pitch = Math.asin(-r12);
+        pitch = Math.asin( HiFiUtilities.clampNormalized(-r12) );
         if ( Math.abs( r12 ) < ONE_MINUS_EPSILON ) {
             yaw = Math.atan2(r02, r22);
             roll = Math.atan2(r10, r11);
@@ -322,7 +311,7 @@ export function eulerFromQuaternion(quat: OrientationQuat3D, order: OrientationE
         } 
     } break;
     case OrientationEuler3DOrder.RollPitchYaw: {
-        pitch = Math.asin(r21);
+        pitch = Math.asin( HiFiUtilities.clampNormalized(r21) );
         if ( Math.abs( r21 ) < ONE_MINUS_EPSILON ) {
             yaw = Math.atan2(-r20, r22);
             roll = Math.atan2(-r01, r11);
@@ -331,7 +320,7 @@ export function eulerFromQuaternion(quat: OrientationQuat3D, order: OrientationE
         }
     } break;
     case OrientationEuler3DOrder.RollYawPitch: {
-        yaw = Math.asin( -r20 );
+        yaw = Math.asin( HiFiUtilities.clampNormalized(-r20) );
         if ( Math.abs( r20 ) < ONE_MINUS_EPSILON ) {
             pitch = Math.atan2( r21, r22);
             roll = Math.atan2( r10, r00);
@@ -340,7 +329,7 @@ export function eulerFromQuaternion(quat: OrientationQuat3D, order: OrientationE
         }  
     } break;
     case OrientationEuler3DOrder.YawRollPitch: {
-        roll = Math.asin( r10 );
+        roll = Math.asin( HiFiUtilities.clampNormalized(r10) );
         if ( Math.abs( r10 ) < ONE_MINUS_EPSILON ) {
             pitch = Math.atan2( -r12, r11);
             yaw = Math.atan2( -r20, r00);
@@ -349,7 +338,7 @@ export function eulerFromQuaternion(quat: OrientationQuat3D, order: OrientationE
         }
     } break;
     case OrientationEuler3DOrder.PitchRollYaw: {
-        roll = Math.asin( -r01 );
+        roll = Math.asin( HiFiUtilities.clampNormalized(-r01) );
         if ( Math.abs( r01 ) < ONE_MINUS_EPSILON ) {
             pitch = Math.atan2( r21, r11);
             yaw = Math.atan2( r02, r00);

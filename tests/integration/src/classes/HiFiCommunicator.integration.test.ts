@@ -112,8 +112,13 @@ describe('Non admin server connections', () => {
     });
 
     test(`Attempting to connect without specifying a stack will target api.highfidelity.com`, async () => {
-        await expect(hifiCommunicator.connectToHiFiAudioAPIServer(nonAdminSigned))
-            .rejects.toMatchObject({ error: expect.stringMatching(/api.highfidelity.com/) });
+        if (stackData.name.indexOf("alpha") === -1) { // testing staging
+            await expect(hifiCommunicator.connectToHiFiAudioAPIServer(nonAdminSigned))
+                .rejects.toMatchObject({ error: expect.stringMatching(/api.highfidelity.com/) });
+        } else { // testing prod
+            await expect(hifiCommunicator.connectToHiFiAudioAPIServer(nonAdminSigned))
+                .resolves.toMatchObject({ audionetInitResponse: expect.objectContaining({ "success": true}) });
+        }
     });
 
 

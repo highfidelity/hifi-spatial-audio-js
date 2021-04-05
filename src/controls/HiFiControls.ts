@@ -15,7 +15,7 @@ const D_KEY_CODE = "KeyD";
 const Q_KEY_CODE = "KeyQ";
 const E_KEY_CODE = "KeyE";
 
-class HiFiControls {
+export class HiFiControls {
     private _mouseEventCache: Array<any>;
     private _leftClickStartPositionPX: any;
     private _rightClickStartPositionPX: any;
@@ -437,5 +437,3 @@ class HiFiControls {
         }
     }
 }
-
-exports.HiFiControls = HiFiControls;

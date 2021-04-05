@@ -80,4 +80,7 @@ jobs:
 
     - name: Create and Upload Releases JSON
       run: node ./utilities/uploadReleasesJSON.js
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.IAM_SPATIAL_AUDIO_JS_KEY }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.IAM_SPATIAL_AUDIO_JS_SECRET }}
         

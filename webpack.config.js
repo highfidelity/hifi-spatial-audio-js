@@ -10,8 +10,7 @@ module.exports = ({ buildEnv }) => {
         },
         plugins: [
             new webpack.DefinePlugin({
-                'HIFI_API_VERSION': JSON.stringify(`v${require('./package.json').version}`),
-                'BUILD_ENVIRONMENT': JSON.stringify(buildEnv)
+                'HIFI_API_VERSION': JSON.stringify(`v${require('./package.json').version}`)
             }),
             new CleanWebpackPlugin(),
         ],

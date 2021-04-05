@@ -2,7 +2,7 @@
     "compilerOptions": {
         "outDir": "./dist/",
         "noImplicitAny": true,
-        "module": "commonjs",
+        "module": "es6",
         "target": "es6",
         "removeComments": true,
         "preserveConstEnums": true,
@@ -19,6 +19,7 @@
             "src/classes/HiFiUserDataSubscription.ts",
             "src/controls/HiFiControls.ts",
             "src/constants/HiFiConstants.ts",
+            "src/libravi/RaviSession.ts",
             "src/utilities/HiFiLogger.ts",
             "src/utilities/HiFiUtilities.ts",
         ],
@@ -28,6 +29,7 @@
         "hideGenerator": true,
         "disableSources": true,
         "excludeExternals": true,
+        "excludeInternal": true,
         "exclude": ["dist"]
     }
 }
