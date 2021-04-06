@@ -19,7 +19,18 @@ import { HiFiAxisUtilities, ourHiFiAxisConfiguration } from "./HiFiAxisConfigura
 const pako = require('pako');
 
 const INIT_TIMEOUT_MS = 5000;
-const ADJUST_PERSONAL_VOLUME_TIMEOUT_MS = 5000;
+const PERSONAL_VOLUME_ADJUST_TIMEOUT_MS = 5000;
+
+interface AudionetSetOtherUserGainForThisConnectionResponse {
+    success: boolean,
+    reason?: string
+}
+
+export interface SetOtherUserGainForThisConnectionResponse {
+    success: boolean,
+    error?: string,
+    audionetSetOtherUserGainForThisConnectionResponse?: AudionetSetOtherUserGainForThisConnectionResponse
+}
 
 /**
  * Instantiations of this class contain data about a connection between a client and a mixer.
@@ -200,14 +211,14 @@ export class HiFiMixerSession {
     }
 
     /**
-     * Sends the command `audionet.personal_volume_adjust` to the mixer. This adjusts the volume of another user session, only from the perspective of this client, for the current connection only.
+     * Sends the command `audionet.personal_volume_adjust` to the mixer. This sets the gain of another user session, only from the perspective of this client, for the current connection only.
      * 
-     * @returns If this operation is successful, the Promise will resolve with `{ success: true, audionetAdjustPersonalVolumeResponse: <The response to `audionet.personal_volume_adjust` from the server in Object format> }`.
-     * If unsuccessful, the Promise will reject with `{ success: false, error: <an error message> }`.
+     * @returns If this operation is successful, the Promise will resolve with {@link SetOtherUserGainForThisConnectionResponse} with `success` equal to `true`.
+     * If unsuccessful, the Promise will reject with {@link SetOtherUserGainForThisConnectionResponse} with `success` equal to `false` and `error` set to an error message describing what went wrong.
      */
-    async adjustPersonalVolume(visitIdHash: String, gain: Number): Promise<any> {
+    async setOtherUserGainForThisConnection(visitIdHash: String, gain: Number): Promise<SetOtherUserGainForThisConnectionResponse> {
         return new Promise((resolve, reject) => {
-            let adjustPersonalVolumeData = {
+            let personalVolumeAdjustData = {
                 visit_id_hash: visitIdHash,
                 gain: gain
             };
@@ -215,32 +226,32 @@ export class HiFiMixerSession {
             if (!commandController) {
                 return Promise.reject({
                     success: false,
-                    error: `Couldn't send volume adjust signal to mixer: no \`commandController\`!`
+                    error: `Couldn't send personal volume adjust signal to mixer: no \`commandController\`!`
                 });
             }
 
-            let adjustVolumeTimeout = setTimeout(() => {
+            let personalVolumeAdjustTimeout = setTimeout(() => {
                 return Promise.reject({
                     success: false,
-                    error: `Couldn't send volume adjust signal to mixer: Call to \`personal_volume_adjust\` timed out!`
+                    error: `Couldn't send personal volume adjust signal to mixer: Call to \`personal_volume_adjust\` timed out!`
                 });
-            }, ADJUST_PERSONAL_VOLUME_TIMEOUT_MS);
+            }, PERSONAL_VOLUME_ADJUST_TIMEOUT_MS);
 
-            commandController.queueCommand("audionet.personal_volume_adjust", adjustPersonalVolumeData, async (response: string) => {
-                clearTimeout(adjustVolumeTimeout);
+            commandController.queueCommand("audionet.personal_volume_adjust", personalVolumeAdjustData, async (response: string) => {
+                clearTimeout(personalVolumeAdjustTimeout);
                 let parsedResponse: any;
                 try {
                     parsedResponse = JSON.parse(response);
                     if (parsedResponse["success"] === true) {
                         resolve({
                             success: true,
-                            audionetAdjustPersonalVolumeResponse: parsedResponse
+                            audionetSetOtherUserGainForThisConnectionResponse: parsedResponse
                         });
                     } else {
                         reject({
                             success: false,
                             error: `Mixer could not adjust the personal volume of another user. Mixer error:\n${parsedResponse["reason"]}`,
-                            audionetAdjustPersonalVolumeResponse: parsedResponse
+                            audionetSetOtherUserGainForThisConnectionResponse: parsedResponse
                         });
                     }
                 } catch (e) {

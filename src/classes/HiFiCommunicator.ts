@@ -14,7 +14,7 @@ import { HiFiLogger } from "../utilities/HiFiLogger";
 import { HiFiUtilities } from "../utilities/HiFiUtilities";
 import { HiFiAudioAPIData, ReceivedHiFiAudioAPIData, Point3D, OrientationQuat3D, OrientationEuler3D, OrientationEuler3DOrder, eulerToQuaternion, eulerFromQuaternion } from "./HiFiAudioAPIData";
 import { HiFiAxisConfiguration, HiFiAxisUtilities, ourHiFiAxisConfiguration } from "./HiFiAxisConfiguration";
-import { HiFiMixerSession } from "./HiFiMixerSession";
+import { HiFiMixerSession, SetOtherUserGainForThisConnectionResponse } from "./HiFiMixerSession";
 import { AvailableUserDataSubscriptionComponents, UserDataSubscription } from "./HiFiUserDataSubscription";
 
 /**
@@ -258,24 +258,24 @@ export class HiFiCommunicator {
     }
 
     /**
-     * Adjusts the perceived volume of another user for this communicator's current connection only.
+     * Adjusts the gain of another user for this communicator's current connection only.
      * This can be used to provide a more comfortable listening experience for the client. If you need to perform moderation actions which apply to all users, use the {@link https://docs.highfidelity.com/rest/latest/index.html|Administrative REST API}.
      * 
      * To use this command, the communicator must currently be connected to a space. You can connect to a space using {@link connectToHiFiAudioAPIServer}.
      * 
-     * @param hashedVisitId  The hashed visit ID of the user whose volume will be adjusted.
+     * @param hashedVisitId  The hashed visit ID of the user whose gain will be adjusted.
      * Use {@link addUserDataSubscription} and {@link HiFiCommunicator.onUsersDisconnected} to keep track of the hashed visit IDs of currently connected users.
      * 
      * When you subscribe to user data, you will get a list of {@link ReceivedHiFiAudioAPIData} objects, which each contain, at minimum, {@link ReceivedHifiAudioAPIData.hashedVisitID}s and {@link ReceivedHifiAudioAPIData.providedUserID}s for each user in the space. By inspecting each of these objects, you can associate a user with their hashed visit ID, if you know their provided user ID.
      *
-     * @param gain  The relative volume to apply to the other user. By default, this is `1.0`. The gain can be any value greater or equal to `0.0`.
-     * For example: a gain of `2.0` will double the volume of the user, while a gain of `0.5` will halve the user's volume. A gain of `0.0` will effectively mute the user.
+     * @param gain  The relative gain to apply to the other user. By default, this is `1.0`. The gain can be any value greater or equal to `0.0`.
+     * For example: a gain of `2.0` will double the loudness of the user, while a gain of `0.5` will halve the user's loudness. A gain of `0.0` will effectively mute the user.
      * 
-     * @returns If this operation is successful, the Promise will resolve with `{ success: true, personalVolumeAdjustResponse: <The response to `audionet.personal_volume_adjust` from the server in Object format> }`.
-     * If unsuccessful, the Promise will reject with `{ success: false, error: <an error message> }`.
+     * @returns If this operation is successful, the Promise will resolve with {@link SetOtherUserGainForThisConnectionResponse} with `success` equal to `true`.
+     * If unsuccessful, the Promise will reject with {@link SetOtherUserGainForThisConnectionResponse} with `success` equal to `false` and `error` set to an error message describing what went wrong.
      */
-    async adjustPersonalVolume(visitIdHash: String, gain: Number): Promise<any> {
-        let adjustPersonalVolumeResponse;
+    async setOtherUserGainForThisConnection(visitIdHash: String, gain: Number): Promise<SetOtherUserGainForThisConnectionResponse> {
+        let setOtherUserGainForThisConnectionResponse;
 
         if (!this._mixerSession) {
             let errMsg = `\`this._mixerSession\` is falsey!`;
@@ -286,24 +286,25 @@ export class HiFiCommunicator {
         }
 
         try {
-            adjustPersonalVolumeResponse = await this._mixerSession.adjustPersonalVolume(visitIdHash, gain);
-        } catch (errorAdjustingPersonalVolume) {
+            setOtherUserGainForThisConnectionResponse = await this._mixerSession.setOtherUserGainForThisConnection(visitIdHash, gain);
+        } catch (errorSettingUserGain) {
             let errorReason : any;
-            if (errorAdjustingPersonalVolume.error) {
-                errorReason = errorAdjustingPersonalVolume.error;
+            if (errorSettingUserGain.error) {
+                errorReason = errorSettingUserGain.error;
             } else {
-                errorReason = JSON.stringify(errorAdjustingPersonalVolume);
+                errorReason = JSON.stringify(errorSettingUserGain);
             }
-            let errMsg = `Error when adjusting personal volume. Error: \n${errorReason}`;
+            let errMsg = `Error when setting other user gain for this connection. Error: \n${errorReason}`;
             return Promise.reject({
                 success: false,
-                error: errMsg
+                error: errMsg,
+                audionetSetOtherUserGainForThisConnectionResponse: errorSettingUserGain.audionetSetOtherUserGainForThisConnectionResponse
             });
         }
 
         return Promise.resolve({
             success: true,
-            adjustPersonalVolumeResponse: adjustPersonalVolumeResponse.audionetAdjustPersonalVolumeResponse
+            audionetSetOtherUserGainForThisConnectionResponse: setOtherUserGainForThisConnectionResponse.audionetSetOtherUserGainForThisConnectionResponse
         });
     }
 
