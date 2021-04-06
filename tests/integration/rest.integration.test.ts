@@ -453,12 +453,12 @@ describe('HiFi API REST Calls', () => {
         });
     });
 
-    describe.skip('Kicking users', () => {
+    describe('Kicking users', () => {
         const numberTestUsers = 4;
         let testUsers: Array<any> = [];
 
         beforeAll(async () => {
-            jest.setTimeout(15000); // these tests need longer to complete
+            jest.setTimeout(35000); // these tests need longer to complete
         });
 
         afterAll(async () => {
@@ -480,21 +480,18 @@ describe('HiFi API REST Calls', () => {
         afterEach(async () => {
             // disconnect communicators to avoid using too many mixers
             for (let i = 0; i < numberTestUsers; i++) {
-                // await testUsers[i].communicator.disconnectFromHiFiAudioAPIServer();
-                // expect(testUsers[i].connectionState).toBe(HiFiConnectionStates.Disconnected);
+                await testUsers[i].communicator.disconnectFromHiFiAudioAPIServer();
+                expect(testUsers[i].connectionState).toBe(HiFiConnectionStates.Disconnected);
             }
         });
 
         describe('Admin CAN kick users', () => {
             test(`Kick one user`, async () => {
-                console.log("____________TEST SET 1_____________________");
-                let returnMessage = await fetch(`${stackData.url}/api/v1/spaces/${stackData.apps.app1.spaces.space1.id}/users/${testUsers[0]['user_id']}?token=${adminToken}`, {
+                let returnMessage = await fetch(`${stackData.url}/api/v1/spaces/${stackData.apps.app1.spaces.space1.id}/users/${testUsers[0].name}?token=${adminToken}`, {
                     method: 'DELETE'
                 });
                 let returnMessageJSON = await returnMessage.json();
-                console.log("_____________________________________________________________\n", returnMessageJSON);
-                await sleep(10000);
-                console.log("____________TEST CHECK 1_____________________");
+                await sleep(30000);
                 for (let i = 0; i < numberTestUsers; i++) {
                     if (i === 0) expect(testUsers[i].connectionState).toBe(HiFiConnectionStates.Failed);
                     else expect(testUsers[i].connectionState).toBe(HiFiConnectionStates.Connected);
@@ -502,14 +499,11 @@ describe('HiFi API REST Calls', () => {
             });
 
             test(`Kick all users`, async () => {
-                console.log("____________TEST SET 2_____________________");
                 let returnMessage = await fetch(`${stackData.url}/api/v1/spaces/${stackData.apps.app1.spaces.space1.id}/users?token=${adminToken}`, {
                     method: 'DELETE'
                 });
                 let returnMessageJSON = await returnMessage.json();
-                console.log("_____________________________________________________________\n", returnMessageJSON);
-                await sleep(10000);
-                console.log("____________TEST CHECK 2_____________________");
+                await sleep(30000);
                 for (let i = 0; i < numberTestUsers; i++) {
                     expect(testUsers[i].connectionState).toBe(HiFiConnectionStates.Failed);
                 }
@@ -518,11 +512,12 @@ describe('HiFi API REST Calls', () => {
 
         describe('Nonadmin CANNOT kick users', () => {
             test(`Kick one user`, async () => {
-                let returnMessage = await fetch(`${stackData.url}/api/v1/spaces/${stackData.apps.app1.spaces.space1.id}/users/${testUsers[0]['user_id']}?token=${nonAdminToken}`, {
+                let returnMessage = await fetch(`${stackData.url}/api/v1/spaces/${stackData.apps.app1.spaces.space1.id}/users/${testUsers[0].name}?token=${nonAdminToken}`, {
                     method: 'DELETE'
                 });
                 let returnMessageJSON: any = {};
                 returnMessageJSON = await returnMessage.json();
+                await sleep(30000);
                 expect(returnMessageJSON.code).toBe(401);
                 expect(returnMessageJSON.errors).toMatchObject({ description: expect.stringMatching(/token isn't an admin token/) });
                 for (let i = 0; i < numberTestUsers; i++) {
@@ -536,6 +531,7 @@ describe('HiFi API REST Calls', () => {
                 });
                 let returnMessageJSON: any = {};
                 returnMessageJSON = await returnMessage.json();
+                await sleep(30000);
                 expect(returnMessageJSON.code).toBe(401);
                 expect(returnMessageJSON.errors).toMatchObject({ description: expect.stringMatching(/token isn't an admin token/) });
                 for (let i = 0; i < numberTestUsers; i++) {
