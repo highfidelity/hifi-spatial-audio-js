@@ -265,6 +265,8 @@ export class HiFiCommunicator {
      * 
      * @param hashedVisitId  The hashed visit ID of the user whose volume will be adjusted.
      * Use {@link addUserDataSubscription} and {@link HiFiCommunicator.onUsersDisconnected} to keep track of the hashed visit IDs of currently connected users.
+     * 
+     * When you subscribe to user data, you will get a list of {@link ReceivedHiFiAudioAPIData} objects, which each contain, at minimum, {@link ReceivedHifiAudioAPIData.hashedVisitID}s and {@link ReceivedHifiAudioAPIData.providedUserID}s for each user in the space. By inspecting each of these objects, you can associate a user with their hashed visit ID, if you know their provided user ID.
      *
      * @param gain  The relative volume to apply to the other user. By default, this is `1.0`. The gain can be any value greater or equal to `0.0`.
      * For example: a gain of `2.0` will double the volume of the user, while a gain of `0.5` will halve the user's volume. A gain of `0.0` will effectively mute the user.
