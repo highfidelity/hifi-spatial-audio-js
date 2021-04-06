@@ -2,8 +2,6 @@ const fetch = require('node-fetch');
 const stackData = require('../secrets/auth.json').stackData;
 
 import { TOKEN_GEN_TYPES, generateJWT, generateUUID } from '../testUtilities/testUtils';
-import { TestUser } from '../testUtilities/TestUser';
-import { HiFiConnectionStates } from "../../src/classes/HiFiCommunicator";
 
 describe('HiFi API REST Calls', () => {
     let adminToken: string; // App 1
