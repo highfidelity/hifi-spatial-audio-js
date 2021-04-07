@@ -208,15 +208,18 @@ export class HiFiCommunicator {
      * isn't supplied as an argument to this function, uses the value of that `token` URL query parameter as the JWT.
      * We should remove that later, because we almost certainly don't want this to stay in the API code, but it's _very_ convenient for sample apps for right now.
      *
-     * @param hostURL An URL that will be used to create a valid WebRTC signaling address. The passed `hostURL` parameter does not need to contain the protocol 
-     * or port - e.g. `server.highfidelity.com` - and it will be used to construct a signaling address of the form: `wss://${hostURL}:8001/?token=`
-     * If the developer does not pass a `hostURL` parameter, a default URL will be used instead. See: {@link DEFAULT_PROD_HIGH_FIDELITY_ENDPOINT}
-     * Reading this parameter from the URL should be implemented by the developer as part of the application code.
+     * @param signalingHostURL An URL that will be used to create a valid WebRTC signaling address at High Fidelity. The passed `signalingHostURL` parameter should not contain the protocol
+     * or port - e.g. `server.highfidelity.com` - and it will be used to construct a signaling address of the form: `wss://${signalingHostURL}:${signalingPort}/?token=`
+     * If the developer does not pass a `signalingHostURL` parameter, a default URL will be used instead. See: {@link DEFAULT_PROD_HIGH_FIDELITY_ENDPOINT}
+     * Reading this parameter from the URL (if needed) should be implemented by the developer as part of the application code.
+     *
+     * @param signalingPort The port to use for making WebSocket connections to the High Fidelity servers.
+     * If the developer does not pass a `signalingPort` parameter, the default (443) will be used instead. See: {@link DEFAULT_PROD_HIGH_FIDELITY_PORT}
      * 
      * @returns If this operation is successful, the Promise will resolve with `{ success: true, audionetInitResponse: <The response to `audionet.init` from the server in Object format>}`.
      * If unsuccessful, the Promise will reject with `{ success: false, error: <an error message> }`.
      */
-    async connectToHiFiAudioAPIServer(hifiAuthJWT: string, hostURL?: string): Promise<any> {
+    async connectToHiFiAudioAPIServer(hifiAuthJWT: string, signalingHostURL?: string, signalingPort?: number): Promise<any> {
         if (!this._mixerSession) {
             let errMsg = `\`this._mixerSession\` is falsey!`;
             return Promise.reject({
@@ -226,17 +229,19 @@ export class HiFiCommunicator {
         }
 
         let mixerConnectionResponse;
-        let hostURLSafe;
+        let signalingHostURLSafe;
 
         try {
-            hostURLSafe = new URL(hostURL).hostname;
+            signalingHostURLSafe = new URL(signalingHostURL).hostname;
         } catch(e) {
-            // If hostURL is not defined, we assign the default URL
-            hostURLSafe = hostURL ? hostURL : HiFiConstants.DEFAULT_PROD_HIGH_FIDELITY_ENDPOINT;
+            // If signalingHostURL is not defined, we assign the default URL
+            signalingHostURLSafe = signalingHostURL ? signalingHostURL : HiFiConstants.DEFAULT_PROD_HIGH_FIDELITY_ENDPOINT;
         }
 
+        signalingPort = signalingPort ? signalingPort : HiFiConstants.DEFAULT_PROD_HIGH_FIDELITY_PORT;
+
         try {
-            let webRTCSignalingAddress = `wss://${hostURLSafe}:8001/?token=`;
+            let webRTCSignalingAddress = `wss://${signalingHostURLSafe}:${signalingPort}/?token=`;
             this._mixerSession.webRTCAddress = `${webRTCSignalingAddress}${hifiAuthJWT}`;
 
             HiFiLogger.log(`Using WebRTC Signaling Address:\n${webRTCSignalingAddress}<token redacted>`);

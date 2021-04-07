@@ -21,6 +21,10 @@ export class HiFiConstants {
      * The production endpoint for our High Fidelity audio connections.
      */
     static DEFAULT_PROD_HIGH_FIDELITY_ENDPOINT: string = "api.highfidelity.com";
+    /**
+     * The default port for signaling connections to our High Fidelity audio servers.
+     */
+    static DEFAULT_PROD_HIGH_FIDELITY_PORT: number = 443;
 
     constructor() {}
 };
