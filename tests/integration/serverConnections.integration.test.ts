@@ -72,6 +72,19 @@ describe('Non admin server connections', () => {
             });
     });
 
+    test(`CAN connect to Space A on staging with UNSIGNED token containing Space ID A when space does not require signing`, async () => {
+        // set space to allow unsigned tokens
+        try {
+            await fetch(`${stackData.url}/api/v1/spaces/${stackData.apps.app2.spaces.space1.id}/settings?token=${adminSigned}&ignore-token-signing=true`);
+        } catch (err) {
+            console.error("Unable to set space to ignore token signing. ERR: ", err);
+            throw err;
+        }
+
+        await hifiCommunicator.connectToHiFiAudioAPIServer(nonAdminUnsigned, stackData.url)
+            .then(data => { expect(data.audionetInitResponse.success).toBe(true) });
+    });
+
     test(`CANNOT connect to Space A on staging with UNSIGNED token containing Space ID A when space does require signing`, async () => {
         // set space to not allow unsigned tokens
         try {
@@ -85,15 +98,38 @@ describe('Non admin server connections', () => {
             .rejects.toMatchObject({ error: expect.stringMatching(/Unexpected server response: 501/) });
     });
 
+    test(`CAN connect to Space A on staging with signed token containing Space ID A when space does not require signing`, async () => {
+        // set space to not allow unsigned tokens
+        try {
+            await fetch(`${stackData.url}/api/v1/spaces/${stackData.apps.app2.spaces.space1.id}/settings?token=${adminSigned}&ignore-token-signing=false`);
+        } catch (err) {
+            console.error("Unable to set space to ignore token signing. ERR: ", err);
+            throw err;
+        }
+
+        await hifiCommunicator.connectToHiFiAudioAPIServer(nonAdminSigned, stackData.url)
+            .then(data => { expect(data.audionetInitResponse.success).toBe(true) });
+    });
+
     test(`Attempting to connect without specifying a stack will target api.highfidelity.com`, async () => {
-        await expect(hifiCommunicator.connectToHiFiAudioAPIServer(nonAdminSigned))
-            .rejects.toMatchObject({ error: expect.stringMatching(/api.highfidelity.com/) });
+        if (stackData.name.indexOf("alpha") === -1) { // testing staging
+            await expect(hifiCommunicator.connectToHiFiAudioAPIServer(nonAdminSigned))
+                .rejects.toMatchObject({ error: expect.stringMatching(/api.highfidelity.com/) });
+        } else { // testing prod
+            await expect(hifiCommunicator.connectToHiFiAudioAPIServer(nonAdminSigned))
+                .resolves.toMatchObject({ audionetInitResponse: expect.objectContaining({ "success": true}) });
+        }
     });
 
 
     test(`Attempting to connect when specifying a WSS stack URL will target the specified stack`, async () => {
         await hifiCommunicator.connectToHiFiAudioAPIServer(nonAdminSigned, stackData.wss + "?token=")
             .then(data => { expect(data.audionetInitResponse.success).toBe(true) });
+    });
+
+    test(`CANNOT connect to a space on staging that doesn’t exist (i.e. token contains an invalid space ID)`, async () => {
+        await expect(hifiCommunicator.connectToHiFiAudioAPIServer(nonAdminNonexistentSpaceID, stackData.url))
+            .rejects.toMatchObject({ error: expect.stringMatching(/Unexpected server response: 501/) });
     });
 
     test(`CAN create a space by trying to connect with SIGNED token with nonexistent space NAME and no space ID and correct stack URL`, async () => {
@@ -131,6 +167,13 @@ describe('Non admin server connections', () => {
             console.error(`Unable to delete the space with ID ${createdSpaceID} that was created for testing. Please do this manually. ERR: ${err}`);
             throw err;
         }
+    });
+
+    test(`CANNOT connect to a space BY NAME when multiple spaces with the same name exist in the same app`, async () => {
+        await expect(hifiCommunicator.connectToHiFiAudioAPIServer(nonAdminDupSpaceName, stackData.url))
+            .rejects.toMatchObject({
+                error: expect.stringMatching(/Unexpected server response: 501/)
+            });
     });
 
     test(`CAN connect to a space using a timed token before the token expires`, async () => {
