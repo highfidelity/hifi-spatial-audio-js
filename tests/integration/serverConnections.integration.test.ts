@@ -1,8 +1,8 @@
 const fetch = require('node-fetch');
-const stackData = require('../../../secrets/auth.json').stackData;
+const stackData = require('../secrets/auth.json').stackData;
 
-import { HiFiCommunicator } from "../../../../src/classes/HiFiCommunicator";
-import { TOKEN_GEN_TYPES, generateJWT } from '../../../testUtilities/testUtils';
+import { HiFiCommunicator } from "../../src/classes/HiFiCommunicator";
+import { TOKEN_GEN_TYPES, generateJWT } from '../testUtilities/testUtils';
 
 let args: { [key: string]: any } = (process.argv.slice(2));
 let hostname = process.env.hostname || args["hostname"] || "api-staging-latest.highfidelity.com";
