@@ -147,3 +147,26 @@ export function generateUUID() {
 
     return generatedUUID;
 }
+
+export function sleep(ms: number) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+export type ZoneData = {
+    "x-min": number,
+    "x-max": number,
+    "y-min": number,
+    "y-max": number,
+    "z-min": number,
+    "z-max": number,
+    "name": string,
+    "id"?: number
+};
+
+export type AttenuationData = {
+    "attenuation": number,
+    "listener-zone-id": number,
+    "source-zone-id": number,
+    "za-offset": number,
+    "id"?: number
+};
