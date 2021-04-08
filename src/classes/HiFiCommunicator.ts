@@ -14,7 +14,7 @@ import { HiFiLogger } from "../utilities/HiFiLogger";
 import { HiFiUtilities } from "../utilities/HiFiUtilities";
 import { HiFiAudioAPIData, ReceivedHiFiAudioAPIData, Point3D, OrientationQuat3D, OrientationEuler3D, OrientationEuler3DOrder, eulerToQuaternion, eulerFromQuaternion } from "./HiFiAudioAPIData";
 import { HiFiAxisConfiguration, HiFiAxisUtilities, ourHiFiAxisConfiguration } from "./HiFiAxisConfiguration";
-import { HiFiMixerSession } from "./HiFiMixerSession";
+import { HiFiMixerSession, SetOtherUserGainForThisConnectionResponse } from "./HiFiMixerSession";
 import { AvailableUserDataSubscriptionComponents, UserDataSubscription } from "./HiFiUserDataSubscription";
 
 /**
@@ -254,6 +254,57 @@ export class HiFiCommunicator {
         return Promise.resolve({
             success: true,
             audionetInitResponse: mixerConnectionResponse.audionetInitResponse
+        });
+    }
+
+    /**
+     * Adjusts the gain of another user for this communicator's current connection only.
+     * This can be used to provide a more comfortable listening experience for the client. If you need to perform moderation actions which apply to all users, use the {@link https://docs.highfidelity.com/rest/latest/index.html|Administrative REST API}.
+     * 
+     * To use this command, the communicator must currently be connected to a space. You can connect to a space using {@link connectToHiFiAudioAPIServer}.
+     * 
+     * @param hashedVisitId  The hashed visit ID of the user whose gain will be adjusted.
+     * Use {@link addUserDataSubscription} and {@link HiFiCommunicator.onUsersDisconnected} to keep track of the hashed visit IDs of currently connected users.
+     * 
+     * When you subscribe to user data, you will get a list of {@link ReceivedHiFiAudioAPIData} objects, which each contain, at minimum, {@link ReceivedHifiAudioAPIData.hashedVisitID}s and {@link ReceivedHifiAudioAPIData.providedUserID}s for each user in the space. By inspecting each of these objects, you can associate a user with their hashed visit ID, if you know their provided user ID.
+     *
+     * @param gain  The relative gain to apply to the other user. By default, this is `1.0`. The gain can be any value greater or equal to `0.0`.
+     * For example: a gain of `2.0` will double the loudness of the user, while a gain of `0.5` will halve the user's loudness. A gain of `0.0` will effectively mute the user.
+     * 
+     * @returns If this operation is successful, the Promise will resolve with {@link SetOtherUserGainForThisConnectionResponse} with `success` equal to `true`.
+     * If unsuccessful, the Promise will reject with {@link SetOtherUserGainForThisConnectionResponse} with `success` equal to `false` and `error` set to an error message describing what went wrong.
+     */
+    async setOtherUserGainForThisConnection(visitIdHash: String, gain: Number): Promise<SetOtherUserGainForThisConnectionResponse> {
+        let setOtherUserGainForThisConnectionResponse;
+
+        if (!this._mixerSession) {
+            let errMsg = `\`this._mixerSession\` is falsey!`;
+            return Promise.reject({
+                success: false,
+                error: errMsg
+            });
+        }
+
+        try {
+            setOtherUserGainForThisConnectionResponse = await this._mixerSession.setOtherUserGainForThisConnection(visitIdHash, gain);
+        } catch (errorSettingUserGain) {
+            let errorReason : any;
+            if (errorSettingUserGain.error) {
+                errorReason = errorSettingUserGain.error;
+            } else {
+                errorReason = JSON.stringify(errorSettingUserGain);
+            }
+            let errMsg = `Error when setting other user gain for this connection. Error: \n${errorReason}`;
+            return Promise.reject({
+                success: false,
+                error: errMsg,
+                audionetSetOtherUserGainForThisConnectionResponse: errorSettingUserGain.audionetSetOtherUserGainForThisConnectionResponse
+            });
+        }
+
+        return Promise.resolve({
+            success: true,
+            audionetSetOtherUserGainForThisConnectionResponse: setOtherUserGainForThisConnectionResponse.audionetSetOtherUserGainForThisConnectionResponse
         });
     }
 
@@ -691,6 +742,8 @@ export class HiFiCommunicator {
      * User Data about other Users. For example, if you set up a User Data Subscription for your own User Data, you can use that subscription 
      * to ensure that the data on the High Fidelity Audio API Server is the same as the data you are sending
      * to it from the client. 
+     * 
+     * To check if a user has disconnected, use {@link HiFiCommunicator.onUsersDisconnected}.
      * 
      * @param newSubscription - The new User Data Subscription associated with a user. 
      */
