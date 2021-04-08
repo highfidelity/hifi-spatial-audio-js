@@ -5,6 +5,8 @@ auth.json
 authPro.json
 authProEast.json
 authProd.json
+authPro.json
+authProEast.json
 authStag.json
 Dockerfile
 
