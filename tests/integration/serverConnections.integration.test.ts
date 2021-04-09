@@ -21,14 +21,14 @@ describe('Non admin server connections', () => {
     let hifiCommunicator: HiFiCommunicator;
     beforeAll(async () => {
         try {
-            nonAdminSigned = await generateJWT(TOKEN_GEN_TYPES.NON_ADMIN_ID_APP2_SPACE1_SIGNED);
+            nonAdminSigned = await generateJWT(TOKEN_GEN_TYPES.NONADMIN_ID_APP2_SPACE1_SIGNED);
             adminSigned = await generateJWT(TOKEN_GEN_TYPES.ADMIN_ID_APP2_SPACE1_SIGNED);
-            nonAdminUnsigned = await generateJWT(TOKEN_GEN_TYPES.NON_ADMIN_ID_APP2_SPACE1_UNSIGNED);
-            nonAdminNonexistentSpaceID = await generateJWT(TOKEN_GEN_TYPES.NON_ADMIN_APP2_SPACE_ID_NONEXISTENT_SIGNED);
-            nonAdminNewSpaceName = await generateJWT(TOKEN_GEN_TYPES.NON_ADMIN_APP2_NEW_SPACE_NAME_SIGNED);
-            nonAdminTimed = await generateJWT(TOKEN_GEN_TYPES.NON_ADMIN_APP2_SPACE1_TIMED_SIGNED);
-            nonAdminExpired = await generateJWT(TOKEN_GEN_TYPES.NON_ADMIN_APP2_SPACE1_TIMED_EXPIRED);
-            nonAdminDupSpaceName = await generateJWT(TOKEN_GEN_TYPES.NON_ADMIN_APP2_SPACE1_DUP_SIGNED);
+            nonAdminUnsigned = await generateJWT(TOKEN_GEN_TYPES.NONADMIN_ID_APP2_SPACE1_UNSIGNED);
+            nonAdminNonexistentSpaceID = await generateJWT(TOKEN_GEN_TYPES.NONADMIN_APP2_SPACE_ID_NONEXISTENT_SIGNED);
+            nonAdminNewSpaceName = await generateJWT(TOKEN_GEN_TYPES.NONADMIN_APP2_NEW_SPACE_NAME_SIGNED);
+            nonAdminTimed = await generateJWT(TOKEN_GEN_TYPES.NONADMIN_APP2_SPACE1_TIMED_SIGNED);
+            nonAdminExpired = await generateJWT(TOKEN_GEN_TYPES.NONADMIN_APP2_SPACE1_TIMED_EXPIRED);
+            nonAdminDupSpaceName = await generateJWT(TOKEN_GEN_TYPES.NONADMIN_APP2_SPACE1_DUP_SIGNED);
         } catch (err) {
             console.error("Unable to create tokens in preparation for testing server connections. Please check " +
                 "your 'auth.json' file for errors or discrepancies with your account data. ERR: ", err);
@@ -41,7 +41,7 @@ describe('Non admin server connections', () => {
             let spacesListJSON: any = {};
             spacesListJSON = await returnMessage.json();
             spacesListJSON.forEach(async (space: any) => {
-                if (space['name'] === TOKEN_GEN_TYPES.NON_ADMIN_APP2_NEW_SPACE_NAME_SIGNED["space_name"]) { spaceAlreadyExistsIDs.push(space['space-id']) }
+                if (space['name'] === TOKEN_GEN_TYPES.NONADMIN_APP2_NEW_SPACE_NAME_SIGNED["space_name"]) { spaceAlreadyExistsIDs.push(space['space-id']) }
             });
 
             if (spaceAlreadyExistsIDs) {
@@ -152,7 +152,7 @@ describe('Non admin server connections', () => {
             let spacesListJSON: any = {};
             spacesListJSON = await returnMessage.json();
             spacesListJSON.forEach((space: any) => {
-                if (space['name'] === TOKEN_GEN_TYPES.NON_ADMIN_APP2_NEW_SPACE_NAME_SIGNED["space_name"]) {
+                if (space['name'] === TOKEN_GEN_TYPES.NONADMIN_APP2_NEW_SPACE_NAME_SIGNED["space_name"]) {
                     spaceWasCreated = true;
                     createdSpaceID = space['space-id'];
                 }
