@@ -14,7 +14,7 @@ import { HiFiLogger } from "../utilities/HiFiLogger";
 import { HiFiUtilities } from "../utilities/HiFiUtilities";
 import { HiFiAudioAPIData, ReceivedHiFiAudioAPIData, Point3D, OrientationQuat3D, OrientationEuler3D, OrientationEuler3DOrder, eulerToQuaternion, eulerFromQuaternion } from "./HiFiAudioAPIData";
 import { HiFiAxisConfiguration, HiFiAxisUtilities, ourHiFiAxisConfiguration } from "./HiFiAxisConfiguration";
-import { HiFiMixerSession } from "./HiFiMixerSession";
+import { HiFiMixerSession, SetOtherUserGainForThisConnectionResponse } from "./HiFiMixerSession";
 import { AvailableUserDataSubscriptionComponents, UserDataSubscription } from "./HiFiUserDataSubscription";
 
 /**
@@ -208,15 +208,18 @@ export class HiFiCommunicator {
      * isn't supplied as an argument to this function, uses the value of that `token` URL query parameter as the JWT.
      * We should remove that later, because we almost certainly don't want this to stay in the API code, but it's _very_ convenient for sample apps for right now.
      *
-     * @param hostURL An URL that will be used to create a valid WebRTC signaling address. The passed `hostURL` parameter does not need to contain the protocol 
-     * or port - e.g. `server.highfidelity.com` - and it will be used to construct a signaling address of the form: `wss://${hostURL}:8001/?token=`
-     * If the developer does not pass a `hostURL` parameter, a default URL will be used instead. See: {@link DEFAULT_PROD_HIGH_FIDELITY_ENDPOINT}
-     * Reading this parameter from the URL should be implemented by the developer as part of the application code.
+     * @param signalingHostURL An URL that will be used to create a valid WebRTC signaling address at High Fidelity. The passed `signalingHostURL` parameter should not contain the protocol
+     * or port - e.g. `server.highfidelity.com` - and it will be used to construct a signaling address of the form: `wss://${signalingHostURL}:${signalingPort}/?token=`
+     * If the developer does not pass a `signalingHostURL` parameter, a default URL will be used instead. See: {@link DEFAULT_PROD_HIGH_FIDELITY_ENDPOINT}
+     * Reading this parameter from the URL (if needed) should be implemented by the developer as part of the application code.
+     *
+     * @param signalingPort The port to use for making WebSocket connections to the High Fidelity servers.
+     * If the developer does not pass a `signalingPort` parameter, the default (443) will be used instead. See: {@link DEFAULT_PROD_HIGH_FIDELITY_PORT}
      * 
      * @returns If this operation is successful, the Promise will resolve with `{ success: true, audionetInitResponse: <The response to `audionet.init` from the server in Object format>}`.
      * If unsuccessful, the Promise will reject with `{ success: false, error: <an error message> }`.
      */
-    async connectToHiFiAudioAPIServer(hifiAuthJWT: string, hostURL?: string): Promise<any> {
+    async connectToHiFiAudioAPIServer(hifiAuthJWT: string, signalingHostURL?: string, signalingPort?: number): Promise<any> {
         if (!this._mixerSession) {
             let errMsg = `\`this._mixerSession\` is falsey!`;
             return Promise.reject({
@@ -226,17 +229,19 @@ export class HiFiCommunicator {
         }
 
         let mixerConnectionResponse;
-        let hostURLSafe;
+        let signalingHostURLSafe;
 
         try {
-            hostURLSafe = new URL(hostURL).hostname;
+            signalingHostURLSafe = new URL(signalingHostURL).hostname;
         } catch(e) {
-            // If hostURL is not defined, we assign the default URL
-            hostURLSafe = hostURL ? hostURL : HiFiConstants.DEFAULT_PROD_HIGH_FIDELITY_ENDPOINT;
+            // If signalingHostURL is not defined, we assign the default URL
+            signalingHostURLSafe = signalingHostURL ? signalingHostURL : HiFiConstants.DEFAULT_PROD_HIGH_FIDELITY_ENDPOINT;
         }
 
+        signalingPort = signalingPort ? signalingPort : HiFiConstants.DEFAULT_PROD_HIGH_FIDELITY_PORT;
+
         try {
-            let webRTCSignalingAddress = `wss://${hostURLSafe}:8001/?token=`;
+            let webRTCSignalingAddress = `wss://${signalingHostURLSafe}:${signalingPort}/?token=`;
             this._mixerSession.webRTCAddress = `${webRTCSignalingAddress}${hifiAuthJWT}`;
 
             HiFiLogger.log(`Using WebRTC Signaling Address:\n${webRTCSignalingAddress}<token redacted>`);
@@ -254,6 +259,57 @@ export class HiFiCommunicator {
         return Promise.resolve({
             success: true,
             audionetInitResponse: mixerConnectionResponse.audionetInitResponse
+        });
+    }
+
+    /**
+     * Adjusts the gain of another user for this communicator's current connection only.
+     * This can be used to provide a more comfortable listening experience for the client. If you need to perform moderation actions which apply to all users, use the {@link https://docs.highfidelity.com/rest/latest/index.html|Administrative REST API}.
+     * 
+     * To use this command, the communicator must currently be connected to a space. You can connect to a space using {@link connectToHiFiAudioAPIServer}.
+     * 
+     * @param hashedVisitId  The hashed visit ID of the user whose gain will be adjusted.
+     * Use {@link addUserDataSubscription} and {@link HiFiCommunicator.onUsersDisconnected} to keep track of the hashed visit IDs of currently connected users.
+     * 
+     * When you subscribe to user data, you will get a list of {@link ReceivedHiFiAudioAPIData} objects, which each contain, at minimum, {@link ReceivedHifiAudioAPIData.hashedVisitID}s and {@link ReceivedHifiAudioAPIData.providedUserID}s for each user in the space. By inspecting each of these objects, you can associate a user with their hashed visit ID, if you know their provided user ID.
+     *
+     * @param gain  The relative gain to apply to the other user. By default, this is `1.0`. The gain can be any value greater or equal to `0.0`.
+     * For example: a gain of `2.0` will double the loudness of the user, while a gain of `0.5` will halve the user's loudness. A gain of `0.0` will effectively mute the user.
+     * 
+     * @returns If this operation is successful, the Promise will resolve with {@link SetOtherUserGainForThisConnectionResponse} with `success` equal to `true`.
+     * If unsuccessful, the Promise will reject with {@link SetOtherUserGainForThisConnectionResponse} with `success` equal to `false` and `error` set to an error message describing what went wrong.
+     */
+    async setOtherUserGainForThisConnection(visitIdHash: String, gain: Number): Promise<SetOtherUserGainForThisConnectionResponse> {
+        let setOtherUserGainForThisConnectionResponse;
+
+        if (!this._mixerSession) {
+            let errMsg = `\`this._mixerSession\` is falsey!`;
+            return Promise.reject({
+                success: false,
+                error: errMsg
+            });
+        }
+
+        try {
+            setOtherUserGainForThisConnectionResponse = await this._mixerSession.setOtherUserGainForThisConnection(visitIdHash, gain);
+        } catch (errorSettingUserGain) {
+            let errorReason : any;
+            if (errorSettingUserGain.error) {
+                errorReason = errorSettingUserGain.error;
+            } else {
+                errorReason = JSON.stringify(errorSettingUserGain);
+            }
+            let errMsg = `Error when setting other user gain for this connection. Error: \n${errorReason}`;
+            return Promise.reject({
+                success: false,
+                error: errMsg,
+                audionetSetOtherUserGainForThisConnectionResponse: errorSettingUserGain.audionetSetOtherUserGainForThisConnectionResponse
+            });
+        }
+
+        return Promise.resolve({
+            success: true,
+            audionetSetOtherUserGainForThisConnectionResponse: setOtherUserGainForThisConnectionResponse.audionetSetOtherUserGainForThisConnectionResponse
         });
     }
 
@@ -691,6 +747,8 @@ export class HiFiCommunicator {
      * User Data about other Users. For example, if you set up a User Data Subscription for your own User Data, you can use that subscription 
      * to ensure that the data on the High Fidelity Audio API Server is the same as the data you are sending
      * to it from the client. 
+     * 
+     * To check if a user has disconnected, use {@link HiFiCommunicator.onUsersDisconnected}.
      * 
      * @param newSubscription - The new User Data Subscription associated with a user. 
      */

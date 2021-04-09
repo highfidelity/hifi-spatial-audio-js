@@ -166,12 +166,6 @@ describe('Orientation_EulerToFromQuat', () => {
         test_eulerFromQuaternion( {Y: 30, P: 85}, OrientationEuler3DOrder.YawRollPitch, {w: 0.7121552207625228, x: 0.6525700295239598, y: 0.19082141628892588, z: -0.1748556124156989});
         test_eulerFromQuaternion( {Y: 30, P: 85}, OrientationEuler3DOrder.PitchRollYaw, {w: 0.7121552207625228, x: 0.6525700295239598, y: 0.19082141628892588, z:  0.1748556124156989});
     });
-    test('verifies eulerToOrientation Pitch around 90 in YPR mode', () => {
-       const DEG_TO_RAD = Math.PI / 180.0;
-       test_eulerFromQuaternion( {Y: 0, P: 89}, OrientationEuler3DOrder.YawPitchRoll, {w: Math.cos(89 * DEG_TO_RAD * 0.5), x:  Math.sin(89 * DEG_TO_RAD * 0.5), y: 0, z: 0});
-       test_eulerFromQuaternion( {Y: 0, P: 90}, OrientationEuler3DOrder.YawPitchRoll, {w: Math.cos(90 * DEG_TO_RAD * 0.5), x:  Math.sin(90 * DEG_TO_RAD * 0.5), y: 0, z: 0});
-       test_eulerFromQuaternion( {Y: 0, P: 91}, OrientationEuler3DOrder.YawPitchRoll, {w: Math.cos(91 * DEG_TO_RAD * 0.5), x:  Math.sin(91 * DEG_TO_RAD * 0.5), y: 0, z: 0});
-    });
     test('verifies eulerToOrientation Yaw:30, Pitch:85, Roll: 85', () => {
         // 6 different quaternions, each 4 components has 2 possible values
         test_eulerFromQuaternion( {Y: 30, P: 85, R: 85}, OrientationEuler3DOrder.PitchYawRoll, {w: 0.40692516506453336, x: 0.6100421736976789, y:-0.30018161612201427, z: 0.6100421736976789});

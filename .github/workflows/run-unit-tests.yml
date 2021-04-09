@@ -1,37 +1,69 @@
-name: Run-Jest-Unit-Tests
+name: Run-Jest-Tests
 
 on:
-  push:
+  workflow_dispatch:
+    inputs:
+      stackname:
+        description: "Host name, i.e. 'api.highfidelity.com', `api-staging-latest.highfidelity.com`, or 'loadbalancer-my-stack-01.highfidelity.io'"
+        required: true
+        default: api-staging-latest.highfidelity.com
     branches:
       - main
+      - gha
+  push:
+    pull_request:
+    branches:
+      - main
+      - gha
+ 
 
 jobs:
-  Run-Jest-Unit-Tests:
+  Run-Jest-Tests:
     runs-on: ubuntu-latest
     if: github.event.pusher.name != 'hifibuild'
 
     steps:
-    - name: View Commit Author
-      run: echo "The last push was made by a user named ${{ github.event.pusher.name }}."
-
-    - uses: actions/checkout@v2
+      - name: View Commit Author
+        run: echo "The last push was made by a user named ${{ github.event.pusher.name }}."
+      
+      - uses: actions/checkout@v2
     
-    - uses: actions/setup-node@v2
-      with:
-        node-version: '14'
+      - uses: actions/setup-node@v2
+        with:
+          node-version: '14'
 
-    - name: Install Modules
-      run: npm i
+      - name: Install Modules
+        run: npm i
 
-    - name: Run Jest Unit Tests
-      run: npm run test -- --ci
+      # Run unit tests
+      - name: Run Jest Unit Tests
+        shell: bash
+        run: |
+          ./node_modules/.bin/jest unit --ci --useStderr 2>&1 | tee testoutput
+          ./testfails.sh
 
-    - name: Unit Tests Passed
-      if: ${{ success() }}
-      run: |
-        curl --request POST --url https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.sha }} --header 'authorization: Bearer ${{ secrets.GITHUB_TOKEN }}' --header 'content-type: application/json' --data '{ "context": "tests", "state": "success", "description": "Tests passed", "target_url": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}" }'
+     # Run integration tests
+      - name: Decrypt auth file
+        if: always()
+        run: ./.github/scripts/decryptAuthFile.sh
+        env:
+          TESTING_AUTH_DECRYPTION_KEY: ${{ secrets.TESTING_AUTH_DECRYPTION_KEY }}
+          STACKNAME: ${{ github.event.inputs.stackname || 'api-staging-latest.highfidelity.com' }}
+        
+      - name: Run Jest Integration Tests
+        if: always()
+        shell: bash
+        run: |
+          ./node_modules/.bin/jest integration --ci --useStderr 2>&1 | tee testoutput
+          ./testfails.sh
 
-    - name: Unit Tests Failed
-      if: ${{ failure() }}
-      run: |
-        curl --request POST --url https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.sha }} --header 'authorization: Bearer ${{ secrets.GITHUB_TOKEN }}' --header 'content-type: application/json' --data '{ "context": "tests", "state": "failure", "description": "Tests failed", "target_url": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}" }'
+      # Final testing status for repo
+      - name: All Tests Passed
+        if: success()
+        run: |
+          curl --request POST --url https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.sha }} --header 'authorization: Bearer ${{ secrets.GITHUB_TOKEN }}' --header 'content-type: application/json' --data '{ "context": "tests", "state": "success", "description": "Tests passed", "target_url": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}" }'
+
+      - name: Any Test Failed
+        if: failure()
+        run: |
+          curl --request POST --url https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.sha }} --header 'authorization: Bearer ${{ secrets.GITHUB_TOKEN }}' --header 'content-type: application/json' --data '{ "context": "tests", "state": "failure", "description": "Tests failed", "target_url": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}" }'
