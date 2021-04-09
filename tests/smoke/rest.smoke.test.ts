@@ -560,7 +560,7 @@ describe('HiFi API REST Calls', () => {
         });
     });
 
-    describe('Working with zones and attenuations', () => {
+    describe.only('Working with zones and attenuations', () => {
         let zone1Data: ZoneData;
         let zone2Data: ZoneData;
         let zone3Data: ZoneData;
@@ -601,6 +601,7 @@ describe('HiFi API REST Calls', () => {
             "z-max": 5,
             "name": generateUUID()
         };
+
         beforeEach(async () => {
             try {
                 await fetch(`${stackURL}/api/v1/spaces/${space1id}/settings/zones?token=${adminToken}`, {
@@ -857,7 +858,7 @@ describe('HiFi API REST Calls', () => {
             expect(responseJSON).toEqual([]);
         });
 
-        test(`Nonadmin CANNOT access, edit, create, and delete zones and attenuations`, async () => {
+        test.only(`Nonadmin CANNOT access, edit, create, and delete zones and attenuations`, async () => {
             // reset zone 1 as it's the only one where data may change during the previous test
             zone1Data = {
                 "x-min": -5,
@@ -869,8 +870,8 @@ describe('HiFi API REST Calls', () => {
                 "name": generateUUID()
             };
 
-            // Create multiple zones via space `settings/zones` POST request
-            let returnMessage = await fetch(`${stackURL}/api/v1/spaces/${space1id}/settings/zones?token=${adminToken}`, {
+            // Try to create multiple zones via space `settings/zones` POST request
+            let returnMessage = await fetch(`${stackURL}/api/v1/spaces/${space1id}/settings/zones?token=${nonAdminToken}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -880,14 +881,10 @@ describe('HiFi API REST Calls', () => {
 
             let responseJSON: any = {};
             responseJSON = await returnMessage.json();
-            expect(responseJSON[0].id).toBeDefined();
-            expect(responseJSON[1].id).toBeDefined();
-            zone1Data['id'] = responseJSON[0].id;
-            zone2Data['id'] = responseJSON[1].id;
-            expect(responseJSON).toEqual([zone1Data, zone2Data]);
+            expect(responseJSON.errors.description).toBe(`token isn't an admin token`);
 
-            // Create one zone via space `settings/zones/create` POST request
-            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${space1id}/settings/zones?token=${adminToken}`, {
+            // Try to create one zone via space `settings/zones/create` POST request
+            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${space1id}/settings/zones?token=${nonAdminToken}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -895,222 +892,218 @@ describe('HiFi API REST Calls', () => {
                 body: JSON.stringify([zone3Data])
             });
             responseJSON = await returnMessage.json();
-            expect(responseJSON[0].id).toBeDefined();
-            zone3Data['id'] = responseJSON[0].id;
-            expect(responseJSON).toEqual([zone3Data]);
+            expect(responseJSON.errors.description).toBe(`token isn't an admin token`);
 
-            // Create one zone via space settings/zones/create GET request
-            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${space1id}/settings/zones/create?token=${adminToken}&x-min=${zone4Data["x-min"]}&x-max=${zone4Data["x-max"]}&y-min=${zone4Data["y-min"]}&y-max=${zone4Data["y-max"]}&z-min=${zone4Data["z-min"]}&z-max=${zone4Data["z-max"]}&name=${zone4Data["name"]}`);
+            // Try to create one zone via space settings/zones/create GET request
+            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${space1id}/settings/zones/create?token=${nonAdminToken}&x-min=${zone4Data["x-min"]}&x-max=${zone4Data["x-max"]}&y-min=${zone4Data["y-min"]}&y-max=${zone4Data["y-max"]}&z-min=${zone4Data["z-min"]}&z-max=${zone4Data["z-max"]}&name=${zone4Data["name"]}`);
             responseJSON = await returnMessage.json();
-            expect(responseJSON.id).toBeDefined();
-            zone4Data['id'] = responseJSON.id;
-            expect(responseJSON).toEqual(zone4Data);
+            expect(responseJSON.errors.description).toBe(`token isn't an admin token`);
 
-            // Get the list of zones and make sure it is accurate
-            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${space1id}/settings/zones?token=${adminToken}`);
+            // Try to get the list of zones
+            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${space1id}/settings/zones?token=${nonAdminToken}`);
             responseJSON = await returnMessage.json();
             expect(responseJSON).toEqual([zone1Data, zone2Data, zone3Data, zone4Data]);
 
-            // Get a zone's settings via GET request
-            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${space1id}/settings/zones/${zone1Data.id}?token=${adminToken}`);
+            // Try to get a zone's settings via GET request
+            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${space1id}/settings/zones/${zone1Data.id}?token=${nonAdminToken}`);
             responseJSON = await returnMessage.json();
             expect(responseJSON).toEqual(zone1Data);
 
-            // Change a zone's settings via GET request
-            zone1Data['x-min'] = -6;
-            zone1Data['x-max'] = 6;
-            zone1Data['y-min'] = 10;
-            zone1Data['y-max'] = 20;
-            zone1Data['z-min'] = -6;
-            zone1Data['z-max'] = -6;
-            zone1Data['name'] = generateUUID();
+            // Try to change a zone's settings via GET request
+            // zone1Data['x-min'] = -6;
+            // zone1Data['x-max'] = 6;
+            // zone1Data['y-min'] = 10;
+            // zone1Data['y-max'] = 20;
+            // zone1Data['z-min'] = -6;
+            // zone1Data['z-max'] = -6;
+            // zone1Data['name'] = generateUUID();
 
-            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${space1id}/settings/zones/${zone1Data.id}?token=${adminToken}&x-min=${zone1Data["x-min"]}&x-max=${zone1Data["x-max"]}&y-min=${zone1Data["y-min"]}&y-max=${zone1Data["y-max"]}&z-min=${zone1Data["z-min"]}&z-max=${zone1Data["z-max"]}&name=${zone1Data["name"]}`);
-            responseJSON = await returnMessage.json();
-            expect(responseJSON).toEqual(zone1Data);
+            // returnMessage = await fetch(`${stackURL}/api/v1/spaces/${space1id}/settings/zones/${zone1Data.id}?token=${nonAdminToken}&x-min=${zone1Data["x-min"]}&x-max=${zone1Data["x-max"]}&y-min=${zone1Data["y-min"]}&y-max=${zone1Data["y-max"]}&z-min=${zone1Data["z-min"]}&z-max=${zone1Data["z-max"]}&name=${zone1Data["name"]}`);
+            // responseJSON = await returnMessage.json();
+            // expect(responseJSON).toEqual(zone1Data);
 
-            // Get a zone's settings via POST request
-            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${space1id}/settings/zones/${zone1Data.id}?token=${adminToken}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: '{}'
-            });
-            responseJSON = await returnMessage.json();
-            expect(responseJSON).toEqual(zone1Data);
+            // Try to get a zone's settings via POST request
+            // returnMessage = await fetch(`${stackURL}/api/v1/spaces/${space1id}/settings/zones/${zone1Data.id}?token=${nonAdminToken}`, {
+            //     method: 'POST',
+            //     headers: {
+            //         'Content-Type': 'application/json'
+            //     },
+            //     body: '{}'
+            // });
+            // responseJSON = await returnMessage.json();
+            // expect(responseJSON).toEqual(zone1Data);
 
-            // Change a zone's settings via POST request
-            let zoneID = zone1Data.id;
-            zone1Data = {
-                "x-min": -7,
-                "x-max": 7,
-                "y-min": 0,
-                "y-max": 10,
-                "z-min": -7,
-                "z-max": 7,
-                "name": generateUUID()
-            };
+            // Try to change a zone's settings via POST request
+            // let zoneID = zone1Data.id;
+            // zone1Data = {
+            //     "x-min": -7,
+            //     "x-max": 7,
+            //     "y-min": 0,
+            //     "y-max": 10,
+            //     "z-min": -7,
+            //     "z-max": 7,
+            //     "name": generateUUID()
+            // };
 
-            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${space1id}/settings/zones/${zoneID}?token=${adminToken}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(zone1Data)
-            });
-            responseJSON = await returnMessage.json();
-            zone1Data.id = zoneID;
-            expect(responseJSON).toEqual(zone1Data);
+            // returnMessage = await fetch(`${stackURL}/api/v1/spaces/${space1id}/settings/zones/${zoneID}?token=${nonAdminToken}`, {
+            //     method: 'POST',
+            //     headers: {
+            //         'Content-Type': 'application/json'
+            //     },
+            //     body: JSON.stringify(zone1Data)
+            // });
+            // responseJSON = await returnMessage.json();
+            // zone1Data.id = zoneID;
+            // expect(responseJSON).toEqual(zone1Data);
 
 
-            let attenuation1Data: AttenuationData;
-            let attenuation2Data: AttenuationData;
-            let attenuation3Data: AttenuationData;
-            let attenuation4Data: AttenuationData;
-            attenuation1Data = {
-                "attenuation": 0.5,
-                "listener-zone-id": zone1Data.id,
-                "source-zone-id": zone2Data.id,
-                "za-offset": -5
-            };
-            attenuation2Data = {
-                "attenuation": 0.5,
-                "listener-zone-id": zone1Data.id,
-                "source-zone-id": zone2Data.id,
-                "za-offset": -5
-            };
-            attenuation3Data = {
-                "attenuation": 0.5,
-                "listener-zone-id": zone1Data.id,
-                "source-zone-id": zone3Data.id,
-                "za-offset": -5
-            };
-            attenuation4Data = {
-                "attenuation": 0.5,
-                "listener-zone-id": zone1Data.id,
-                "source-zone-id": zone4Data.id,
-                "za-offset": -5
-            };
+            // let attenuation1Data: AttenuationData;
+            // let attenuation2Data: AttenuationData;
+            // let attenuation3Data: AttenuationData;
+            // let attenuation4Data: AttenuationData;
+            // attenuation1Data = {
+            //     "attenuation": 0.5,
+            //     "listener-zone-id": zone1Data.id,
+            //     "source-zone-id": zone2Data.id,
+            //     "za-offset": -5
+            // };
+            // attenuation2Data = {
+            //     "attenuation": 0.5,
+            //     "listener-zone-id": zone1Data.id,
+            //     "source-zone-id": zone2Data.id,
+            //     "za-offset": -5
+            // };
+            // attenuation3Data = {
+            //     "attenuation": 0.5,
+            //     "listener-zone-id": zone1Data.id,
+            //     "source-zone-id": zone3Data.id,
+            //     "za-offset": -5
+            // };
+            // attenuation4Data = {
+            //     "attenuation": 0.5,
+            //     "listener-zone-id": zone1Data.id,
+            //     "source-zone-id": zone4Data.id,
+            //     "za-offset": -5
+            // };
 
-            // Create multiple attenuations via space `settings/attenuations` POST request
-            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${space1id}/settings/zone_attenuations?token=${adminToken}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify([attenuation1Data, attenuation2Data])
-            });
+            // Try to  create multiple attenuations via space `settings/attenuations` POST request
+            // returnMessage = await fetch(`${stackURL}/api/v1/spaces/${space1id}/settings/zone_attenuations?token=${nonAdminToken}`, {
+            //     method: 'POST',
+            //     headers: {
+            //         'Content-Type': 'application/json'
+            //     },
+            //     body: JSON.stringify([attenuation1Data, attenuation2Data])
+            // });
 
-            // Response will be the attenuation datas plus a new attenuation ID for each attenuation. Add the IDs to our data and the response should match
-            responseJSON = await returnMessage.json();
-            expect(responseJSON[0]['id']).toBeDefined();
-            expect(responseJSON[1]['id']).toBeDefined();
-            attenuation1Data['id'] = responseJSON[0]['id'];
-            attenuation2Data['id'] = responseJSON[1]['id'];
-            expect(responseJSON).toEqual([attenuation1Data, attenuation2Data]);
+            // // Response will be the attenuation datas plus a new attenuation ID for each attenuation. Add the IDs to our data and the response should match
+            // responseJSON = await returnMessage.json();
+            // expect(responseJSON[0]['id']).toBeDefined();
+            // expect(responseJSON[1]['id']).toBeDefined();
+            // attenuation1Data['id'] = responseJSON[0]['id'];
+            // attenuation2Data['id'] = responseJSON[1]['id'];
+            // expect(responseJSON).toEqual([attenuation1Data, attenuation2Data]);
 
-            // Create one attenuation via space `settings/attenuations/create` POST request
-            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${space1id}/settings/zone_attenuations?token=${adminToken}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify([attenuation3Data])
-            });
-            responseJSON = await returnMessage.json();
-            expect(responseJSON[0]['id']).toBeDefined();
-            attenuation3Data['id'] = responseJSON[0]['id'];
-            expect(responseJSON).toEqual([attenuation3Data]);
+            // Try to create one attenuation via space `settings/attenuations/create` POST request
+            // returnMessage = await fetch(`${stackURL}/api/v1/spaces/${space1id}/settings/zone_attenuations?token=${nonAdminToken}`, {
+            //     method: 'POST',
+            //     headers: {
+            //         'Content-Type': 'application/json'
+            //     },
+            //     body: JSON.stringify([attenuation3Data])
+            // });
+            // responseJSON = await returnMessage.json();
+            // expect(responseJSON[0]['id']).toBeDefined();
+            // attenuation3Data['id'] = responseJSON[0]['id'];
+            // expect(responseJSON).toEqual([attenuation3Data]);
 
-            // Create one attenuation via space settings/attenuations/create GET request
-            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${space1id}/settings/zone_attenuations/create?token=${adminToken}&attenuation=${attenuation4Data["attenuation"]}&source-zone-id=${attenuation4Data["source-zone-id"]}&listener-zone-id=${attenuation4Data["listener-zone-id"]}&za-offset=${attenuation4Data["za-offset"]}`);
-            responseJSON = await returnMessage.json();
-            expect(responseJSON['id']).toBeDefined();
-            attenuation4Data['id'] = responseJSON['id'];
-            expect(responseJSON).toEqual(attenuation4Data);
+            // Try to create one attenuation via space settings/attenuations/create GET request
+            // returnMessage = await fetch(`${stackURL}/api/v1/spaces/${space1id}/settings/zone_attenuations/create?token=${nonAdminToken}&attenuation=${attenuation4Data["attenuation"]}&source-zone-id=${attenuation4Data["source-zone-id"]}&listener-zone-id=${attenuation4Data["listener-zone-id"]}&za-offset=${attenuation4Data["za-offset"]}`);
+            // responseJSON = await returnMessage.json();
+            // expect(responseJSON['id']).toBeDefined();
+            // attenuation4Data['id'] = responseJSON['id'];
+            // expect(responseJSON).toEqual(attenuation4Data);
 
-            // Get the list of attenuations and make sure it is accurate
-            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${space1id}/settings/zone_attenuations?token=${adminToken}`);
-            responseJSON = await returnMessage.json();
-            expect(responseJSON).toEqual([attenuation1Data, attenuation2Data, attenuation3Data, attenuation4Data]);
+            // Try to get the list of attenuations and make sure it is accurate
+            // returnMessage = await fetch(`${stackURL}/api/v1/spaces/${space1id}/settings/zone_attenuations?token=${nonAdminToken}`);
+            // responseJSON = await returnMessage.json();
+            // expect(responseJSON).toEqual([attenuation1Data, attenuation2Data, attenuation3Data, attenuation4Data]);
 
-            // Get a zone attenuation's settings via GET request
-            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${space1id}/settings/zone_attenuations/${attenuation1Data.id}?token=${adminToken}`);
-            responseJSON = await returnMessage.json();
-            expect(responseJSON).toEqual(attenuation1Data);
+            // Try to get a zone attenuation's settings via GET request
+            // returnMessage = await fetch(`${stackURL}/api/v1/spaces/${space1id}/settings/zone_attenuations/${attenuation1Data.id}?token=${nonAdminToken}`);
+            // responseJSON = await returnMessage.json();
+            // expect(responseJSON).toEqual(attenuation1Data);
 
-            // Change a zone attenuation's settings via GET request
-            attenuation1Data['attenuation'] = -6;
-            attenuation1Data['listener-zone-id'] = zone2Data.id;
-            attenuation1Data['source-zone-id'] = zone3Data.id;
-            attenuation1Data['za-offset'] = 20;
+            // Try to change a zone attenuation's settings via GET request
+            // attenuation1Data['attenuation'] = -6;
+            // attenuation1Data['listener-zone-id'] = zone2Data.id;
+            // attenuation1Data['source-zone-id'] = zone3Data.id;
+            // attenuation1Data['za-offset'] = 20;
 
-            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${space1id}/settings/zone_attenuations/${attenuation1Data.id}?token=${adminToken}&attenuation=${attenuation1Data["attenuation"]}&listener-zone-id=${attenuation1Data["listener-zone-id"]}&source-zone-id=${attenuation1Data["source-zone-id"]}&za-offset=${attenuation1Data["za-offset"]}`);
-            responseJSON = await returnMessage.json();
-            expect(responseJSON).toEqual(attenuation1Data);
+            // returnMessage = await fetch(`${stackURL}/api/v1/spaces/${space1id}/settings/zone_attenuations/${attenuation1Data.id}?token=${nonAdminToken}&attenuation=${attenuation1Data["attenuation"]}&listener-zone-id=${attenuation1Data["listener-zone-id"]}&source-zone-id=${attenuation1Data["source-zone-id"]}&za-offset=${attenuation1Data["za-offset"]}`);
+            // responseJSON = await returnMessage.json();
+            // expect(responseJSON).toEqual(attenuation1Data);
 
-            // Get a zone attenuation's settings via POST request
-            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${space1id}/settings/zone_attenuations/${attenuation1Data.id}?token=${adminToken}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: '{}'
-            });
-            responseJSON = await returnMessage.json();
-            expect(responseJSON).toEqual(attenuation1Data);
+            // Try to get a zone attenuation's settings via POST request
+            // returnMessage = await fetch(`${stackURL}/api/v1/spaces/${space1id}/settings/zone_attenuations/${attenuation1Data.id}?token=${nonAdminToken}`, {
+            //     method: 'POST',
+            //     headers: {
+            //         'Content-Type': 'application/json'
+            //     },
+            //     body: '{}'
+            // });
+            // responseJSON = await returnMessage.json();
+            // expect(responseJSON).toEqual(attenuation1Data);
 
-            // Change a zone attenuation's settings via POST request
-            let attenuationID = attenuation1Data.id;
-            attenuation1Data = {
-                "attenuation": 0.8,
-                "listener-zone-id": zone3Data.id,
-                "source-zone-id": zone4Data.id,
-                "za-offset": -7
-            }
-            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${space1id}/settings/zone_attenuations/${attenuationID}?token=${adminToken}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(attenuation1Data)
-            });
-            responseJSON = await returnMessage.json();
-            attenuation1Data.id = attenuationID;
-            expect(responseJSON).toEqual(attenuation1Data);
+            // Try to change a zone attenuation's settings via POST request
+            // let attenuationID = attenuation1Data.id;
+            // attenuation1Data = {
+            //     "attenuation": 0.8,
+            //     "listener-zone-id": zone3Data.id,
+            //     "source-zone-id": zone4Data.id,
+            //     "za-offset": -7
+            // }
+            // returnMessage = await fetch(`${stackURL}/api/v1/spaces/${space1id}/settings/zone_attenuations/${attenuationID}?token=${nonAdminToken}`, {
+            //     method: 'POST',
+            //     headers: {
+            //         'Content-Type': 'application/json'
+            //     },
+            //     body: JSON.stringify(attenuation1Data)
+            // });
+            // responseJSON = await returnMessage.json();
+            // attenuation1Data.id = attenuationID;
+            // expect(responseJSON).toEqual(attenuation1Data);
 
-            // Delete one zone attenuation
-            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${space1id}/settings/zone_attenuations/${attenuation1Data.id}?token=${adminToken}`, {
-                method: 'DELETE'
-            });
-            responseJSON = await returnMessage.json();
-            expect(responseJSON.id).toBe(attenuation1Data.id);
+            // Try to delete one zone attenuation
+            // returnMessage = await fetch(`${stackURL}/api/v1/spaces/${space1id}/settings/zone_attenuations/${attenuation1Data.id}?token=${nonAdminToken}`, {
+            //     method: 'DELETE'
+            // });
+            // responseJSON = await returnMessage.json();
+            // expect(responseJSON.id).toBe(attenuation1Data.id);
 
-            // Delete all zone attenuations
-            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${space1id}/settings/zone_attenuations?token=${adminToken}`, {
-                method: 'DELETE'
-            });
-            responseJSON = await returnMessage.json();
-            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${space1id}/settings/zone_attenuations?token=${adminToken}`);
-            responseJSON = await returnMessage.json();
-            expect(responseJSON).toEqual([]);
+            // Try to delete all zone attenuations
+            // returnMessage = await fetch(`${stackURL}/api/v1/spaces/${space1id}/settings/zone_attenuations?token=${nonAdminToken}`, {
+            //     method: 'DELETE'
+            // });
+            // responseJSON = await returnMessage.json();
+            // returnMessage = await fetch(`${stackURL}/api/v1/spaces/${space1id}/settings/zone_attenuations?token=${nonAdminToken}`);
+            // responseJSON = await returnMessage.json();
+            // expect(responseJSON).toEqual([]);
 
-            // Delete one zone
-            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${space1id}/settings/zones/${zone1Data.id}?token=${adminToken}`, {
-                method: 'DELETE'
-            });
-            responseJSON = await returnMessage.json();
-            expect(responseJSON.id).toBe(zone1Data.id);
+            // Try to delete one zone
+            // returnMessage = await fetch(`${stackURL}/api/v1/spaces/${space1id}/settings/zones/${zone1Data.id}?token=${nonAdminToken}`, {
+            //     method: 'DELETE'
+            // });
+            // responseJSON = await returnMessage.json();
+            // expect(responseJSON.id).toBe(zone1Data.id);
 
-            // Delete all zones
-            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${space1id}/settings/zones?token=${adminToken}`, {
-                method: 'DELETE'
-            });
-            responseJSON = await returnMessage.json();
-            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${space1id}/settings/zones?token=${adminToken}`);
-            responseJSON = await returnMessage.json();
-            expect(responseJSON).toEqual([]);
+            // Try to delete all zones
+            // returnMessage = await fetch(`${stackURL}/api/v1/spaces/${space1id}/settings/zones?token=${nonAdminToken}`, {
+            //     method: 'DELETE'
+            // });
+            // responseJSON = await returnMessage.json();
+            // returnMessage = await fetch(`${stackURL}/api/v1/spaces/${space1id}/settings/zones?token=${nonAdminToken}`);
+            // responseJSON = await returnMessage.json();
+            // expect(responseJSON).toEqual([]);
         });
     });
 });
