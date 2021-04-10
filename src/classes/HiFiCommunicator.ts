@@ -159,7 +159,7 @@ export class HiFiCommunicator {
 
         if (hiFiAxisConfiguration) {
             if (HiFiAxisUtilities.verify(hiFiAxisConfiguration)) {
-                ourHiFiAxisConfiguration.coordinateSystemConvention = hiFiAxisConfiguration.coordinateSystemConvention;
+                ourHiFiAxisConfiguration.setCoordinateSystem(hiFiAxisConfiguration.coordinateSystem);
                 ourHiFiAxisConfiguration.eulerOrder = hiFiAxisConfiguration.eulerOrder;
 
             } else {

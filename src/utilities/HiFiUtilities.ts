@@ -198,8 +198,6 @@ export class HiFiUtilities {
         let requiredFeatures: Array<string> = [
             // Navigator mediaDevices
             "navigator", // Found on source code HiFiMixerSession.ts, RaviStreamController.ts
-            "navigator.permissions", // Found on source code HiFiMixerSession.ts (ln.544)
-            "navigator.permissions.query", // Found on source code HiFiMixerSession.ts (ln.544)
             "navigator.mediaDevices.getUserMedia", // Found on source code HiFiMixerSession.ts (ln.590)
             "navigator.mediaDevices.getSupportedConstraints", // Found on source code HiFiUtilities (ln. 130, 134, 138)
             // WebRTC

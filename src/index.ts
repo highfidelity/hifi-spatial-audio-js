@@ -3,7 +3,10 @@ declare var HIFI_API_VERSION: string;
 // Check for browser compatibility
 import { HiFiUtilities } from "./utilities/HiFiUtilities";
 export { HiFiUtilities };
-HiFiUtilities.checkBrowserCompatibility();
+let isBrowserContext = typeof self !== 'undefined';
+if (isBrowserContext) {
+    HiFiUtilities.checkBrowserCompatibility();
+}
 let apiVersion = typeof (HIFI_API_VERSION) === "string" ? HIFI_API_VERSION : "unknown";
 export { apiVersion as hiFiAPIVersion }; 
 export { apiVersion }; 
@@ -16,13 +19,13 @@ export { apiVersion };
 // Some people don't want to type `HiFi` every time they want to use our Client Library,
 // so we also offer shorter synonyms for every Library entry point.
 // Scroll down to check out those shorter synonyms.
-export { HiFiAudioAPIData, ReceivedHiFiAudioAPIData, OrientationEuler3D, OrientationQuat3D, Point3D, eulerToQuaternion, eulerFromQuaternion} from "./classes/HiFiAudioAPIData";
+export { HiFiAudioAPIData, ReceivedHiFiAudioAPIData, OrientationEuler3D, OrientationQuat3D, Point3D, eulerToQuaternion, eulerFromQuaternion, OrientationEuler3DOrder} from "./classes/HiFiAudioAPIData";
 export { HiFiCommunicator, HiFiConnectionStates, HiFiUserDataStreamingScopes } from "./classes/HiFiCommunicator";
 export { WebRTCSessionParams } from "./libravi/RaviSession";
 export { AvailableUserDataSubscriptionComponents, UserDataSubscription } from "./classes/HiFiUserDataSubscription";
 export { HiFiLogLevel, HiFiLogger } from "./utilities/HiFiLogger";
 export { HiFiConstants } from "./constants/HiFiConstants";
-export { HiFiAxisConfiguration } from "./classes/HiFiAxisConfiguration";
+export { HiFiAxisConfiguration, CoordinateSystemConvention, ourHiFiAxisConfiguration, HiFiAxisUtilities } from "./classes/HiFiAxisConfiguration";
 
 // Here are various explicit exports from within the `HiFiUtilities` class for convenience.
 let getBestAudioConstraints = HiFiUtilities.getBestAudioConstraints;
@@ -38,4 +41,4 @@ export { ReceivedHiFiAudioAPIData as ReceivedAudioAPIData, HiFiAudioAPIData as A
 export { HiFiLogger as Logger, HiFiLogLevel as LogLevel } from "./utilities/HiFiLogger";
 export { HiFiUtilities as Utilities } from "./utilities/HiFiUtilities";
 export { HiFiConstants as Constants } from "./constants/HiFiConstants";
-export { HiFiAxisConfiguration as AxisConfiguration } from "./classes/HiFiAxisConfiguration";
+export { HiFiAxisConfiguration as AxisConfiguration, HiFiAxisUtilities as AxisUtilities } from "./classes/HiFiAxisConfiguration";
