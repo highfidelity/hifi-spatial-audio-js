@@ -4,57 +4,42 @@ const crypto = require('crypto');
 const stackData = require('../secrets/auth.json').stackData;
 
 export const TOKEN_GEN_TYPES = {
-    "ADMIN_ID_APP1_SIGNED": {
+    "ADMIN_ID_APP1": {
         "admin": true,
         "signed": true,
         "user_id": "qateamAdmin",
         "app_id": stackData.apps.app1.id,
         "app_secret": stackData.apps.app1.secret
     },
-    "NONADMIN_ID_APP1_SIGNED": {
+    "NONADMIN_ID_APP1": {
         "admin": false,
         "signed": true,
         "user_id": "qateamNonAdmin",
         "app_id": stackData.apps.app1.id,
         "app_secret": stackData.apps.app1.secret
     },
-    "ADMIN_ID_APP2_SPACE1_SIGNED": {
+    "ADMIN_ID_APP2": {
         "admin": true,
         "signed": true,
         "user_id": "qateamAdmin",
         "app_id": stackData.apps.app2.id,
         "app_secret": stackData.apps.app2.secret
     },
-    "NONADMIN_ID_APP2_SPACE1_SIGNED": {
+    "NONADMIN_ID_APP2": {
         "admin": false,
         "signed": true,
         "user_id": "qateamNonAdmin",
         "app_id": stackData.apps.app2.id,
         "app_secret": stackData.apps.app2.secret
     },
-    "NONADMIN_ID_APP2_SPACE1_UNSIGNED": {
+    "NONADMIN_ID_APP2_UNSIGNED": {
         "admin": false,
         "signed": false,
         "user_id": "qateamNonAdmin",
         "app_id": stackData.apps.app2.id,
         "app_secret": stackData.apps.app2.secret
     },
-    "NONADMIN_APP2_SPACE_ID_NONEXISTENT_SIGNED": {
-        "admin": false,
-        "signed": true,
-        "user_id": "qateamNonAdmin",
-        "app_id": stackData.apps.app2.id,
-        "app_secret": stackData.apps.app2.secret
-    },
-    "NONADMIN_APP2_NEW_SPACE_NAME_SIGNED": {
-        "admin": false,
-        "signed": true,
-        "user_id": "qateamNonAdmin",
-        "app_id": stackData.apps.app2.id,
-        "app_secret": stackData.apps.app2.secret,
-        "space_name": "holding space"
-    },
-    "NONADMIN_APP2_SPACE1_TIMED_SIGNED": {
+    "NONADMIN_APP2_TIMED": {
         "admin": false,
         "signed": true,
         "user_id": "qateamNonAdmin",
@@ -62,7 +47,7 @@ export const TOKEN_GEN_TYPES = {
         "app_secret": stackData.apps.app2.secret,
         "expired": false
     },
-    "NONADMIN_APP2_SPACE1_TIMED_EXPIRED": {
+    "NONADMIN_APP2_TIMED_EXPIRED": {
         "admin": false,
         "signed": true,
         "user_id": "qateamNonAdmin",
@@ -70,17 +55,16 @@ export const TOKEN_GEN_TYPES = {
         "app_secret": stackData.apps.app2.secret,
         "expired": true
     },
-    "NONADMIN_APP2_SPACE1_DUP_SIGNED": {
+    "NONADMIN_APP2_DUP": {
         "admin": false,
         "signed": true,
         "user_id": "qateamNonAdmin",
         "app_id": stackData.apps.app2.id,
-        "space_name": stackData.apps.app2.spaces.space1.name,
         "app_secret": stackData.apps.app2.secret
     }
 };
 
-export async function generateJWT(tokenType: { [property: string]: any }, spaceID?: string) {
+export async function generateJWT(tokenType: { [property: string]: any }, spaceID?: string, spaceName?: string) {
     const SECRET_KEY_FOR_SIGNING = crypto.createSecretKey(Buffer.from(tokenType.app_secret, "utf8"));
     try {
         let data: any = {};
@@ -91,6 +75,7 @@ export async function generateJWT(tokenType: { [property: string]: any }, spaceI
         };
         if (tokenType.admin) data.admin = tokenType.admin;
         if (spaceID) data.space_id = spaceID;
+        if (spaceName) data.space_name = spaceName;
         if (tokenType.space_name) data.space_name = tokenType.space_name;
         if (tokenType.signed) {
             if (tokenType.expired === true) {

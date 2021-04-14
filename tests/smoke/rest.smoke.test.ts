@@ -15,12 +15,11 @@ describe('HiFi API REST Calls', () => {
     let appID = stackData.apps.app1.id;
 
     beforeAll(async () => {
-        adminTokenNoSpace = await generateJWT(TOKEN_GEN_TYPES.ADMIN_ID_APP1_SIGNED);
-        nonadminTokenNoSpace = await generateJWT(TOKEN_GEN_TYPES.NONADMIN_ID_APP1_SIGNED);
+        adminTokenNoSpace = await generateJWT(TOKEN_GEN_TYPES.ADMIN_ID_APP1);
+        nonadminTokenNoSpace = await generateJWT(TOKEN_GEN_TYPES.NONADMIN_ID_APP1);
     });
 
     describe('App spaces', () => {
-        // Create a space for testing
         let spaceID: string;
         let adminToken: string;
         let nonAdminToken: string;
@@ -48,8 +47,8 @@ describe('HiFi API REST Calls', () => {
             expect(returnMessageJSON['space-id']).toBeDefined();
             spaceID = returnMessageJSON['space-id'];
             expect(returnMessageJSON['app-id']).toBe(appID);
-            adminToken = await generateJWT(TOKEN_GEN_TYPES.ADMIN_ID_APP1_SIGNED, spaceID);
-            nonAdminToken = await generateJWT(TOKEN_GEN_TYPES.NONADMIN_ID_APP1_SIGNED, spaceID);
+            adminToken = await generateJWT(TOKEN_GEN_TYPES.ADMIN_ID_APP1, spaceID);
+            nonAdminToken = await generateJWT(TOKEN_GEN_TYPES.NONADMIN_ID_APP1, spaceID);
 
             // Create a space via POST request
             let space2Name = generateUUID();
@@ -201,12 +200,12 @@ describe('HiFi API REST Calls', () => {
             expect(returnMessageJSON.errors.description).toBe(`token isn't an admin token`);
 
             // Get space details
-            // Create a space for testing
             try {
-                returnMessage = await fetch(`${stackURL}/api/v1/spaces/create?token=${adminTokenNoSpace}&name=test-space-1`);
+                // create a testing space
+                returnMessage = await fetch(`${stackURL}/api/v1/spaces/create?token=${adminTokenNoSpace}`);
                 returnMessageJSON = await returnMessage.json();
                 spaceID = returnMessageJSON['space-id'];
-                nonAdminToken = await generateJWT(TOKEN_GEN_TYPES.NONADMIN_ID_APP1_SIGNED, spaceID);
+                nonAdminToken = await generateJWT(TOKEN_GEN_TYPES.NONADMIN_ID_APP1, spaceID);
             } catch (e) {
                 console.error("Failed to create a space before tests for nonadmins trying to access space data.");
             }
@@ -299,7 +298,7 @@ describe('HiFi API REST Calls', () => {
             expect(returnMessageJSON.errors.description).toBe(`token isn't an admin token`);
 
             // clean up
-            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}?token=${nonAdminToken}`, {
+            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}?token=${adminToken}`, {
                 method: 'DELETE'
             });
         });
@@ -308,19 +307,19 @@ describe('HiFi API REST Calls', () => {
     describe('Kicking users', () => {
         const numberTestUsers = 4;
         let testUsers: Array<any> = [];
-        let space1ID: string;
+        let spaceID: string;
         let adminToken: string;
         let nonAdminToken: string;
 
         beforeAll(async () => {
             jest.setTimeout(35000); // these tests need longer to complete
             try {
-                let returnMessage = await fetch(`${stackURL}/api/v1/spaces/create?token=${adminTokenNoSpace}&name=test-space-1`);
+                let returnMessage = await fetch(`${stackURL}/api/v1/spaces/create?token=${adminTokenNoSpace}`);
                 let returnMessageJSON: any = {};
                 returnMessageJSON = await returnMessage.json();
-                space1ID = returnMessageJSON['space-id'];
-                adminToken = await generateJWT(TOKEN_GEN_TYPES.ADMIN_ID_APP1_SIGNED, space1ID);
-                nonAdminToken = await generateJWT(TOKEN_GEN_TYPES.NONADMIN_ID_APP1_SIGNED, space1ID);
+                spaceID = returnMessageJSON['space-id'];
+                adminToken = await generateJWT(TOKEN_GEN_TYPES.ADMIN_ID_APP1, spaceID);
+                nonAdminToken = await generateJWT(TOKEN_GEN_TYPES.NONADMIN_ID_APP1, spaceID);
             } catch (e) {
                 console.error("Failed to create a space before tests for kicking.");
             }
@@ -328,15 +327,18 @@ describe('HiFi API REST Calls', () => {
 
         afterAll(async () => {
             jest.setTimeout(5000); // restore to default
+            await fetch(`${stackURL}/api/v1/spaces/${spaceID}?token=${adminToken}`, {
+                method: 'DELETE'
+            });
         });
 
         beforeEach(async () => {
             testUsers = [];
             for (let i = 0; i < numberTestUsers; i++) {
-                let tokenData = TOKEN_GEN_TYPES.NONADMIN_ID_APP1_SIGNED
+                let tokenData = TOKEN_GEN_TYPES.NONADMIN_ID_APP1
                 tokenData['user_id'] = generateUUID();
                 testUsers.push(new TestUser(tokenData['user_id']));
-                let token = await generateJWT(tokenData, space1ID);
+                let token = await generateJWT(tokenData, spaceID);
                 await testUsers[i].communicator.connectToHiFiAudioAPIServer(token, stackURL);
                 expect(testUsers[i].connectionState).toBe(HiFiConnectionStates.Connected);
             }
@@ -352,7 +354,7 @@ describe('HiFi API REST Calls', () => {
 
         describe('Admin CAN kick users', () => {
             test(`Kick one user`, async () => {
-                await fetch(`${stackURL}/api/v1/spaces/${space1ID}/users/${testUsers[0].name}?token=${adminToken}`, {
+                await fetch(`${stackURL}/api/v1/spaces/${spaceID}/users/${testUsers[0].name}?token=${adminToken}`, {
                     method: 'DELETE'
                 });
                 await sleep(30000);
@@ -363,7 +365,7 @@ describe('HiFi API REST Calls', () => {
             });
 
             test(`Kick all users`, async () => {
-                await fetch(`${stackURL}/api/v1/spaces/${space1ID}/users?token=${adminToken}`, {
+                await fetch(`${stackURL}/api/v1/spaces/${spaceID}/users?token=${adminToken}`, {
                     method: 'DELETE'
                 });
                 await sleep(30000);
@@ -375,7 +377,7 @@ describe('HiFi API REST Calls', () => {
 
         describe('Nonadmin CANNOT kick users', () => {
             test(`Kick one user`, async () => {
-                let returnMessage = await fetch(`${stackURL}/api/v1/spaces/${space1ID}/users/${testUsers[0].name}?token=${nonAdminToken}`, {
+                let returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/users/${testUsers[0].name}?token=${nonAdminToken}`, {
                     method: 'DELETE'
                 });
                 let returnMessageJSON: any = {};
@@ -389,7 +391,7 @@ describe('HiFi API REST Calls', () => {
             });
 
             test(`Kick all users`, async () => {
-                let returnMessage = await fetch(`${stackURL}/api/v1/spaces/${space1ID}/users?token=${nonAdminToken}`, {
+                let returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/users?token=${nonAdminToken}`, {
                     method: 'DELETE'
                 });
                 let returnMessageJSON: any = {};
@@ -406,30 +408,30 @@ describe('HiFi API REST Calls', () => {
 
     describe('Wrong admin tokens', () => {
         describe(`CANNOT read/alter App A by using a valid admin token for App B`, () => {
-            // Create 2 spaces for testing
-            let space1ID: string;
-            let space2ID: string;
+            let spaceID: string;
             let adminTokenApp1: string;
             let adminTokenApp2: string;
             beforeAll(async () => {
                 try {
-                    let returnMessage = await fetch(`${stackURL}/api/v1/spaces/create?token=${adminTokenNoSpace}&name=test-space-1`);
+                    let returnMessage = await fetch(`${stackURL}/api/v1/spaces/create?token=${adminTokenNoSpace}`);
                     let returnMessageJSON: any = {};
                     returnMessageJSON = await returnMessage.json();
-                    space1ID = returnMessageJSON['space-id'];
-                    adminTokenApp1 = await generateJWT(TOKEN_GEN_TYPES.ADMIN_ID_APP2_SPACE1_SIGNED, space1ID);
-
-                    returnMessage = await fetch(`${stackURL}/api/v1/spaces/create?token=${adminTokenNoSpace}&name=test-space-2`);
-                    returnMessageJSON = await returnMessage.json();
-                    space2ID = returnMessageJSON['space-id'];
-                    adminTokenApp2 = await generateJWT(TOKEN_GEN_TYPES.ADMIN_ID_APP2_SPACE1_SIGNED, space2ID);
+                    spaceID = returnMessageJSON['space-id'];
+                    adminTokenApp1 = await generateJWT(TOKEN_GEN_TYPES.ADMIN_ID_APP1, spaceID);
+                    adminTokenApp2 = await generateJWT(TOKEN_GEN_TYPES.ADMIN_ID_APP2);
                 } catch (err) {
                     console.error("Failed to create spaces before tests for wrong admin.");
                 }
             });
 
+            afterAll(async () => {
+                await fetch(`${stackURL}/api/v1/spaces/${spaceID}?token=${adminTokenApp1}`, {
+                    method: 'DELETE'
+                });
+            });
+
             test(`Read settings for a space`, async () => {
-                let returnMessage = await fetch(`${stackURL}/api/v1/spaces/${space1ID}/settings/app-id/?token=${adminTokenApp2}`);
+                let returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/app-id/?token=${adminTokenApp2}`);
                 let returnMessageJSON: any = {};
                 returnMessageJSON = await returnMessage.json();
                 expect(returnMessageJSON.code).toBe(422);
@@ -450,12 +452,12 @@ describe('HiFi API REST Calls', () => {
         beforeAll(async () => {
             // Create a space for testing
             try {
-                let returnMessage = await fetch(`${stackURL}/api/v1/spaces/create?token=${adminTokenNoSpace}&name=test-space-1`);
+                let returnMessage = await fetch(`${stackURL}/api/v1/spaces/create?token=${adminTokenNoSpace}`);
                 let returnMessageJSON: any = {};
                 returnMessageJSON = await returnMessage.json();
                 spaceID = returnMessageJSON['space-id'];
-                adminToken = await generateJWT(TOKEN_GEN_TYPES.ADMIN_ID_APP1_SIGNED, spaceID);
-                nonAdminToken = await generateJWT(TOKEN_GEN_TYPES.NONADMIN_ID_APP1_SIGNED, spaceID);
+                adminToken = await generateJWT(TOKEN_GEN_TYPES.ADMIN_ID_APP1, spaceID);
+                nonAdminToken = await generateJWT(TOKEN_GEN_TYPES.NONADMIN_ID_APP1, spaceID);
             } catch (e) {
                 console.error("Failed to create a space before tests for zones and attenuations.");
             }
@@ -498,6 +500,12 @@ describe('HiFi API REST Calls', () => {
             };
         });
 
+        afterAll(async () => {
+            await fetch(`${stackURL}/api/v1/spaces/${spaceID}?token=${adminToken}`, {
+                method: 'DELETE'
+            });
+        });
+
         beforeEach(async () => {
             try {
                 await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zones?token=${adminToken}`, {
@@ -525,7 +533,7 @@ describe('HiFi API REST Calls', () => {
             expect(responseJSON[1].id).toBeDefined();
             zone1Data['id'] = responseJSON[0].id;
             zone2Data['id'] = responseJSON[1].id;
-            expect(responseJSON).toEqual([zone1Data, zone2Data]);
+            expect(responseJSON.map((a: { id: any; }) => a.id).sort()).toEqual([zone1Data, zone2Data].map(a => a.id).sort());
 
             // Create one zone via space `settings/zones/create` POST request
             returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zones?token=${adminToken}`, {
@@ -550,7 +558,8 @@ describe('HiFi API REST Calls', () => {
             // Get the list of zones and make sure it is accurate
             returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zones?token=${adminToken}`);
             responseJSON = await returnMessage.json();
-            expect(responseJSON).toEqual([zone1Data, zone2Data, zone3Data, zone4Data]);
+            expect(responseJSON.map((a: { id: any; }) => a.id).sort()).toEqual([zone1Data, zone2Data, zone3Data, zone4Data].map(a => a.id).sort());
+
 
             // Get a zone's settings via GET request
             returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zones/${zone1Data.id}?token=${adminToken}`);
@@ -647,7 +656,7 @@ describe('HiFi API REST Calls', () => {
             expect(responseJSON[1]['id']).toBeDefined();
             attenuation1Data['id'] = responseJSON[0]['id'];
             attenuation2Data['id'] = responseJSON[1]['id'];
-            expect(responseJSON).toEqual([attenuation1Data, attenuation2Data]);
+            expect(responseJSON.map((a: { id: any; }) => a.id).sort()).toEqual([attenuation1Data, attenuation2Data].map(a => a.id).sort());
 
             // Create one attenuation via space `settings/attenuations/create` POST request
             returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zone_attenuations?token=${adminToken}`, {
@@ -1022,6 +1031,82 @@ describe('HiFi API REST Calls', () => {
             } catch (e) {
                 console.error("Failed to clean up zones after testing.");
             }
+        });
+    });
+
+    describe('User data access', () => {
+        let spaceID: string;
+        let adminToken: string;
+        let adminID: string;
+        let adminVisitIDHash: string;
+        let nonadminToken: string;
+        let nonadminID: string;
+        let nonadminVisitIDHash: string;
+        let testUserAdmin: TestUser;
+        let testUserNonadmin: TestUser;
+
+        beforeAll(async () => {
+            jest.setTimeout(15000); // these tests need longer to complete
+            try {
+                let returnMessage = await fetch(`${stackURL}/api/v1/spaces/create?token=${adminTokenNoSpace}`);
+                let returnMessageJSON: any = {};
+                returnMessageJSON = await returnMessage.json();
+                spaceID = returnMessageJSON['space-id'];
+
+                // connect an admin test user to the space
+                let tokenData = TOKEN_GEN_TYPES.ADMIN_ID_APP1;
+                tokenData['user_id'] = generateUUID();
+                testUserAdmin = new TestUser(tokenData['user_id']);
+                adminToken = await generateJWT(tokenData, spaceID);
+                await testUserAdmin.communicator.connectToHiFiAudioAPIServer(adminToken, stackURL)
+                    .then(data => {
+                        adminID = data.audionetInitResponse.user_id;
+                        adminVisitIDHash = data.audionetInitResponse.visit_id_hash;
+                    });
+                expect(testUserAdmin.connectionState).toBe(HiFiConnectionStates.Connected);
+
+                // connect a nonadmin test user to the space
+                tokenData = TOKEN_GEN_TYPES.NONADMIN_ID_APP1;
+                tokenData['user_id'] = generateUUID();
+                testUserNonadmin = new TestUser(tokenData['user_id']);
+                nonadminToken = await generateJWT(tokenData, spaceID);
+                await testUserNonadmin.communicator.connectToHiFiAudioAPIServer(nonadminToken, stackURL)
+                    .then(data => {
+                        nonadminID = data.audionetInitResponse.user_id;
+                        nonadminVisitIDHash = data.audionetInitResponse.visit_id_hash;
+                    });
+                expect(testUserNonadmin.connectionState).toBe(HiFiConnectionStates.Connected);
+            } catch (err) {
+                console.error("Could not set up a space and connect users to test user data access.");
+            }
+        });
+
+        afterAll(async () => {
+            await fetch(`${stackURL}/api/v1/spaces/${spaceID}?token=${adminToken}`, {
+                method: 'DELETE'
+            });
+            jest.setTimeout(5000); // restore to default
+        });
+
+        test('Admin CAN access list of users', async () => {
+            let returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/users?token=${adminToken}`);
+            let returnMessageJSON = await returnMessage.json();
+            expect(returnMessageJSON.length).toBe(2);
+            let returnedAdmin = returnMessageJSON.filter((obj: { user_id: string; }) => {
+                return obj['user_id'] === adminID;
+            })
+            expect(returnedAdmin).toBeDefined();
+
+            let returnedNonadmin = returnMessageJSON.filter((obj: { user_id: string; }) => {
+                return obj['user_id'] === nonadminID;
+            })
+            expect(returnedNonadmin).toBeDefined();
+        });
+
+        test('Nonadmin CANNOT access list of users', async () => {
+            let returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/users?token=${nonadminToken}`);
+            let returnMessageJSON = await returnMessage.json();
+            expect(returnMessageJSON.errors.description).toBe(`token isn't an admin token`);
         });
     });
 });
