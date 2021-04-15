@@ -2,11 +2,6 @@ name: Run-Jest-Tests
 
 on:
   workflow_dispatch:
-    inputs:
-      stackname:
-        description: "Host name, i.e. 'api.highfidelity.com', `api-staging-latest.highfidelity.com`, or 'loadbalancer-my-stack-01.highfidelity.io'"
-        required: true
-        default: api-staging-latest.highfidelity.com
     branches:
       - main
       - gha
@@ -48,7 +43,6 @@ jobs:
         run: ./.github/scripts/decryptAuthFile.sh
         env:
           TESTING_AUTH_DECRYPTION_KEY: ${{ secrets.TESTING_AUTH_DECRYPTION_KEY }}
-          STACKNAME: ${{ github.event.inputs.stackname || 'api-staging-latest.highfidelity.com' }}
         
       - name: Run Jest Integration Tests
         if: always()
