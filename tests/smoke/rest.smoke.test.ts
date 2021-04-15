@@ -5,8 +5,8 @@ import { TOKEN_GEN_TYPES, generateJWT, generateUUID, sleep, ZoneData, Attenuatio
 import { TestUser } from '../testUtilities/TestUser';
 import { HiFiConnectionStates } from "../../src/classes/HiFiCommunicator";
 
-let args: { [key: string]: any } = (process.argv.slice(2));
-let stackname = args["stackname"] || "api-staging-latest.highfidelity.com";
+let stackname = process.argv[3] || "api-staging-latest.highfidelity.com";
+console.log("_______________STACKNAME_______________________", stackname);
 let stackURL = `https://${stackname}`;
 let adminTokenNoSpace: string;
 let nonadminTokenNoSpace: string;
@@ -25,6 +25,7 @@ describe('HiFi API REST Calls', () => {
         let nonAdminToken: string;
 
         beforeAll(async () => {
+            jest.setTimeout(15000); // these tests need longer to complete
             try {
                 let returnMessage = await fetch(`${stackURL}/api/v1/spaces/?token=${adminTokenNoSpace}`);
                 let spacesListJSON: any = {};
@@ -37,6 +38,10 @@ describe('HiFi API REST Calls', () => {
             } catch (err) {
                 console.error("Failed to delete all current spaces before tests for app spaces.");
             }
+        });
+
+        afterAll( async () => {
+            jest.setTimeout(5000); // restore to default
         });
 
         test('Admin CAN access, edit, create, and delete app spaces', async () => {
@@ -533,8 +538,13 @@ describe('HiFi API REST Calls', () => {
             responseJSON = await returnMessage.json();
             expect(responseJSON[0].id).toBeDefined();
             expect(responseJSON[1].id).toBeDefined();
-            zone1Data['id'] = responseJSON[0].id;
-            zone2Data['id'] = responseJSON[1].id;
+            if (responseJSON[0].name === zone1Data.name) {
+                zone1Data['id'] = responseJSON[0].id;
+                zone2Data['id'] = responseJSON[1].id;
+            } else {
+                zone1Data['id'] = responseJSON[1].id;
+                zone2Data['id'] = responseJSON[0].id;
+            }
             expect(responseJSON.map((a: { id: any; }) => a.id).sort()).toEqual([zone1Data, zone2Data].map(a => a.id).sort());
 
             // Create one zone via space `settings/zones/create` POST request
@@ -830,8 +840,13 @@ describe('HiFi API REST Calls', () => {
                     body: JSON.stringify([zone1Data, zone2Data])
                 });
                 responseJSON = await returnMessage.json();
-                zone1Data['id'] = responseJSON[0].id;
-                zone2Data['id'] = responseJSON[1].id;
+                if (responseJSON[0].name === zone1Data.name) {
+                    zone1Data['id'] = responseJSON[0].id;
+                    zone2Data['id'] = responseJSON[1].id;
+                } else {
+                    zone1Data['id'] = responseJSON[1].id;
+                    zone2Data['id'] = responseJSON[0].id;
+                }
             } catch (e) {
                 console.error("Failed to create a zone before tests for nonadmins to edit zones.");
             }

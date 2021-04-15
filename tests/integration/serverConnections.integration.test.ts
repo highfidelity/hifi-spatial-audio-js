@@ -5,8 +5,8 @@ import { TOKEN_GEN_TYPES, generateJWT, generateUUID } from '../testUtilities/tes
 const NEW_SPACE_NAME = generateUUID();
 const SPACE_1_NAME = generateUUID();
 
-let args: { [key: string]: any } = (process.argv.slice(2));
-let stackname = args["stackname"] || "api-staging-latest.highfidelity.com";
+let stackname = process.argv[3] || "api-staging-latest.highfidelity.com";
+console.log("_______________STACKNAME_______________________", stackname);
 let stackURL = `https://${stackname}`;
 let websocketEndpointURL = `wss://${stackname}/dev/account:8001/`;
 let space1id: string;

@@ -1,7 +1,6 @@
 # JEST AUTOMATED TESTING INFO
 
 ## File structure for `tests` folder
-
     tests  
     ├── integration  
     │   └── serverConnections.integration.test.ts  
@@ -41,10 +40,38 @@ Unit testing will test each part of the API to show that the individual function
 Integration testing will combine different modules in the API and test individual functions using actual server connections. These tests will run automatically via GHA before any code is merged and can be run manually from the console or from GHA workflow dispatch. To run only integration tests, type `jest integration` into the console. All files in the `tests/integration` directory ending in `.test.ts` will run.
 
 ## Testing against other stacks
-To test any stack other than 'staging-latest', you will need to input the stack name as an arg when running jest from the console. First, update your `auth.json` file with the data for the stack you want to test against. When ready to test, you will need to run Jest via a node script. The following example runs one specific test file against the main production stack. 
+To test any stack other than 'staging-latest', you will need to input the stack name as an arg when running jest from the console. First, update your `auth.json` file with the data for the stack you want to test against. When ready to test, you will need to run Jest via a node script. The following example runs one specific test file against the main production stack. You can confirm that the correct stack is being used by checking the logs.
 
 ```
-npm run test serverConnections.integration.test.ts --hostname api.highfidelity.com
+npm run test serverConnections.integration.test.ts -- --stackname=api.highfidelity.com
+```
+
+### False Test Failures
+If a stack runs out of mixers, some tests may fail. If you have AWS access, you can observe stack allocations [here](https://us-west-2.console.aws.amazon.com/dynamodb/home?region=us-west-2#tables:selected=Allocations-api-pro-05;tab=items). You will see a list of mixers for the selected stack. If there are no (`NA`) unallocated mixers, tests can fail. We usually need 1-2 mixers for smoke or integration tests run alone and 2-4 for running all tests at once.
+
+### Editing Tests Within a File
+
+#### Only
+To run one test or group of tests within a file, append `.only` to the section of code you want to run. This can be used after a describe block or test. This is useful for rerunning a specific test that has failed without having to wait for all tests in that file. You can add multiple 'only' specifiers to run more than one section of a test or describe block.
+
+```
+describe.only('Non admin server connections', () => {
+```
+
+#### Skip
+To skip one test or group of tests within a file, append `.skip` to the section of code you want to skip. This can be used after a describe block or test. This is useful for rerunning a test suite without a particularly slow test. You can add multiple 'skip' specifiers to skip more than one section of a test or describe block.
+
+```
+describe.skip('Non admin server connections', () => {
+```
+
+#### Timeout
+Sometimes tests fail due to timing out before promises are returned. Tests are created with the minimum timeout value that works for most runs to maintain the shortest time to run all tests but you can edit them locally if you are seeing errors like `: Timeout - Async callback was not invoked within the 5000`. To lengthen the timeout for a describe block, set the jest timeout in the `beforeAll()` function and then restore the value in the `afterAll()` function
+
+```
+beforeAll(async () => {
+    jest.setTimeout(15000);
+    ...
 ```
 
 ### Secrets and Account Setup
