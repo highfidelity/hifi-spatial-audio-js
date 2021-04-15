@@ -5,7 +5,8 @@ import { TOKEN_GEN_TYPES, generateJWT, generateUUID, sleep, ZoneData, Attenuatio
 import { TestUser } from '../testUtilities/TestUser';
 import { HiFiConnectionStates } from "../../src/classes/HiFiCommunicator";
 
-let stackname = process.argv[3] || "api-staging-latest.highfidelity.com";
+let args = require('minimist')(process.argv.slice(2));
+let stackname = args.stackname || "api-staging-latest.highfidelity.com";
 console.log("_______________STACKNAME_______________________", stackname);
 let stackURL = `https://${stackname}`;
 let adminTokenNoSpace: string;
