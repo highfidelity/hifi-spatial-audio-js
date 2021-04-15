@@ -6,8 +6,8 @@ import { TestUser } from '../testUtilities/TestUser';
 import { HiFiConnectionStates } from "../../src/classes/HiFiCommunicator";
 
 let args: { [key: string]: any } = (process.argv.slice(2));
-let hostname = process.env.hostname || args["hostname"] || "api-staging-latest.highfidelity.com";
-let stackURL = `https://${hostname}`;
+let stackname = args["stackname"] || "api-staging-latest.highfidelity.com";
+let stackURL = `https://${stackname}`;
 let adminTokenNoSpace: string;
 let nonadminTokenNoSpace: string;
 
@@ -450,6 +450,7 @@ describe('HiFi API REST Calls', () => {
         let zone4Data: ZoneData;
 
         beforeAll(async () => {
+            jest.setTimeout(10000); // these tests need longer to complete
             // Create a space for testing
             try {
                 let returnMessage = await fetch(`${stackURL}/api/v1/spaces/create?token=${adminTokenNoSpace}`);
@@ -501,6 +502,7 @@ describe('HiFi API REST Calls', () => {
         });
 
         afterAll(async () => {
+            jest.setTimeout(5000); // restore to default
             await fetch(`${stackURL}/api/v1/spaces/${spaceID}?token=${adminToken}`, {
                 method: 'DELETE'
             });

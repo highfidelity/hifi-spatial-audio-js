@@ -1,15 +1,14 @@
 const fetch = require('node-fetch');
 import { HiFiCommunicator } from "../../src/classes/HiFiCommunicator";
 import { TOKEN_GEN_TYPES, generateJWT, generateUUID } from '../testUtilities/testUtils';
-const stackData = require('../secrets/auth.json').stackData;
 
 const NEW_SPACE_NAME = generateUUID();
 const SPACE_1_NAME = generateUUID();
 
 let args: { [key: string]: any } = (process.argv.slice(2));
-let hostname = process.env.hostname || args["hostname"] || "api-staging-latest.highfidelity.com";
-let stackURL = `https://${hostname}`;
-let websocketEndpointURL = `wss://${hostname}/dev/account:8001/`;
+let stackname = args["stackname"] || "api-staging-latest.highfidelity.com";
+let stackURL = `https://${stackname}`;
+let websocketEndpointURL = `wss://${stackname}/dev/account:8001/`;
 let space1id: string;
 let spaceWithDuplicateNameID: string;
 
@@ -122,10 +121,10 @@ describe('Non admin server connections', () => {
     });
 
     test(`Attempting to connect without specifying a stack will target api.highfidelity.com`, async () => {
-        if (hostname.indexOf("staging") > -1) { // testing staging
+        if (stackname.indexOf("staging") > -1) { // testing staging
             await expect(hifiCommunicator.connectToHiFiAudioAPIServer(nonadmin))
                 .rejects.toMatchObject({ error: expect.stringMatching(/api.highfidelity.com/) });
-        } else if (hostname.indexOf("alpha") > -1) { // testing prod
+        } else if (stackname.indexOf("alpha") > -1) { // testing prod
             await expect(hifiCommunicator.connectToHiFiAudioAPIServer(nonadmin))
                 .resolves.toMatchObject({ audionetInitResponse: expect.objectContaining({ "success": true}) });
         }
