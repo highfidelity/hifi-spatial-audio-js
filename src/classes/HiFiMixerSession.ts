@@ -224,14 +224,14 @@ export class HiFiMixerSession {
             };
             let commandController = this._raviSession.getCommandController();
             if (!commandController) {
-                return Promise.reject({
+                reject({
                     success: false,
                     error: `Couldn't send personal volume adjust signal to mixer: no \`commandController\`!`
                 });
             }
 
             let personalVolumeAdjustTimeout = setTimeout(() => {
-                return Promise.reject({
+                reject({
                     success: false,
                     error: `Couldn't send personal volume adjust signal to mixer: Call to \`personal_volume_adjust\` timed out!`
                 });

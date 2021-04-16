@@ -1,79 +1,82 @@
 const fetch = require('node-fetch');
-const stackData = require('../secrets/auth.json').stackData;
-
 import { HiFiCommunicator } from "../../src/classes/HiFiCommunicator";
-import { TOKEN_GEN_TYPES, generateJWT } from '../testUtilities/testUtils';
+import { TOKEN_GEN_TYPES, generateJWT, generateUUID } from '../testUtilities/testUtils';
 
-let args: { [key: string]: any } = (process.argv.slice(2));
-let hostname = process.env.hostname || args["hostname"] || "api-staging-latest.highfidelity.com";
-let stackURL = `https://${hostname}`;
-let websocketEndpointURL = `wss://${hostname}/dev/account:8001/`;
+const NEW_SPACE_NAME = generateUUID();
+const SPACE_1_NAME = generateUUID();
 
+let args = require('minimist')(process.argv.slice(2));
+let stackname = args.stackname || "api-staging-latest.highfidelity.com";
+console.log("_______________STACKNAME_______________________", stackname);
+let stackURL = `https://${stackname}`;
+let websocketEndpointURL = `wss://${stackname}/dev/account:8001/`;
+let space1id: string;
+let spaceWithDuplicateNameID: string;
 
 describe('Non admin server connections', () => {
-    let nonAdminSigned: string;
-    let adminSigned: string;
-    let nonAdminUnsigned: string;
-    let nonAdminNonexistentSpaceID: string;
-    let nonAdminNewSpaceName: string;
-    let nonAdminTimed: string;
-    let nonAdminExpired: string;
-    let nonAdminDupSpaceName: string;
+    let admin: string;
+    let nonadmin: string;
+    let nonadminUnsigned: string;
+    let nonadminNonexistentSpaceID: string;
+    let nonadminNewSpaceName: string;
+    let nonadminTimed: string;
+    let nonadminExpired: string;
+    let nonadminDupSpaceName: string;
     let hifiCommunicator: HiFiCommunicator;
     beforeAll(async () => {
         try {
-            nonAdminSigned = await generateJWT(TOKEN_GEN_TYPES.NON_ADMIN_ID_APP2_SPACE1_SIGNED);
-            adminSigned = await generateJWT(TOKEN_GEN_TYPES.ADMIN_ID_APP2_SPACE1_SIGNED);
-            nonAdminUnsigned = await generateJWT(TOKEN_GEN_TYPES.NON_ADMIN_ID_APP2_SPACE1_UNSIGNED);
-            nonAdminNonexistentSpaceID = await generateJWT(TOKEN_GEN_TYPES.NON_ADMIN_APP2_SPACE_ID_NONEXISTENT_SIGNED);
-            nonAdminNewSpaceName = await generateJWT(TOKEN_GEN_TYPES.NON_ADMIN_APP2_NEW_SPACE_NAME_SIGNED);
-            nonAdminTimed = await generateJWT(TOKEN_GEN_TYPES.NON_ADMIN_APP2_SPACE1_TIMED_SIGNED);
-            nonAdminExpired = await generateJWT(TOKEN_GEN_TYPES.NON_ADMIN_APP2_SPACE1_TIMED_EXPIRED);
-            nonAdminDupSpaceName = await generateJWT(TOKEN_GEN_TYPES.NON_ADMIN_APP2_SPACE1_DUP_SIGNED);
+            let adminTokenNoSpace = await generateJWT(TOKEN_GEN_TYPES.ADMIN_ID_APP2);
+            let returnMessage = await fetch(`${stackURL}/api/v1/spaces/create?token=${adminTokenNoSpace}&name=${SPACE_1_NAME}`);
+            let returnMessageJSON = await returnMessage.json();
+            space1id = returnMessageJSON['space-id'];
+
+            // create a space with a duplicate name
+            returnMessage = await fetch(`${stackURL}/api/v1/spaces/create?token=${adminTokenNoSpace}&name=${SPACE_1_NAME}`);
+            returnMessageJSON = await returnMessage.json();
+            spaceWithDuplicateNameID = returnMessageJSON['space-id'];
+
+            admin = await generateJWT(TOKEN_GEN_TYPES.ADMIN_ID_APP2, space1id);
+            nonadmin = await generateJWT(TOKEN_GEN_TYPES.NONADMIN_ID_APP2, space1id);
+            nonadminUnsigned = await generateJWT(TOKEN_GEN_TYPES.NONADMIN_ID_APP2_UNSIGNED, space1id);
+            nonadminNonexistentSpaceID = await generateJWT(TOKEN_GEN_TYPES.NONADMIN_ID_APP2, generateUUID());
+            nonadminNewSpaceName = await generateJWT(TOKEN_GEN_TYPES.NONADMIN_ID_APP2, null, NEW_SPACE_NAME);
+            nonadminTimed = await generateJWT(TOKEN_GEN_TYPES.NONADMIN_APP2_TIMED, space1id);
+            nonadminExpired = await generateJWT(TOKEN_GEN_TYPES.NONADMIN_APP2_TIMED_EXPIRED, space1id);
+            nonadminDupSpaceName = await generateJWT(TOKEN_GEN_TYPES.NONADMIN_APP2_DUP, null, SPACE_1_NAME);
         } catch (err) {
             console.error("Unable to create tokens in preparation for testing server connections. Please check " +
                 "your 'auth.json' file for errors or discrepancies with your account data. ERR: ", err);
-            throw err;
-        }
-        // Make sure the space we try to create later does not already exist, delete it if it does
-        try {
-            let spaceAlreadyExistsIDs: Array<string> = [];
-            let returnMessage = await fetch(`${stackURL}/api/v1/spaces/?token=${adminSigned}`);
-            let spacesListJSON: any = {};
-            spacesListJSON = await returnMessage.json();
-            spacesListJSON.forEach(async (space: any) => {
-                if (space['name'] === TOKEN_GEN_TYPES.NON_ADMIN_APP2_NEW_SPACE_NAME_SIGNED["space_name"]) { spaceAlreadyExistsIDs.push(space['space-id']) }
-            });
-
-            if (spaceAlreadyExistsIDs) {
-                spaceAlreadyExistsIDs.forEach(async (spaceID) => {
-                    let deleteReturnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}?token=${adminSigned}`, {
-                        method: 'DELETE'
-                    });
-                    let deleteReturnMessageJSON: any = {};
-                    deleteReturnMessageJSON = await deleteReturnMessage.json();
-
-                    expect(deleteReturnMessageJSON['space-id']).toBe(spaceID);
-                })
-            }
-        } catch (err) {
-            console.error(`Unable to ensure the nonexistent space does not exist. Please check your app. ERR: ${err}`);
             throw err;
         }
     });
 
     beforeEach(() => {
         hifiCommunicator = new HiFiCommunicator();
-    })
+    });
 
     afterEach(async () => {
         await hifiCommunicator.disconnectFromHiFiAudioAPIServer();
     });
 
+    afterAll(async () => {
+        try {
+            await fetch(`${stackURL}/api/v1/spaces/${space1id}?token=${admin}`, {
+                method: 'DELETE'
+            });
+
+            await fetch(`${stackURL}/api/v1/spaces/${spaceWithDuplicateNameID}?token=${admin}`, {
+                method: 'DELETE'
+            });
+        } catch (err) {
+            console.error("Unable to clean up after tests by deleting created space. ERR: ", err);
+            throw err;
+        }
+    });
+
     // TODO add checks for correct stack connections once those fetch calls are possible (Jira 435)
 
     test(`CAN connect to Space A on staging with signed token containing Space ID A`, async () => {
-        await hifiCommunicator.connectToHiFiAudioAPIServer(nonAdminSigned, stackURL)
+        await hifiCommunicator.connectToHiFiAudioAPIServer(nonadmin, stackURL)
             .then(data => {
                 expect(data.audionetInitResponse.success).toBe(true);
             });
@@ -82,65 +85,64 @@ describe('Non admin server connections', () => {
     test(`CAN connect to Space A on staging with UNSIGNED token containing Space ID A when space does not require signing`, async () => {
         // set space to allow unsigned tokens
         try {
-            await fetch(`${stackURL}/api/v1/spaces/${stackData.apps.app2.spaces.space1.id}/settings?token=${adminSigned}&ignore-token-signing=true`);
+            await fetch(`${stackURL}/api/v1/spaces/${space1id}/settings?token=${admin}&ignore-token-signing=true`);
         } catch (err) {
             console.error("Unable to set space to ignore token signing. ERR: ", err);
             throw err;
         }
 
-        await hifiCommunicator.connectToHiFiAudioAPIServer(nonAdminUnsigned, stackURL)
+        await hifiCommunicator.connectToHiFiAudioAPIServer(nonadminUnsigned, stackURL)
             .then(data => { expect(data.audionetInitResponse.success).toBe(true) });
     });
 
     test(`CANNOT connect to Space A on staging with UNSIGNED token containing Space ID A when space does require signing`, async () => {
         // set space to not allow unsigned tokens
         try {
-            await fetch(`${stackURL}/api/v1/spaces/${stackData.apps.app2.spaces.space1.id}/settings?token=${adminSigned}&ignore-token-signing=false`);
+            await fetch(`${stackURL}/api/v1/spaces/${space1id}/settings?token=${admin}&ignore-token-signing=false`);
         } catch (err) {
             console.error("Unable to set space to ignore token signing. ERR: ", err);
             throw err;
         }
 
-        await expect(hifiCommunicator.connectToHiFiAudioAPIServer(nonAdminUnsigned, stackURL))
+        await expect(hifiCommunicator.connectToHiFiAudioAPIServer(nonadminUnsigned, stackURL))
             .rejects.toMatchObject({ error: expect.stringMatching(/Unexpected server response: 501/) });
     });
 
     test(`CAN connect to Space A on staging with signed token containing Space ID A when space does not require signing`, async () => {
         // set space to not allow unsigned tokens
         try {
-            await fetch(`${stackURL}/api/v1/spaces/${stackData.apps.app2.spaces.space1.id}/settings?token=${adminSigned}&ignore-token-signing=false`);
+            await fetch(`${stackURL}/api/v1/spaces/${space1id}/settings?token=${admin}&ignore-token-signing=false`);
         } catch (err) {
             console.error("Unable to set space to ignore token signing. ERR: ", err);
             throw err;
         }
 
-        await hifiCommunicator.connectToHiFiAudioAPIServer(nonAdminSigned, stackURL)
+        await hifiCommunicator.connectToHiFiAudioAPIServer(nonadmin, stackURL)
             .then(data => { expect(data.audionetInitResponse.success).toBe(true) });
     });
 
-    // TODO Fix this for the 4 new stack types
     test(`Attempting to connect without specifying a stack will target api.highfidelity.com`, async () => {
-        if (hostname.indexOf("staging") > -1) { // testing staging
-            await expect(hifiCommunicator.connectToHiFiAudioAPIServer(nonAdminSigned))
+        if (stackname.indexOf("staging") > -1) { // testing staging
+            await expect(hifiCommunicator.connectToHiFiAudioAPIServer(nonadmin))
                 .rejects.toMatchObject({ error: expect.stringMatching(/api.highfidelity.com/) });
-        } else if (hostname.indexOf("alpha") > -1) { // testing prod
-            await expect(hifiCommunicator.connectToHiFiAudioAPIServer(nonAdminSigned))
+        } else if (stackname.indexOf("alpha") > -1) { // testing prod
+            await expect(hifiCommunicator.connectToHiFiAudioAPIServer(nonadmin))
                 .resolves.toMatchObject({ audionetInitResponse: expect.objectContaining({ "success": true}) });
         }
     });
 
     test(`Attempting to connect when specifying a WSS stack URL will target the specified stack`, async () => {
-        await hifiCommunicator.connectToHiFiAudioAPIServer(nonAdminSigned, websocketEndpointURL + "?token=")
+        await hifiCommunicator.connectToHiFiAudioAPIServer(nonadmin, websocketEndpointURL + "?token=")
             .then(data => { expect(data.audionetInitResponse.success).toBe(true) });
     });
 
     test(`CANNOT connect to a space on staging that doesn’t exist (i.e. token contains an invalid space ID)`, async () => {
-        await expect(hifiCommunicator.connectToHiFiAudioAPIServer(nonAdminNonexistentSpaceID, stackURL))
+        await expect(hifiCommunicator.connectToHiFiAudioAPIServer(nonadminNonexistentSpaceID, stackURL))
             .rejects.toMatchObject({ error: expect.stringMatching(/Unexpected server response: 501/) });
     });
 
     test(`CAN create a space by trying to connect with SIGNED token with nonexistent space NAME and no space ID and correct stack URL`, async () => {
-        await hifiCommunicator.connectToHiFiAudioAPIServer(nonAdminNewSpaceName, stackURL)
+        await hifiCommunicator.connectToHiFiAudioAPIServer(nonadminNewSpaceName, stackURL)
             .then(data => {
                 expect(data.audionetInitResponse.success).toBe(true);
             });
@@ -149,11 +151,11 @@ describe('Non admin server connections', () => {
         let createdSpaceID: string;
         try {
             let spaceWasCreated = false;
-            let returnMessage = await fetch(`${stackURL}/api/v1/spaces/?token=${adminSigned}`);
+            let returnMessage = await fetch(`${stackURL}/api/v1/spaces/?token=${admin}`);
             let spacesListJSON: any = {};
             spacesListJSON = await returnMessage.json();
             spacesListJSON.forEach((space: any) => {
-                if (space['name'] === TOKEN_GEN_TYPES.NON_ADMIN_APP2_NEW_SPACE_NAME_SIGNED["space_name"]) {
+                if (space['name'] === NEW_SPACE_NAME) {
                     spaceWasCreated = true;
                     createdSpaceID = space['space-id'];
                 }
@@ -167,7 +169,7 @@ describe('Non admin server connections', () => {
 
         // delete the created space for clean up
         try {
-            await fetch(`${stackURL}/api/v1/spaces/${createdSpaceID}?token=${adminSigned}`, {
+            await fetch(`${stackURL}/api/v1/spaces/${createdSpaceID}?token=${admin}`, {
                 method: 'DELETE'
             });
         } catch (err) {
@@ -177,26 +179,26 @@ describe('Non admin server connections', () => {
     });
 
     test(`CANNOT connect to a space BY NAME when multiple spaces with the same name exist in the same app`, async () => {
-        await expect(hifiCommunicator.connectToHiFiAudioAPIServer(nonAdminDupSpaceName, stackURL))
+        await expect(hifiCommunicator.connectToHiFiAudioAPIServer(nonadminDupSpaceName, stackURL))
             .rejects.toMatchObject({
                 error: expect.stringMatching(/Unexpected server response: 501/)
             });
     });
 
     test(`CAN connect to a space using a timed token before the token expires`, async () => {
-        await hifiCommunicator.connectToHiFiAudioAPIServer(nonAdminTimed, stackURL)
+        await hifiCommunicator.connectToHiFiAudioAPIServer(nonadminTimed, stackURL)
             .then(data => { expect(data.audionetInitResponse.success).toBe(true) });
     });
 
     test(`CANNOT connect to a space using a timed token after the token expires`, async () => {
-        await expect(hifiCommunicator.connectToHiFiAudioAPIServer(nonAdminExpired, stackURL))
+        await expect(hifiCommunicator.connectToHiFiAudioAPIServer(nonadminExpired, stackURL))
             .rejects.toMatchObject({ error: expect.stringMatching(/Unexpected server response: 501/) });
     });
 
     test(`CAN disconnect once connected`, async () => {
         // make sure we're connected first
         try {
-            await hifiCommunicator.connectToHiFiAudioAPIServer(nonAdminSigned, stackURL)
+            await hifiCommunicator.connectToHiFiAudioAPIServer(nonadmin, stackURL)
         } catch (err) {
             console.error("Unable to connect before testing disconnect. ERR: ", err);
             throw err;
