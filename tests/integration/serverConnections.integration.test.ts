@@ -1,19 +1,41 @@
 const fetch = require('node-fetch');
+const stacks = require('../secrets/auth.json').stacks;
+
 import { HiFiCommunicator } from "../../src/classes/HiFiCommunicator";
-import { TOKEN_GEN_TYPES, generateJWT, generateUUID } from '../testUtilities/testUtils';
+import { tokenTypes, generateJWT, generateUUID, setStackData } from '../testUtilities/testUtils';
 
 const NEW_SPACE_NAME = generateUUID();
 const SPACE_1_NAME = generateUUID();
 
 let args = require('minimist')(process.argv.slice(2));
-let stackname = args.stackname || "api-staging-latest.highfidelity.com";
+let stackname = args.stackname || process.env.hostname || "api-staging-latest";
 console.log("_______________STACKNAME_______________________", stackname);
-let stackURL = `https://${stackname}`;
-let websocketEndpointURL = `wss://${stackname}/dev/account:8001/`;
+let stackURL = `https://${stackname}.highfidelity.com`;
+let websocketEndpointURL = `wss://${stackname}.highfidelity.com/dev/account:8001/`;
 let space1id: string;
 let spaceWithDuplicateNameID: string;
 
 describe('Non admin server connections', () => {
+    let stackData: { apps: { APP_1: { id: string; secret: string; }; APP_2: { id: string; secret: string; }; }; };
+    if (stackname === "api-staging" || stackname === "api-staging-latest") {
+        stackData = stacks.staging;
+        console.log("_______________USING STAGING AUTH FILE_______________________");
+    } else if (stackname === "api-pro" || stackname === "api-pro-latest") {
+        stackData = stacks.pro;
+        console.log("_______________USING PRO AUTH FILE_______________________");
+    } else if (stackname === "api-pro-east" || stackname === "api-pro-latest-east") {
+        stackData = stacks.east;
+        console.log("_______________USING EAST AUTH FILE_______________________");
+    } else if (stackname === "api" || stackname === "api-hobby-latest") {
+        stackData = stacks.hobby;
+        console.log("_______________USING HOBBY AUTH FILE_______________________");
+    }
+    if (!stackData) {
+        console.error("Cannot proceed with tests. Stackname provided does not match any stack in the auth file.");
+        return;
+    }
+    setStackData(stackData);
+
     let admin: string;
     let nonadmin: string;
     let nonadminUnsigned: string;
@@ -25,7 +47,7 @@ describe('Non admin server connections', () => {
     let hifiCommunicator: HiFiCommunicator;
     beforeAll(async () => {
         try {
-            let adminTokenNoSpace = await generateJWT(TOKEN_GEN_TYPES.ADMIN_ID_APP2);
+            let adminTokenNoSpace = await generateJWT(tokenTypes.ADMIN_ID_APP2);
             let returnMessage = await fetch(`${stackURL}/api/v1/spaces/create?token=${adminTokenNoSpace}&name=${SPACE_1_NAME}`);
             let returnMessageJSON = await returnMessage.json();
             space1id = returnMessageJSON['space-id'];
@@ -35,14 +57,14 @@ describe('Non admin server connections', () => {
             returnMessageJSON = await returnMessage.json();
             spaceWithDuplicateNameID = returnMessageJSON['space-id'];
 
-            admin = await generateJWT(TOKEN_GEN_TYPES.ADMIN_ID_APP2, space1id);
-            nonadmin = await generateJWT(TOKEN_GEN_TYPES.NONADMIN_ID_APP2, space1id);
-            nonadminUnsigned = await generateJWT(TOKEN_GEN_TYPES.NONADMIN_ID_APP2_UNSIGNED, space1id);
-            nonadminNonexistentSpaceID = await generateJWT(TOKEN_GEN_TYPES.NONADMIN_ID_APP2, generateUUID());
-            nonadminNewSpaceName = await generateJWT(TOKEN_GEN_TYPES.NONADMIN_ID_APP2, null, NEW_SPACE_NAME);
-            nonadminTimed = await generateJWT(TOKEN_GEN_TYPES.NONADMIN_APP2_TIMED, space1id);
-            nonadminExpired = await generateJWT(TOKEN_GEN_TYPES.NONADMIN_APP2_TIMED_EXPIRED, space1id);
-            nonadminDupSpaceName = await generateJWT(TOKEN_GEN_TYPES.NONADMIN_APP2_DUP, null, SPACE_1_NAME);
+            admin = await generateJWT(tokenTypes.ADMIN_ID_APP2, space1id);
+            nonadmin = await generateJWT(tokenTypes.NONADMIN_ID_APP2, space1id);
+            nonadminUnsigned = await generateJWT(tokenTypes.NONADMIN_ID_APP2_UNSIGNED, space1id);
+            nonadminNonexistentSpaceID = await generateJWT(tokenTypes.NONADMIN_ID_APP2, generateUUID());
+            nonadminNewSpaceName = await generateJWT(tokenTypes.NONADMIN_ID_APP2, null, NEW_SPACE_NAME);
+            nonadminTimed = await generateJWT(tokenTypes.NONADMIN_APP2_TIMED, space1id);
+            nonadminExpired = await generateJWT(tokenTypes.NONADMIN_APP2_TIMED_EXPIRED, space1id);
+            nonadminDupSpaceName = await generateJWT(tokenTypes.NONADMIN_APP2_DUP, null, SPACE_1_NAME);
         } catch (err) {
             console.error("Unable to create tokens in preparation for testing server connections. Please check " +
                 "your 'auth.json' file for errors or discrepancies with your account data. ERR: ", err);
