@@ -25,6 +25,17 @@
     │           └── HiFiLogger.unit.test.ts  
     └── README.md  
 
+## Stack Data in the Current Auth File:
+
+| Stack    | Names                              |
+|----------|------------------------------------|
+| staging  | api-staging, api-staging-latest    |
+| pro      | api-pro, api-pro-latest            |
+| east     | api-pro-east, api-pro-latest-east  |
+| hobby    | api, api-hobby-latest              |
+
+## Full Local Testing on 'staging-latest'
+
 To run all tests locally against 'staging-latest', type `jest test` into the console. All files in the `tests` directory and subdirectories ending in `.test.ts` will run.
 
 ## Local Smoke Testing on 'staging-latest'
@@ -40,7 +51,7 @@ Unit testing will test each part of the API to show that the individual function
 Integration testing will combine different modules in the API and test individual functions using actual server connections. These tests will run automatically via GHA before any code is merged and can be run manually from the console or from GHA workflow dispatch. To run only integration tests, type `jest integration` into the console. All files in the `tests/integration` directory ending in `.test.ts` will run.
 
 ## Testing against other stacks
-To test any stack other than 'staging-latest', you will need to input the stack name as an arg when running jest from the console. First, update your `auth.json` file with the data for the stack you want to test against. When ready to test, you will need to run Jest via a node script. The following example runs one specific test file against the main production stack. You can confirm that the correct stack is being used by checking the logs.
+Make sure your stack apps/IDs are included in the auth file and then run Jest via a node script named 'test'. The following example runs one specific test file against the main production (hobby) stack. You can confirm that the correct stack is being used by checking the logs. You may also run tests against other stacks via GHA workflows(see below).
 
 ```
 npm run test serverConnections.integration.test.ts -- --stackname=api.highfidelity.com
@@ -75,15 +86,20 @@ beforeAll(async () => {
 ```
 
 ### Secrets and Account Setup
-Since integration and smoke tests require actual server connections (as opposed to mock functions and connections), you will need to set up an account with some preset apps and spaces and a way to access private data to test with. The tests will use specific names, IDs, secrets, and URLs, so create a copy of `auth.example.json` named `auth.json` in your `secrets` folder and then replace the data to match your own account.
+Since integration and smoke tests require actual server connections (as opposed to mock functions and connections), you will need to set up an account with some preset apps and a way to access private data to test with. The tests will use specific app names and IDs/secrets, so create a copy of `auth.example.json` named `auth.json` in your `secrets` folder and then replace the data to match your own account.
 
-### Github Actions (GHA) Requirements
-GHA needs access to the `auth.json` file, so we encrypt that file and upload to the repo. We add the encryption key as a secret to our Github account. If the app or space IDs change for the `staging-latest` stack, this encrypted file needs to be updated.
+### Github Actions (GHA) 
+
+#### Requirements
+GHA needs access to the `auth.json` file, so we encrypt that file and upload to the repo. We add the encryption key as a secret to our Github account. If the app IDs/secrets change for any of these stacks, this encrypted file needs to be updated.
+
+#### Workflows
+There is a workflow dispatch in GHA that allows you to manually run tests against a specified stack and branch. This will work as long as the specified stack data is included in the branch's auth file.
 
 #### TO UPDATE THE REPO WITH NEW APP IDS:
-1. Create the apps and spaces in the QA [HiFi dev account page](https://api-staging-latest.highfidelity.com) The username and password are in [1pass](https://1password.com).
+1. Create the apps in the QA [HiFi dev account page](https://api-staging-latest.highfidelity.com) The username and password are in [1pass](https://1password.com).
 
-2. Update your `auth.json` file with the new app and space IDs and update the file in 1pass.
+2. Update your `auth.json` file with the new app IDs/secrets and update the file in 1pass.
 
 3. Follow the instructions [here](https://docs.github.com/en/actions/reference/encrypted-secrets#limits-for-secrets) to encrypt the `auth.json` file. You will need to use the encryption key stored in 1pass under 'QA>Github Secret for Automated Testing' when prompted for a password.
 
