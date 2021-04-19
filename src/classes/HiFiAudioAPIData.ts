@@ -496,10 +496,11 @@ export class ReceivedHiFiAudioAPIData extends HiFiAudioAPIData {
      */
     isStereo: boolean;
     
-    constructor(params: { providedUserID?: string, hashedVisitID?: string, volumeDecibels?: number, position?: Point3D, orientationQuat?: OrientationQuat3D, hiFiGain?: number, isStereo?:boolean } = {}) {
+    constructor(params: { providedUserID?: string, hashedVisitID?: string, volumeDecibels?: number, position?: Point3D, orientationQuat?: OrientationQuat3D, hiFiGain?: number, isStereo?: boolean } = {}) {
         super(params);
         this.providedUserID = params.providedUserID;
         this.hashedVisitID = params.hashedVisitID;
         this.volumeDecibels = params.volumeDecibels;
+        this.isStereo = params.isStereo;
     }
 }
