@@ -437,6 +437,13 @@ export class HiFiMixerSession {
                     serverSentNewUserData = true;
                 }
 
+                // `ReceivedHiFiAudioAPIData.isStereo`
+                if (typeof (peerDataFromMixer.s) === "boolean") {
+                    userDataCache.isStereo = peerDataFromMixer.s;
+                    newUserData.isStereo = peerDataFromMixer.s;
+                    serverSentNewUserData = true;
+                }
+
                 // the newUserData AND the userDataCache have been updated with the new values
                 // propagate newUserData to user space
                 if (serverSentNewUserData) {

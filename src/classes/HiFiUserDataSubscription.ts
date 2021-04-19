@@ -13,7 +13,8 @@ export enum AvailableUserDataSubscriptionComponents {
     OrientationEuler = "Orientation (Euler)",
     OrientationQuat = "Orientation (Quaternion)",
     VolumeDecibels = "Volume (Decibels)",
-    HiFiGain = "HiFiGain"
+    HiFiGain = "HiFiGain",
+    IsStereo = "IsStereo"
 }
 
 /**
