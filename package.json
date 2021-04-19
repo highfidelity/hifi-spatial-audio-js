@@ -1,6 +1,6 @@
 {
   "name": "hifi-spatial-audio",
-  "version": "0.9.1-3",
+  "version": "0.9.1-4",
   "description": "The High Fidelity Audio Client Library allows developers to integrate High Fidelity's spatial audio technology into their projects.",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
