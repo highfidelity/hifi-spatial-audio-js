@@ -1,23 +1,43 @@
 const fetch = require('node-fetch');
-const stackData = require('../secrets/auth.json').stackData;
+const stacks = require('../secrets/auth.json').stacks;
 
-import { TOKEN_GEN_TYPES, generateJWT, generateUUID, sleep, ZoneData, AttenuationData } from '../testUtilities/testUtils';
+import { tokenTypes, generateJWT, generateUUID, sleep, ZoneData, AttenuationData, setStackData } from '../testUtilities/testUtils';
 import { TestUser } from '../testUtilities/TestUser';
 import { HiFiConnectionStates } from "../../src/classes/HiFiCommunicator";
 
 let args = require('minimist')(process.argv.slice(2));
-let stackname = args.stackname || "api-staging-latest.highfidelity.com";
+let stackname = args.stackname || process.env.hostname || "api-staging-latest";
 console.log("_______________STACKNAME_______________________", stackname);
-let stackURL = `https://${stackname}`;
+let stackURL = `https://${stackname}.highfidelity.com`;
 let adminTokenNoSpace: string;
 let nonadminTokenNoSpace: string;
 
 describe('HiFi API REST Calls', () => {
-    let appID = stackData.apps.app1.id;
+    let stackData: { apps: { APP_1: { id: string; secret: string; }; APP_2: { id: string; secret: string; }; }; };
+    if (stackname === "api-staging" || stackname === "api-staging-latest") {
+        stackData = stacks.staging;
+        console.log("_______________USING STAGING AUTH FILE_______________________");
+    } else if (stackname === "api-pro" || stackname === "api-pro-latest") {
+        stackData = stacks.pro;
+        console.log("_______________USING PRO AUTH FILE_______________________");
+    } else if (stackname === "api-pro-east" || stackname === "api-pro-latest-east") {
+        stackData = stacks.east;
+        console.log("_______________USING EAST AUTH FILE_______________________");
+    } else if (stackname === "api" || stackname === "api-hobby-latest") {
+        stackData = stacks.hobby;
+        console.log("_______________USING HOBBY AUTH FILE_______________________");
+    }
+    if (!stackData) {
+        console.error("Cannot proceed with tests. Stackname provided does not match any stack in the auth file.");
+        return;
+    }
+    setStackData(stackData);
+
+    let appID = stackData.apps.APP_1.id;
 
     beforeAll(async () => {
-        adminTokenNoSpace = await generateJWT(TOKEN_GEN_TYPES.ADMIN_ID_APP1);
-        nonadminTokenNoSpace = await generateJWT(TOKEN_GEN_TYPES.NONADMIN_ID_APP1);
+        adminTokenNoSpace = await generateJWT(tokenTypes.ADMIN_ID_APP1);
+        nonadminTokenNoSpace = await generateJWT(tokenTypes.NONADMIN_ID_APP1);
     });
 
     describe('App spaces', () => {
@@ -41,7 +61,7 @@ describe('HiFi API REST Calls', () => {
             }
         });
 
-        afterAll( async () => {
+        afterAll(async () => {
             jest.setTimeout(5000); // restore to default
         });
 
@@ -53,8 +73,8 @@ describe('HiFi API REST Calls', () => {
             expect(returnMessageJSON['space-id']).toBeDefined();
             spaceID = returnMessageJSON['space-id'];
             expect(returnMessageJSON['app-id']).toBe(appID);
-            adminToken = await generateJWT(TOKEN_GEN_TYPES.ADMIN_ID_APP1, spaceID);
-            nonAdminToken = await generateJWT(TOKEN_GEN_TYPES.NONADMIN_ID_APP1, spaceID);
+            adminToken = await generateJWT(tokenTypes.ADMIN_ID_APP1, spaceID);
+            nonAdminToken = await generateJWT(tokenTypes.NONADMIN_ID_APP1, spaceID);
 
             // Create a space via POST request
             let space2Name = generateUUID();
@@ -87,8 +107,12 @@ describe('HiFi API REST Calls', () => {
 
             // The list is accurate
             expect(spacesListJSON.length).toBe(2);
-            expect(spacesListJSON[0]['space-id']).toBe(spaceID);
-            expect(spacesListJSON[1]['space-id']).toBe(space2id);
+            expect(spacesListJSON[0]['space-id'] === spaceID || spacesListJSON[0]['space-id'] === space2id).toBeTruthy();
+            if (spacesListJSON[0]['space-id'] === spaceID) {
+                expect(spacesListJSON[1]['space-id']).toBe(space2id);
+            } else {
+                expect(spacesListJSON[1]['space-id']).toBe(spaceID);
+            }
 
             // Read settings for a space
             returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings?token=${adminToken}`);
@@ -211,7 +235,7 @@ describe('HiFi API REST Calls', () => {
                 returnMessage = await fetch(`${stackURL}/api/v1/spaces/create?token=${adminTokenNoSpace}`);
                 returnMessageJSON = await returnMessage.json();
                 spaceID = returnMessageJSON['space-id'];
-                nonAdminToken = await generateJWT(TOKEN_GEN_TYPES.NONADMIN_ID_APP1, spaceID);
+                nonAdminToken = await generateJWT(tokenTypes.NONADMIN_ID_APP1, spaceID);
             } catch (e) {
                 console.error("Failed to create a space before tests for nonadmins trying to access space data.");
             }
@@ -324,8 +348,8 @@ describe('HiFi API REST Calls', () => {
                 let returnMessageJSON: any = {};
                 returnMessageJSON = await returnMessage.json();
                 spaceID = returnMessageJSON['space-id'];
-                adminToken = await generateJWT(TOKEN_GEN_TYPES.ADMIN_ID_APP1, spaceID);
-                nonAdminToken = await generateJWT(TOKEN_GEN_TYPES.NONADMIN_ID_APP1, spaceID);
+                adminToken = await generateJWT(tokenTypes.ADMIN_ID_APP1, spaceID);
+                nonAdminToken = await generateJWT(tokenTypes.NONADMIN_ID_APP1, spaceID);
             } catch (e) {
                 console.error("Failed to create a space before tests for kicking.");
             }
@@ -341,7 +365,7 @@ describe('HiFi API REST Calls', () => {
         beforeEach(async () => {
             testUsers = [];
             for (let i = 0; i < numberTestUsers; i++) {
-                let tokenData = TOKEN_GEN_TYPES.NONADMIN_ID_APP1
+                let tokenData = tokenTypes.NONADMIN_ID_APP1
                 tokenData['user_id'] = generateUUID();
                 testUsers.push(new TestUser(tokenData['user_id']));
                 let token = await generateJWT(tokenData, spaceID);
@@ -423,8 +447,8 @@ describe('HiFi API REST Calls', () => {
                     let returnMessageJSON: any = {};
                     returnMessageJSON = await returnMessage.json();
                     spaceID = returnMessageJSON['space-id'];
-                    adminTokenApp1 = await generateJWT(TOKEN_GEN_TYPES.ADMIN_ID_APP1, spaceID);
-                    adminTokenApp2 = await generateJWT(TOKEN_GEN_TYPES.ADMIN_ID_APP2);
+                    adminTokenApp1 = await generateJWT(tokenTypes.ADMIN_ID_APP1, spaceID);
+                    adminTokenApp2 = await generateJWT(tokenTypes.ADMIN_ID_APP2);
                 } catch (err) {
                     console.error("Failed to create spaces before tests for wrong admin.");
                 }
@@ -463,8 +487,8 @@ describe('HiFi API REST Calls', () => {
                 let returnMessageJSON: any = {};
                 returnMessageJSON = await returnMessage.json();
                 spaceID = returnMessageJSON['space-id'];
-                adminToken = await generateJWT(TOKEN_GEN_TYPES.ADMIN_ID_APP1, spaceID);
-                nonAdminToken = await generateJWT(TOKEN_GEN_TYPES.NONADMIN_ID_APP1, spaceID);
+                adminToken = await generateJWT(tokenTypes.ADMIN_ID_APP1, spaceID);
+                nonAdminToken = await generateJWT(tokenTypes.NONADMIN_ID_APP1, spaceID);
             } catch (e) {
                 console.error("Failed to create a space before tests for zones and attenuations.");
             }
@@ -1072,7 +1096,7 @@ describe('HiFi API REST Calls', () => {
                 spaceID = returnMessageJSON['space-id'];
 
                 // connect an admin test user to the space
-                let tokenData = TOKEN_GEN_TYPES.ADMIN_ID_APP1;
+                let tokenData = tokenTypes.ADMIN_ID_APP1;
                 tokenData['user_id'] = generateUUID();
                 testUserAdmin = new TestUser(tokenData['user_id']);
                 adminToken = await generateJWT(tokenData, spaceID);
@@ -1084,7 +1108,7 @@ describe('HiFi API REST Calls', () => {
                 expect(testUserAdmin.connectionState).toBe(HiFiConnectionStates.Connected);
 
                 // connect a nonadmin test user to the space
-                tokenData = TOKEN_GEN_TYPES.NONADMIN_ID_APP1;
+                tokenData = tokenTypes.NONADMIN_ID_APP1;
                 tokenData['user_id'] = generateUUID();
                 testUserNonadmin = new TestUser(tokenData['user_id']);
                 nonadminToken = await generateJWT(tokenData, spaceID);
