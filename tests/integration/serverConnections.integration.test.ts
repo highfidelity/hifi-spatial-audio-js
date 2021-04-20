@@ -15,24 +15,21 @@ let stackURL = `https://${stackname}.highfidelity.com`;
 let websocketEndpointURL = `wss://${stackname}.highfidelity.com/dev/account:8001/`;
 let space1id: string;
 let spaceWithDuplicateNameID: string;
-let usersDataArray: UserData[];
+let usersDataArray: UserData[] = [];
 
-function onUserDataReceived(receivedHiFiAudioAPIDataArray: UserData[]) {
-    let key: keyof UserData;
+function onUserDataReceived<K extends keyof UserData>(receivedHiFiAudioAPIDataArray: UserData[]) {
     receivedHiFiAudioAPIDataArray.forEach((receivedUserData: UserData) => {
         if (usersDataArray.length < 1) {
             usersDataArray.push(receivedUserData);
-            console.log("___________NEW USER______________");
             return;
         }
         let newUser = true;
         usersDataArray.forEach((userData: UserData) => {
-            console.log("___________CHECKING USER______________", userData);
             if (userData.hashedVisitID === receivedUserData.hashedVisitID) {
                 newUser = false;
-                for (key in receivedUserData) {
-                    if (receivedUserData[key] !== userData[key]) {
-                        userData[key] = receivedUserData[key];
+                for (let key in receivedUserData) {
+                    if (userData[key as K] !== (receivedUserData[key as K])) {
+                        userData[key as K] = (receivedUserData[key as K]);
                     }
                 }
             }
@@ -360,7 +357,9 @@ describe('Mixer connections', () => {
 
     describe.only(`Mixer interactions`, () => {
         let myHashedVisitID: string;
+        let indexOfMyData: number;
         beforeAll(async () => {
+            jest.setTimeout(30000);
             hifiCommunicator = new HiFiCommunicator();
             await hifiCommunicator.connectToHiFiAudioAPIServer(nonadmin, stackURL)
                 .then(data => {
@@ -377,44 +376,46 @@ describe('Mixer connections', () => {
                 "callback": onUserDataReceived
             });
             hifiCommunicator.addUserDataSubscription(userDataSubscription);
-            await sleep(30000);
+            await sleep(10000);
         });
 
         afterAll(async () => {
             hifiCommunicator.disconnectFromHiFiAudioAPIServer();
+            jest.setTimeout(5000);
         });
 
-        test(`Can get an output stream`, async () => {
+        // test(`Can get an output stream`, async () => {
 
+        // });
+
+        // test(`Can set an input stream`, async () => {
+
+        // });
+
+        // test(`Can mute self`, async () => {
+        //     // await hifiCommunicator._mixerSession
+        //     //     .then(data => {
+        //     //         expect(data.audionetInitResponse.success).toBe(true);
+        //     //         visitIDHash = data.audionetInitResponse.visit_id_hash;
+        //     //     });
+        // });
+
+        // test(`Can unmute self`, async () => {
+
+        // });
+
+        test.only(`Can get own user data (Position, Orientation, Volume, Gain, Attenuation, Rolloff)`, async () => {
+            indexOfMyData = usersDataArray.findIndex((userData: UserData) => userData.hashedVisitID === myHashedVisitID);
+            expect(indexOfMyData).toBeGreaterThan(-1);
         });
 
-        test(`Can set an input stream`, async () => {
+        // test(`Can change own user data`, async () => {
 
-        });
+        // });
 
-        test(`Can mute self`, async () => {
-            // await hifiCommunicator._mixerSession
-            //     .then(data => {
-            //         expect(data.audionetInitResponse.success).toBe(true);
-            //         visitIDHash = data.audionetInitResponse.visit_id_hash;
-            //     });
-        });
+        // test(`Can receive data about peers (Position, Orientation, Volume, Gain, Attenuation, Rolloff)`, async () => {
 
-        test(`Can unmute self`, async () => {
-
-        });
-
-        test(`Can get own user data (Position, Orientation, Volume, Gain, Attenuation, Rolloff)`, async () => {
-
-        });
-
-        test(`Can change own user data`, async () => {
-
-        });
-
-        test(`Can receive data about peers (Position, Orientation, Volume, Gain, Attenuation, Rolloff)`, async () => {
-
-        });
+        // });
     });
 
     test(`Disconnecting`, async () => {
