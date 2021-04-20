@@ -127,7 +127,7 @@ export function sleep(ms: number) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-export type ZoneData = {
+export interface ZoneData {
     "x-min": number,
     "x-max": number,
     "y-min": number,
@@ -138,10 +138,23 @@ export type ZoneData = {
     "id"?: number
 };
 
-export type AttenuationData = {
+export interface AttenuationData {
     "attenuation": number,
     "listener-zone-id": number,
     "source-zone-id": number,
     "za-offset": number,
     "id"?: number
 };
+
+export interface UserData {
+    position: object,
+    orientationQuat: object,
+    orientationEuler: object,
+    volumeThreshold: number,
+    hiFiGain: number,
+    userAttenuation: number,
+    userRolloff: number,
+    providedUserID: string,
+    hashedVisitID: string,
+    volumeDecibels: number
+}
