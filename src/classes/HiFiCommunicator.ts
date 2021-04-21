@@ -12,8 +12,8 @@ import { HiFiConstants } from "../constants/HiFiConstants";
 import { WebRTCSessionParams } from "../libravi/RaviSession";
 import { HiFiLogger } from "../utilities/HiFiLogger";
 import { HiFiUtilities } from "../utilities/HiFiUtilities";
-import { HiFiAudioAPIData, ReceivedHiFiAudioAPIData, Point3D, OrientationQuat3D, OrientationEuler3D, OrientationEuler3DOrder, eulerToQuaternion, eulerFromQuaternion } from "./HiFiAudioAPIData";
-import { HiFiAxisConfiguration, HiFiAxisUtilities, ourHiFiAxisConfiguration } from "./HiFiAxisConfiguration";
+import { HiFiAudioAPIData, ReceivedHiFiAudioAPIData, Point3D, OrientationQuat3D, OrientationEuler3D, OrientationEuler3DOrder } from "./HiFiAudioAPIData";
+import { eulerToQuaternion, eulerFromQuaternion } from "./HiFiDataConversion"
 import { HiFiMixerSession, SetOtherUserGainForThisConnectionResponse } from "./HiFiMixerSession";
 import { AvailableUserDataSubscriptionComponents, UserDataSubscription } from "./HiFiUserDataSubscription";
 
@@ -87,6 +87,8 @@ export class HiFiCommunicator {
     // This contains data dealing with the mixer session, such as the RAVI session, WebRTC address, etc.
     private _mixerSession: HiFiMixerSession;
 
+    private _defaultEulerOrder: OrientationEuler3DOrder;
+
     private _webRTCSessionParams?: WebRTCSessionParams;
 
     /**
@@ -100,7 +102,6 @@ export class HiFiCommunicator {
      * @param onUsersDisconnected - A function that will be called when a peer disconnects from the Space.
      * @param transmitRateLimitTimeoutMS - User Data updates will not be sent to the server any more frequently than this number in milliseconds.
      * @param userDataStreamingScope - Cannot be set later. See {@link HiFiUserDataStreamingScopes}.
-     * @param hiFiAxisConfiguration - Cannot be set later. The 3D axis configuration. See {@link ourHiFiAxisConfiguration} for defaults.
      * @param webrtcSessionParams - Cannot be set later. Extra parameters used for configuring the underlying WebRTC connection to the API servers.
      * These settings are not frequently used; they are primarily for specific jitter buffer configurations.
      */
@@ -110,7 +111,6 @@ export class HiFiCommunicator {
         onUsersDisconnected,
         transmitRateLimitTimeoutMS = HiFiConstants.DEFAULT_TRANSMIT_RATE_LIMIT_TIMEOUT_MS,
         userDataStreamingScope = HiFiUserDataStreamingScopes.All,
-        hiFiAxisConfiguration,
         webrtcSessionParams
     }: {
         initialHiFiAudioAPIData?: HiFiAudioAPIData,
@@ -118,7 +118,6 @@ export class HiFiCommunicator {
         onUsersDisconnected?: Function,
         transmitRateLimitTimeoutMS?: number,
         userDataStreamingScope?: HiFiUserDataStreamingScopes,
-        hiFiAxisConfiguration?: HiFiAxisConfiguration,
         webrtcSessionParams?: WebRTCSessionParams
     } = {}) {
         // Make minimum 10ms
@@ -147,6 +146,8 @@ export class HiFiCommunicator {
 
         this._userDataSubscriptions = [];
 
+        this._defaultEulerOrder = OrientationEuler3DOrder.YawPitchRoll;
+
         if (webrtcSessionParams && webrtcSessionParams.audioMinJitterBufferDuration && (webrtcSessionParams.audioMinJitterBufferDuration < 0.0 || webrtcSessionParams.audioMinJitterBufferDuration > 10.0)) {
             HiFiLogger.warn(`The value of \`webrtcSessionParams.audioMinJitterBufferDuration\` (${webrtcSessionParams.audioMinJitterBufferDuration}) will be clamped to (0.0, 10.0).`);
             webrtcSessionParams.audioMinJitterBufferDuration = HiFiUtilities.clamp(webrtcSessionParams.audioMinJitterBufferDuration, 0.0, 10.0);
@@ -156,21 +157,6 @@ export class HiFiCommunicator {
             webrtcSessionParams.audioMaxJitterBufferDuration = HiFiUtilities.clamp(webrtcSessionParams.audioMaxJitterBufferDuration, 0.0, 10.0);
         }
         this._webRTCSessionParams = webrtcSessionParams;
-
-        if (hiFiAxisConfiguration) {
-            if (HiFiAxisUtilities.verify(hiFiAxisConfiguration)) {
-                ourHiFiAxisConfiguration.rightAxis = hiFiAxisConfiguration.rightAxis;
-                ourHiFiAxisConfiguration.leftAxis = hiFiAxisConfiguration.leftAxis;
-                ourHiFiAxisConfiguration.intoScreenAxis = hiFiAxisConfiguration.intoScreenAxis;
-                ourHiFiAxisConfiguration.outOfScreenAxis = hiFiAxisConfiguration.outOfScreenAxis;
-                ourHiFiAxisConfiguration.upAxis = hiFiAxisConfiguration.upAxis;
-                ourHiFiAxisConfiguration.downAxis = hiFiAxisConfiguration.downAxis;
-                ourHiFiAxisConfiguration.handedness = hiFiAxisConfiguration.handedness;
-                ourHiFiAxisConfiguration.eulerOrder = hiFiAxisConfiguration.eulerOrder;
-            } else {
-                HiFiLogger.error(`There is an error with the passed \`HiFiAxisConfiguration\`, so the new axis configuration was not set. There are more error details in the logs above.`);
-            }
-        }
 
         // Initialize the current Audio API Data with the given data, but use the 'updateUserData()' call for sanity.
         this._updateUserData(initialHiFiAudioAPIData);
@@ -447,7 +433,7 @@ export class HiFiCommunicator {
      * The quaternion representation is preferred.
      * If both representation are provided, the euler representation is ignored.
      * If only the euler representation is provided, it is then converted immediately to the equivalent quaternion representation.
-     * The eulerOrder used for the conversion is the provided by the 'ourAxisConfiguration.eulerOrder'.
+     * The eulerOrder used for the conversion is the provided by _defaultEulerOrder'.
      * Euler representation is not used internally anymore in the Hifi API.
      * 
      * @param __namedParameters
@@ -488,7 +474,7 @@ export class HiFiCommunicator {
         // if orientation is provided as an euler format, then do the conversion immediately
         else if (orientationEuler) {
             let checkedEuler = new OrientationEuler3D(orientationEuler);
-            this._currentHiFiAudioAPIData.orientationQuat = eulerToQuaternion(checkedEuler, ourHiFiAxisConfiguration.eulerOrder);
+            this._currentHiFiAudioAPIData.orientationQuat = eulerToQuaternion(checkedEuler, this._defaultEulerOrder);
         }
 
         if (typeof (volumeThreshold) === "number") {
@@ -697,7 +683,7 @@ export class HiFiCommunicator {
                         case AvailableUserDataSubscriptionComponents.OrientationEuler:
                             // Generate the euler version of orientation if quat version available
                             if (currentDataFromServer.orientationQuat) {
-                                newCallbackData.orientationEuler = eulerFromQuaternion(currentDataFromServer.orientationQuat, ourHiFiAxisConfiguration.eulerOrder);
+                                newCallbackData.orientationEuler = eulerFromQuaternion(currentDataFromServer.orientationQuat, this._defaultEulerOrder);
                                 shouldPushNewCallbackData = true;
                             }
                             break;
