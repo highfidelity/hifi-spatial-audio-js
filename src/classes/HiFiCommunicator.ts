@@ -279,37 +279,13 @@ export class HiFiCommunicator {
      * @returns If this operation is successful, the Promise will resolve with {@link SetOtherUserGainForThisConnectionResponse} with `success` equal to `true`.
      * If unsuccessful, the Promise will reject with {@link SetOtherUserGainForThisConnectionResponse} with `success` equal to `false` and `error` set to an error message describing what went wrong.
      */
-    async setOtherUserGainForThisConnection(visitIdHash: String, gain: Number): Promise<SetOtherUserGainForThisConnectionResponse> {
-        let setOtherUserGainForThisConnectionResponse;
+    async setOtherUserGainForThisConnection(visitIdHash: string, gain: number): Promise<SetOtherUserGainForThisConnectionResponse> {
+        this._currentHiFiAudioAPIData.otherUserGainQueue[visitIdHash] = gain;
 
-        if (!this._mixerSession) {
-            let errMsg = `\`this._mixerSession\` is falsey!`;
-            return Promise.reject({
-                success: false,
-                error: errMsg
-            });
-        }
-
-        try {
-            setOtherUserGainForThisConnectionResponse = await this._mixerSession.setOtherUserGainForThisConnection(visitIdHash, gain);
-        } catch (errorSettingUserGain) {
-            let errorReason : any;
-            if (errorSettingUserGain.error) {
-                errorReason = errorSettingUserGain.error;
-            } else {
-                errorReason = JSON.stringify(errorSettingUserGain);
-            }
-            let errMsg = `Error when setting other user gain for this connection. Error: \n${errorReason}`;
-            return Promise.reject({
-                success: false,
-                error: errMsg,
-                audionetSetOtherUserGainForThisConnectionResponse: errorSettingUserGain.audionetSetOtherUserGainForThisConnectionResponse
-            });
-        }
-
+        let result = this._transmitHiFiAudioAPIDataToServer();
         return Promise.resolve({
-            success: true,
-            audionetSetOtherUserGainForThisConnectionResponse: setOtherUserGainForThisConnectionResponse.audionetSetOtherUserGainForThisConnectionResponse
+            success: result.success,
+            error: result.error
         });
     }
 
@@ -559,6 +535,14 @@ export class HiFiCommunicator {
         if (typeof (dataJustTransmitted.userRolloff) === "number") {
             this._lastTransmittedHiFiAudioAPIData["userRolloff"] = dataJustTransmitted.userRolloff;
         }
+        if (typeof (dataJustTransmitted.otherUserGainQueue) === "object") {
+            if (typeof(this._lastTransmittedHiFiAudioAPIData.otherUserGainQueue) !== "object") {
+                this._lastTransmittedHiFiAudioAPIData.otherUserGainQueue = {};
+            }
+            for (const idToGain of Object.entries(dataJustTransmitted.otherUserGainQueue)) {
+                this._lastTransmittedHiFiAudioAPIData.otherUserGainQueue[idToGain[0]] = idToGain[1];
+            }
+        }
     }
 
     /**
@@ -595,6 +579,9 @@ export class HiFiCommunicator {
                 // Now we have to update our "last transmitted" `HiFiAudioAPIData` object
                 // to contain the data that we just transmitted.
                 this._updateLastTransmittedHiFiAudioAPIData(this._currentHiFiAudioAPIData);
+                // Finally, in some cases, clean up some of the transmitted data history
+                // (particularly, otherUserGainQueue)
+                this._cleanUpHiFiAudioAPIDataHistory();
 
                 return {
                     success: true,
@@ -617,6 +604,23 @@ export class HiFiCommunicator {
                 success: false,
                 error: `No server connection yet; can't transmit user data.`
             };
+        }
+    }
+
+    /**
+     * Normally, we try to limit the amount of data we transmit to the High Fidelity Audio API server, by remembering what we
+     * sent. See {@link _updateUserData} for more information on how this is done.
+     *
+     * This function exists to handle any scenarios of remembering too much sent data. It is called just after data is succesfully sent, when data is known to no longer be needed.
+     */
+    private _cleanUpHiFiAudioAPIDataHistory(): void {
+        // Always clear otherUserGainQueue in our local data
+        this._currentHiFiAudioAPIData.otherUserGainQueue = {};
+
+        let maxCachedOtherUserGains = 1000;
+        if (Object.keys(this._lastTransmittedHiFiAudioAPIData.otherUserGainQueue).length > maxCachedOtherUserGains) {
+            this._lastTransmittedHiFiAudioAPIData.otherUserGainQueue = {};
+            HiFiLogger.warn(`Stored \`_lastTransmittedHiFiAudioAPIData.otherUserGainQueue\` was too large and was cleared to save space.`);
         }
     }
 
