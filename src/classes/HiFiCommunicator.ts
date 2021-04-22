@@ -715,6 +715,12 @@ export class HiFiCommunicator {
                                 shouldPushNewCallbackData = true;
                             }
                             break;
+                        case AvailableUserDataSubscriptionComponents.IsStereo:
+                            if (typeof (currentDataFromServer.isStereo) === "boolean") {
+                                newCallbackData.isStereo = currentDataFromServer.isStereo;
+                                shouldPushNewCallbackData = true;
+                            }
+                            break;
                     }
                 }
 

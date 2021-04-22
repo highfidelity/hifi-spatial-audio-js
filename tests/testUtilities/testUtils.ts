@@ -1,74 +1,80 @@
 const { default: SignedJWT } = require('jose/jwt/sign');
 const { default: UnsecuredJWT } = require('jose/jwt/unsecured');
 const crypto = require('crypto');
-const stackData = require('../secrets/auth.json').stackData;
 
-export const TOKEN_GEN_TYPES = {
-    "ADMIN_ID_APP1": {
-        "admin": true,
-        "signed": true,
-        "user_id": "qateamAdmin",
-        "app_id": stackData.apps.app1.id,
-        "app_secret": stackData.apps.app1.secret
-    },
-    "NONADMIN_ID_APP1": {
-        "admin": false,
-        "signed": true,
-        "user_id": "qateamNonAdmin",
-        "app_id": stackData.apps.app1.id,
-        "app_secret": stackData.apps.app1.secret
-    },
-    "ADMIN_ID_APP2": {
-        "admin": true,
-        "signed": true,
-        "user_id": "qateamAdmin",
-        "app_id": stackData.apps.app2.id,
-        "app_secret": stackData.apps.app2.secret
-    },
-    "NONADMIN_ID_APP2": {
-        "admin": false,
-        "signed": true,
-        "user_id": "qateamNonAdmin",
-        "app_id": stackData.apps.app2.id,
-        "app_secret": stackData.apps.app2.secret
-    },
-    "NONADMIN_ID_APP2_UNSIGNED": {
-        "admin": false,
-        "signed": false,
-        "user_id": "qateamNonAdmin",
-        "app_id": stackData.apps.app2.id,
-        "app_secret": stackData.apps.app2.secret
-    },
-    "NONADMIN_APP2_TIMED": {
-        "admin": false,
-        "signed": true,
-        "user_id": "qateamNonAdmin",
-        "app_id": stackData.apps.app2.id,
-        "app_secret": stackData.apps.app2.secret,
-        "expired": false
-    },
-    "NONADMIN_APP2_TIMED_EXPIRED": {
-        "admin": false,
-        "signed": true,
-        "user_id": "qateamNonAdmin",
-        "app_id": stackData.apps.app2.id,
-        "app_secret": stackData.apps.app2.secret,
-        "expired": true
-    },
-    "NONADMIN_APP2_DUP": {
-        "admin": false,
-        "signed": true,
-        "user_id": "qateamNonAdmin",
-        "app_id": stackData.apps.app2.id,
-        "app_secret": stackData.apps.app2.secret
-    }
-};
+export let tokenTypes: any = {};
+
+let stackData: { apps: { APP_1: { id: string; secret: string; }; APP_2: { id: string; secret: string; }; }; };
+export function setStackData(stack: { apps: { APP_1: { id: string; secret: string; }; APP_2: { id: string; secret: string; }; }; }) {
+    stackData = stack;
+
+    tokenTypes = {
+        "ADMIN_ID_APP1": {
+            "admin": true,
+            "signed": true,
+            "user_id": "qateamAdmin",
+            "app_id": stackData.apps.APP_1.id,
+            "app_secret": stackData.apps.APP_1.secret
+        },
+        "NONADMIN_ID_APP1": {
+            "admin": false,
+            "signed": true,
+            "user_id": "qateamNonAdmin",
+            "app_id": stackData.apps.APP_1.id,
+            "app_secret": stackData.apps.APP_1.secret
+        },
+        "ADMIN_ID_APP2": {
+            "admin": true,
+            "signed": true,
+            "user_id": "qateamAdmin",
+            "app_id": stackData.apps.APP_2.id,
+            "app_secret": stackData.apps.APP_2.secret
+        },
+        "NONADMIN_ID_APP2": {
+            "admin": false,
+            "signed": true,
+            "user_id": "qateamNonAdmin",
+            "app_id": stackData.apps.APP_2.id,
+            "app_secret": stackData.apps.APP_2.secret
+        },
+        "NONADMIN_ID_APP2_UNSIGNED": {
+            "admin": false,
+            "signed": false,
+            "user_id": "qateamNonAdmin",
+            "app_id": stackData.apps.APP_2.id,
+            "app_secret": stackData.apps.APP_2.secret
+        },
+        "NONADMIN_APP2_TIMED": {
+            "admin": false,
+            "signed": true,
+            "user_id": "qateamNonAdmin",
+            "app_id": stackData.apps.APP_2.id,
+            "app_secret": stackData.apps.APP_2.secret,
+            "expired": false
+        },
+        "NONADMIN_APP2_TIMED_EXPIRED": {
+            "admin": false,
+            "signed": true,
+            "user_id": "qateamNonAdmin",
+            "app_id": stackData.apps.APP_2.id,
+            "app_secret": stackData.apps.APP_2.secret,
+            "expired": true
+        },
+        "NONADMIN_APP2_DUP": {
+            "admin": false,
+            "signed": true,
+            "user_id": "qateamNonAdmin",
+            "app_id": stackData.apps.APP_2.id,
+            "app_secret": stackData.apps.APP_2.secret
+        }
+    };
+}
 
 export async function generateJWT(tokenType: { [property: string]: any }, spaceID?: string, spaceName?: string) {
     const SECRET_KEY_FOR_SIGNING = crypto.createSecretKey(Buffer.from(tokenType.app_secret, "utf8"));
     try {
         let data: any = {};
-        let token;
+        let token: string;
         data = {
             "user_id": tokenType.user_id,
             "app_id": tokenType.app_id
