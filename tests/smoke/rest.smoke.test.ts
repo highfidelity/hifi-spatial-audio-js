@@ -125,7 +125,7 @@ describe('HiFi API REST Calls', () => {
             expect(settingsJSON['global-frequency-rolloff']).toBe(null);
             expect(settingsJSON['global-attenuation']).toBe(null);
             expect(settingsJSON['client-limit']).toBe(null);
-            expect(settingsJSON['max-client-limit']).toBeLessThanOrEqual(200);
+            // Removed check for max client limit, maybe add back after https://github.com/highfidelity/speakeasy-infra/pull/366
 
             // Read setting from the 'space-id' path`, async () => {
             returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/space-id/?token=${adminToken}`);
@@ -170,7 +170,7 @@ describe('HiFi API REST Calls', () => {
             // Read setting from the 'max-client-limit' path`, async () => {
             returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/max-client-limit/?token=${adminToken}`);
             settingsJSON = await returnMessage.json();
-            expect(settingsJSON['max-client-limit']).toBeLessThanOrEqual(200);
+            // Removed check for max client limit, maybe add back after https://github.com/highfidelity/speakeasy-infra/pull/366
 
             // Change settings using 'GET'
             space1Name = generateUUID();
