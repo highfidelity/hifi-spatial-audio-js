@@ -5,9 +5,9 @@
     ├── integration  
     │   └── serverConnections.integration.test.ts  
     ├── secrets  
+    │   ├── auth_example.json  (A template for creating your own `auth.json` file.)
     │   ├── auth.json  (You will create this file for local smoke or integration testing.)  
-    │   ├── auth.json.gpg  (An encrypted version of `auth.json` for the `staging-latest` stack used by GHA.)  
-    │   └── auth_example.json  (A template for creating your own `auth.json` file.)
+    │   └── auth.json.gpg  (An encrypted version of `auth.json` for the `staging-latest` stack used by GHA.)  
     ├── smoke  
     │   └── rest.smoke.test.ts  
     ├── testUtilities  
@@ -29,29 +29,29 @@
 
 | Stack    | Names                              |
 |----------|------------------------------------|
-| staging  | api-staging, api-staging-latest    |
-| pro      | api-pro, api-pro-latest            |
-| east     | api-pro-east, api-pro-latest-east  |
-| hobby    | api, api-hobby-latest              |
+| staging  | api-staging.highfidelity.com, api-staging-latest.highfidelity.com    |
+| pro      | api-pro.highfidelity.com, api-pro-latest.highfidelity.com            |
+| east     | api-pro-east.highfidelity.com, api-pro-latest-east.highfidelity.com  |
+| hobby    | api.highfidelity.com, api-hobby-latest.highfidelity.com              |
 
-## Full Local Testing on 'staging-latest'
+## Full Local Testing on 'staging-latest.highfidelity.com'
 
-To run all tests locally against 'staging-latest', type `jest test` into the console. All files in the `tests` directory and subdirectories ending in `.test.ts` will run.
+To run all tests locally against 'staging-latest.highfidelity.com', type `jest test` into the console. All files in the `tests` directory and subdirectories ending in `.test.ts` will run.
 
-## Local Smoke Testing on 'staging-latest'
+## Local Smoke Testing on 'staging-latest.highfidelity.com'
 
 Smoke testing will test multiple modules working together using real server connections by running a series of instructions in a typical usage scenario for the API. For example, one test might create a space within an app, edit its settings, and then delete the space. This should be run manually after a new deploy to ensure nothing is broken. To run only smoke tests, type `jest smoke` into the console. All files in the `tests/smoke` directory ending in `.test.ts` will run.
 
-## Local Unit Testing on 'staging-latest'
+## Local Unit Testing on 'staging-latest.highfidelity.com'
 
 Unit testing will test each part of the API to show that the individual functions are correct. These tests will not use real server connections and will mock any external pieces that a function relies on. These tests will run automatically via GHA before any code is merged and can be run manually from the console or from GHA workflow dispatch. To run only unit tests, type `jest unit` into the console. All files in the `tests/unit` directory and subdirectories ending in `.test.ts` will run.
 
-## Local Integration Testing on 'staging-latest'
+## Local Integration Testing on 'staging-latest.highfidelity.com'
 
 Integration testing will combine different modules in the API and test individual functions using actual server connections. These tests will run automatically via GHA before any code is merged and can be run manually from the console or from GHA workflow dispatch. To run only integration tests, type `jest integration` into the console. All files in the `tests/integration` directory ending in `.test.ts` will run.
 
 ## Testing against other stacks
-Make sure your stack apps/IDs are included in the auth file and then run Jest via a node script named 'test'. The following example runs one specific test file against the main production (hobby) stack. You can confirm that the correct stack is being used by checking the logs. You may also run tests against other stacks via GHA workflows(see below).
+Make sure your stackname and apps IDs/secrets are included in the auth file and then run Jest via a node script named 'test'. The following example runs one specific test file against the main production (hobby) stack. You can confirm that the correct stack is being used by checking the logs. You may also run tests against other stacks via GHA workflows(see below).
 
 ```
 npm run test serverConnections.integration.test.ts -- --stackname=api.highfidelity.com
@@ -63,21 +63,21 @@ If a stack runs out of mixers, some tests may fail. If you have AWS access, you 
 ### Editing Tests Within a File
 
 #### Only
-To run one test or group of tests within a file, append `.only` to the section of code you want to run. This can be used after a describe block or test. This is useful for rerunning a specific test that has failed without having to wait for all tests in that file. You can add multiple 'only' specifiers to run more than one section of a test or describe block.
+To run one test or group of tests within a file, append `.only` to the section of code you want to run. This can be used after a describe block or test. This is useful for rerunning a specific test that has failed without having to wait for all tests in that file. You can add multiple 'only' specifiers to run more than one section of a *test* or *describe* block.
 
 ```
 describe.only('Non admin server connections', () => {
 ```
 
 #### Skip
-To skip one test or group of tests within a file, append `.skip` to the section of code you want to skip. This can be used after a describe block or test. This is useful for rerunning a test suite without a particularly slow test. You can add multiple 'skip' specifiers to skip more than one section of a test or describe block.
+To skip one test or group of tests within a file, append `.skip` to the section of code you want to skip. This can be used after a describe block or test. This is useful for rerunning a test suite without a particularly slow test. You can add multiple 'skip' specifiers to skip more than one section of a *test* or *describe* block.
 
 ```
 describe.skip('Non admin server connections', () => {
 ```
 
 #### Timeout
-Sometimes tests fail due to timing out before promises are returned. Tests are created with the minimum timeout value that works for most runs to maintain the shortest time to run all tests but you can edit them locally if you are seeing errors like `: Timeout - Async callback was not invoked within the 5000`. To lengthen the timeout for a describe block, set the jest timeout in the `beforeAll()` function and then restore the value in the `afterAll()` function
+Sometimes tests fail due to timing out before promises are returned. Tests are created with the minimum timeout value that works for most runs to maintain the shortest time to run all tests but you can edit them locally if you are seeing errors like `: Timeout - Async callback was not invoked within the 5000`. To lengthen the timeout for a describe block, set the jest timeout in the `beforeAll()` function and then restore the value in the `afterAll()` function. You can also use change timeout within a test.
 
 ```
 beforeAll(async () => {
@@ -86,7 +86,7 @@ beforeAll(async () => {
 ```
 
 ### Secrets and Account Setup
-Since integration and smoke tests require actual server connections (as opposed to mock functions and connections), you will need to set up an account with some preset apps and a way to access private data to test with. The tests will use specific app names and IDs/secrets, so create a copy of `auth.example.json` named `auth.json` in your `secrets` folder and then replace the data to match your own account.
+Since integration and smoke tests require actual server connections (as opposed to mock functions and connections), you will need to set up an account with some preset apps and a way to access private data to test with if you are not testing one of the preset stacks. The tests will use specific app names and IDs/secrets, so create a copy of `auth.example.json` named `auth.json` in your `secrets` folder and then replace the data for the stack called 'some-other-stackname' to match your own account.
 
 ### Github Actions (GHA) 
 
