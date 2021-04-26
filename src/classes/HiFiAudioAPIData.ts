@@ -351,10 +351,14 @@ export function eulerFromQuaternion(quat: OrientationQuat3D, order: OrientationE
     return new OrientationEuler3D({ pitchDegrees: RAD_TO_DEG * pitch, yawDegrees: RAD_TO_DEG * yaw, rollDegrees: RAD_TO_DEG * roll });
 }
 
-/**
- * Instantiations of this class define a map between hashed visit IDs and the gains of other users as percieved by the current user's session. This class is used by {@link HiFiAudioAPIData.otherUserGainQueue} to keep track of which gain changes need to be sent to the server.
- * See also {@link HiFiCommunicator.setOtherUserGainForThisConnection}, which allows you to set the desired gain for a user and also send the data to the server. If you need to perform moderation actions which apply to all users, use the {@link https://docs.highfidelity.com/rest/latest/index.html|Administrative REST API}.
+/*
+ * This is an internal class and it is not recommended for normal usage of the API.
+ *
+ * See instead {@link HiFiCommunicator.setOtherUserGainForThisConnection}, which allows you to set the desired gain for a user. If you need to perform moderation actions which apply to all users, use the {@link https://docs.highfidelity.com/rest/latest/index.html|Administrative REST API}.
+ *
+ * Internally, this class is used to keep track of which other user gain changes need to be sent to the server. The keys are hashed visit IDs, and the values are gains.
  */
+/** @internal */
 export type OtherUserGainMap = { [key: string]: number };
 
 /**
@@ -452,17 +456,17 @@ export class HiFiAudioAPIData {
      */
     userRolloff: number;
 
-    /**
-     * This represents a queue of other user gains that the client wants to be adjusted the next time data is sent to the server, which apply to the current user only.
-     * This can be used to provide a more comfortable listening experience for the client. However, setting a gain here does not on its own change the gain of another user. See instead {@link HiFiCommunicator.setOtherUserGainForThisConnection}, which allows you to set the desired gain for a user and also send the data to the server. If you need to perform moderation actions which apply to all users, use the {@link https://docs.highfidelity.com/rest/latest/index.html|Administrative REST API}.
-     * 
-     * Each key is the hashed visit ID of a user whose gain will be affected, and its associated value is the desired gain of the other user. Any gain set here only affects the current user's session. Other users beside the current user will not perceive a difference in volume when a gain setting is set here.
-     * 
-     * These gains are not persistent. If the other user's session restarts, then their gain will be reset for the current user. If the current user's session restarts, then all other user gains will be reset.
+    /*
+     * This is an internal class and it is not recommended for normal usage of the API.
+     *
+     * See instead {@link HiFiCommunicator.setOtherUserGainForThisConnection}, which allows you to set the desired gain for a user. If you need to perform moderation actions which apply to all users, use the {@link https://docs.highfidelity.com/rest/latest/index.html|Administrative REST API}.
+     *
+     * Internally, this variable is used to keep track of which other user gain changes need to be sent to the server. The keys are hashed visit IDs, and the values are gains.
      */
+    /** @internal */
     otherUserGainQueue: OtherUserGainMap;
     
-    constructor({ position = null, orientationQuat = null, orientationEuler = null, volumeThreshold = null, hiFiGain = null, userAttenuation = null, userRolloff = null, otherUserGainQueue = {} }: { position?: Point3D, orientationQuat?: OrientationQuat3D, orientationEuler?: OrientationEuler3D, volumeThreshold?: number, hiFiGain?: number, userAttenuation?: number, userRolloff?: number, otherUserGainQueue?: OtherUserGainMap } = {}) {
+    constructor({ position = null, orientationQuat = null, orientationEuler = null, volumeThreshold = null, hiFiGain = null, userAttenuation = null, userRolloff = null }: { position?: Point3D, orientationQuat?: OrientationQuat3D, orientationEuler?: OrientationEuler3D, volumeThreshold?: number, hiFiGain?: number, userAttenuation?: number, userRolloff?: number } = {}) {
         this.position = position;
         this.orientationQuat = orientationQuat;
         this.orientationEuler = orientationEuler;
@@ -470,7 +474,7 @@ export class HiFiAudioAPIData {
         this.hiFiGain = hiFiGain;
         this.userAttenuation = userAttenuation;
         this.userRolloff = userRolloff;
-        this.otherUserGainQueue = otherUserGainQueue;
+        this.otherUserGainQueue = {};
     }
 }
 
