@@ -350,7 +350,7 @@ export class HiFiMixerSession {
 
                 // `ReceivedHiFiAudioAPIData.position.*`
                 let serverSentNewPosition = false;
-                if (typeof (peerDataFromMixer.x) === "number") {
+                if (typeof (peerDataFromMixer.x) === "number" && (!userDataCache.position || peerDataFromMixer.x !== userDataCache.position.x)) {
                     if (!userDataCache.position) {
                         userDataCache.position = new Point3D();
                     }
@@ -358,7 +358,7 @@ export class HiFiMixerSession {
                     userDataCache.position.x = peerDataFromMixer.x / 1000;
                     serverSentNewPosition = true;
                 }
-                if (typeof (peerDataFromMixer.y) === "number") {
+                if (typeof (peerDataFromMixer.y) === "number" && (!userDataCache.position || peerDataFromMixer.y !== userDataCache.position.y)) {
                     if (!userDataCache.position) {
                         userDataCache.position = new Point3D();
                     }
@@ -366,7 +366,7 @@ export class HiFiMixerSession {
                     userDataCache.position.y = peerDataFromMixer.y / 1000;
                     serverSentNewPosition = true;
                 }
-                if (typeof (peerDataFromMixer.z) === "number") {
+                if (typeof (peerDataFromMixer.z) === "number" && (!userDataCache.position || peerDataFromMixer.z !== userDataCache.position.z)) {
                     if (!userDataCache.position) {
                         userDataCache.position = new Point3D();
                     }
@@ -385,28 +385,28 @@ export class HiFiMixerSession {
 
                 // `ReceivedHiFiAudioAPIData.orientation.*`
                 let serverSentNewOrientation = false;
-                if (typeof (peerDataFromMixer.W) === "number") {
+                if (typeof (peerDataFromMixer.W) === "number" && (!userDataCache.orientationQuat || peerDataFromMixer.W !== userDataCache.orientationQuat.w)) {
                     if (!userDataCache.orientationQuat) {
                         userDataCache.orientationQuat = new OrientationQuat3D();
                     }
                     userDataCache.orientationQuat.w = peerDataFromMixer.W / 1000;
                     serverSentNewOrientation = true;
                 }
-                if (typeof (peerDataFromMixer.X) === "number") {
+                if (typeof (peerDataFromMixer.X) === "number" && (!userDataCache.orientationQuat || peerDataFromMixer.X !== userDataCache.orientationQuat.x)) {
                     if (!userDataCache.orientationQuat) {
                         userDataCache.orientationQuat = new OrientationQuat3D();
                     }
                     userDataCache.orientationQuat.x = peerDataFromMixer.X / 1000;
                     serverSentNewOrientation = true;
                 }
-                if (typeof (peerDataFromMixer.Y) === "number") {
+                if (typeof (peerDataFromMixer.Y) === "number" && (!userDataCache.orientationQuat || peerDataFromMixer.Y !== userDataCache.orientationQuat.y)) {
                     if (!userDataCache.orientationQuat) {
                         userDataCache.orientationQuat = new OrientationQuat3D();
                     }
                     userDataCache.orientationQuat.y = peerDataFromMixer.Y / 1000;
                     serverSentNewOrientation = true;
                 }
-                if (typeof (peerDataFromMixer.Z) === "number") {
+                if (typeof (peerDataFromMixer.Z) === "number" && (!userDataCache.orientationQuat || peerDataFromMixer.Z !== userDataCache.orientationQuat.z)) {
                     if (!userDataCache.orientationQuat) {
                         userDataCache.orientationQuat = new OrientationQuat3D();
                     }
@@ -424,21 +424,21 @@ export class HiFiMixerSession {
 
 
                 // `ReceivedHiFiAudioAPIData.hiFiGain`
-                if (typeof (peerDataFromMixer.g) === "number") {
+                if (typeof (peerDataFromMixer.g) === "number" && peerDataFromMixer.g !== userDataCache.hiFiGain) {
                     userDataCache.hiFiGain = peerDataFromMixer.g;
                     newUserData.hiFiGain = peerDataFromMixer.g;
                     serverSentNewUserData = true;
                 }
 
                 // `ReceivedHiFiAudioAPIData.volumeDecibels`
-                if (typeof (peerDataFromMixer.v) === "number") {
+                if (typeof (peerDataFromMixer.v) === "number" && peerDataFromMixer.v !== userDataCache.volumeDecibels) {
                     userDataCache.volumeDecibels = peerDataFromMixer.v;
                     newUserData.volumeDecibels = peerDataFromMixer.v;
                     serverSentNewUserData = true;
                 }
 
                 // `ReceivedHiFiAudioAPIData.isStereo`
-                if (typeof (peerDataFromMixer.s) === "boolean") {
+                if (typeof (peerDataFromMixer.s) === "boolean" && peerDataFromMixer.s !== userDataCache.isStereo) {
                     userDataCache.isStereo = peerDataFromMixer.s;
                     newUserData.isStereo = peerDataFromMixer.s;
                     serverSentNewUserData = true;
