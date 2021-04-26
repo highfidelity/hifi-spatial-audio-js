@@ -464,7 +464,7 @@ export class HiFiAudioAPIData {
      * Internally, this variable is used to keep track of which other user gain changes need to be sent to the server. The keys are hashed visit IDs, and the values are gains.
      */
     /** @internal */
-    otherUserGainQueue: OtherUserGainMap;
+    _otherUserGainQueue: OtherUserGainMap;
     
     constructor({ position = null, orientationQuat = null, orientationEuler = null, volumeThreshold = null, hiFiGain = null, userAttenuation = null, userRolloff = null }: { position?: Point3D, orientationQuat?: OrientationQuat3D, orientationEuler?: OrientationEuler3D, volumeThreshold?: number, hiFiGain?: number, userAttenuation?: number, userRolloff?: number } = {}) {
         this.position = position;
@@ -474,7 +474,7 @@ export class HiFiAudioAPIData {
         this.hiFiGain = hiFiGain;
         this.userAttenuation = userAttenuation;
         this.userRolloff = userRolloff;
-        this.otherUserGainQueue = {};
+        this._otherUserGainQueue = {};
     }
 }
 

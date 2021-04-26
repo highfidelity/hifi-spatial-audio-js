@@ -886,10 +886,10 @@ export class HiFiMixerSession {
             dataForMixer["r"] = Math.max(0, currentHifiAudioAPIData.userRolloff);
         }
 
-        if (typeof(currentHifiAudioAPIData.otherUserGainQueue) == "object") {
+        if (typeof(currentHifiAudioAPIData._otherUserGainQueue) == "object") {
             let changedUserGains: OtherUserGainMap = {};
-            let idToGains = Object.entries(currentHifiAudioAPIData.otherUserGainQueue);
-            let previousOtherUserGains = previousHifiAudioAPIData ? previousHifiAudioAPIData.otherUserGainQueue : undefined;
+            let idToGains = Object.entries(currentHifiAudioAPIData._otherUserGainQueue);
+            let previousOtherUserGains = previousHifiAudioAPIData ? previousHifiAudioAPIData._otherUserGainQueue : undefined;
             for (const idToGain of idToGains) {
                 let hashedVisitId = idToGain[0];
                 let gain = idToGain[1];

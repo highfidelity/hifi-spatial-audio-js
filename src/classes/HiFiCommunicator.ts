@@ -280,7 +280,7 @@ export class HiFiCommunicator {
      * If unsuccessful, the Promise will reject with {@link SetOtherUserGainForThisConnectionResponse} with `success` equal to `false` and `error` set to an error message describing what went wrong.
      */
     async setOtherUserGainForThisConnection(visitIdHash: string, gain: number): Promise<SetOtherUserGainForThisConnectionResponse> {
-        this._currentHiFiAudioAPIData.otherUserGainQueue[visitIdHash] = gain;
+        this._currentHiFiAudioAPIData._otherUserGainQueue[visitIdHash] = gain;
 
         let result = this._transmitHiFiAudioAPIDataToServer();
         return Promise.resolve({
@@ -535,12 +535,12 @@ export class HiFiCommunicator {
         if (typeof (dataJustTransmitted.userRolloff) === "number") {
             this._lastTransmittedHiFiAudioAPIData["userRolloff"] = dataJustTransmitted.userRolloff;
         }
-        if (typeof (dataJustTransmitted.otherUserGainQueue) === "object") {
-            if (typeof(this._lastTransmittedHiFiAudioAPIData.otherUserGainQueue) !== "object") {
-                this._lastTransmittedHiFiAudioAPIData.otherUserGainQueue = {};
+        if (typeof (dataJustTransmitted._otherUserGainQueue) === "object") {
+            if (typeof(this._lastTransmittedHiFiAudioAPIData._otherUserGainQueue) !== "object") {
+                this._lastTransmittedHiFiAudioAPIData._otherUserGainQueue = {};
             }
-            for (const idToGain of Object.entries(dataJustTransmitted.otherUserGainQueue)) {
-                this._lastTransmittedHiFiAudioAPIData.otherUserGainQueue[idToGain[0]] = idToGain[1];
+            for (const idToGain of Object.entries(dataJustTransmitted._otherUserGainQueue)) {
+                this._lastTransmittedHiFiAudioAPIData._otherUserGainQueue[idToGain[0]] = idToGain[1];
             }
         }
     }
@@ -580,7 +580,7 @@ export class HiFiCommunicator {
                 // to contain the data that we just transmitted.
                 this._updateLastTransmittedHiFiAudioAPIData(this._currentHiFiAudioAPIData);
                 // Finally, in some cases, clean up some of the transmitted data history
-                // (particularly, otherUserGainQueue)
+                // (particularly, _otherUserGainQueue)
                 this._cleanUpHiFiAudioAPIDataHistory();
 
                 return {
@@ -614,13 +614,13 @@ export class HiFiCommunicator {
      * This function exists to handle any scenarios of remembering too much sent data. It is called just after data is succesfully sent, when data is known to no longer be needed.
      */
     private _cleanUpHiFiAudioAPIDataHistory(): void {
-        // Always clear otherUserGainQueue in our local data
-        this._currentHiFiAudioAPIData.otherUserGainQueue = {};
+        // Always clear _otherUserGainQueue in our local data
+        this._currentHiFiAudioAPIData._otherUserGainQueue = {};
 
         let maxCachedOtherUserGains = 1000;
-        if (Object.keys(this._lastTransmittedHiFiAudioAPIData.otherUserGainQueue).length > maxCachedOtherUserGains) {
-            this._lastTransmittedHiFiAudioAPIData.otherUserGainQueue = {};
-            HiFiLogger.warn(`Stored \`_lastTransmittedHiFiAudioAPIData.otherUserGainQueue\` was too large and was cleared to save space.`);
+        if (Object.keys(this._lastTransmittedHiFiAudioAPIData._otherUserGainQueue).length > maxCachedOtherUserGains) {
+            this._lastTransmittedHiFiAudioAPIData._otherUserGainQueue = {};
+            HiFiLogger.warn(`Stored \`_lastTransmittedHiFiAudioAPIData._otherUserGainQueue\` was too large and was cleared to save space.`);
         }
     }
 
