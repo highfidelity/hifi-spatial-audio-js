@@ -8,7 +8,7 @@ const NEW_SPACE_NAME = generateUUID();
 const SPACE_1_NAME = generateUUID();
 
 let args = require('minimist')(process.argv.slice(2));
-let stackname = args.stackname || process.env.hostname || "api-staging-latest";
+let stackname = args.stackname || process.env.hostname || "api-staging-latest.highfidelity.com";
 console.log("_______________STACKNAME_______________________", stackname);
 let stackURL = `https://${stackname}`;
 let websocketEndpointURL = `wss://${stackname}/dev/account:8001/`;
