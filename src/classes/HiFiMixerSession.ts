@@ -896,7 +896,7 @@ export class HiFiMixerSession {
                 if (!(typeof(gain) == "number")) {
                     continue;
                 }
-                if (previousOtherUserGains && previousOtherUserGains[hashedVisitId] == gain) {
+                if (previousOtherUserGains && previousOtherUserGains[hashedVisitId] === gain) {
                     continue;
                 }
                 changedUserGains[hashedVisitId] = gain;
