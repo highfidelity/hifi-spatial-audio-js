@@ -1,8 +1,10 @@
 const fetch = require('node-fetch');
 const stacks = require('../secrets/auth.json').stacks;
 
+import { HiFiAudioAPIData, OrientationEuler3D, OrientationQuat3D, Point3D } from "../../src/classes/HiFiAudioAPIData";
 import { HiFiCommunicator } from "../../src/classes/HiFiCommunicator";
 import { UserDataSubscription, AvailableUserDataSubscriptionComponents } from "../../src/classes/HiFiUserDataSubscription";
+import { TestUser } from "../testUtilities/TestUser";
 import { tokenTypes, generateJWT, generateUUID, setStackData, sleep, UserData } from '../testUtilities/testUtils';
 
 const NEW_SPACE_NAME = generateUUID();
@@ -33,7 +35,9 @@ function onUserDataReceived<K extends keyof UserData>(receivedHiFiAudioAPIDataAr
                     }
                 }
             }
-            if (newUser) usersDataArray.push(receivedUserData);
+            if (newUser) {
+                usersDataArray.push(receivedUserData);
+            }
         });
     });
 }
@@ -355,28 +359,29 @@ describe('Mixer connections', () => {
         });
     });
 
-    describe.only(`Mixer interactions`, () => {
+    describe(`Mixer interactions`, () => {
         let myHashedVisitID: string;
         let indexOfMyData: number;
+
         beforeAll(async () => {
             jest.setTimeout(30000);
             hifiCommunicator = new HiFiCommunicator();
+
             await hifiCommunicator.connectToHiFiAudioAPIServer(nonadmin, stackURL)
                 .then(data => {
                     myHashedVisitID = data.audionetInitResponse.visit_id_hash;
                 });
+
             let userDataSubscription = new UserDataSubscription({
                 "components": [
                     AvailableUserDataSubscriptionComponents.Position,
                     AvailableUserDataSubscriptionComponents.OrientationEuler,
                     AvailableUserDataSubscriptionComponents.OrientationQuat,
-                    AvailableUserDataSubscriptionComponents.VolumeDecibels,
-                    AvailableUserDataSubscriptionComponents.HiFiGain
-                ],
+                    AvailableUserDataSubscriptionComponents.VolumeDecibels],
                 "callback": onUserDataReceived
             });
             hifiCommunicator.addUserDataSubscription(userDataSubscription);
-            await sleep(10000);
+            await sleep(2000);
         });
 
         afterAll(async () => {
@@ -384,38 +389,73 @@ describe('Mixer connections', () => {
             jest.setTimeout(5000);
         });
 
-        // test(`Can get an output stream`, async () => {
-
-        // });
-
-        // test(`Can set an input stream`, async () => {
-
-        // });
-
-        // test(`Can mute self`, async () => {
-        //     // await hifiCommunicator._mixerSession
-        //     //     .then(data => {
-        //     //         expect(data.audionetInitResponse.success).toBe(true);
-        //     //         visitIDHash = data.audionetInitResponse.visit_id_hash;
-        //     //     });
-        // });
-
-        // test(`Can unmute self`, async () => {
-
-        // });
-
-        test.only(`Can get own user data (Position, Orientation, Volume, Gain, Attenuation, Rolloff)`, async () => {
+        test(`Can get own user data (Position, Orientation, Volume)`, async () => {
             indexOfMyData = usersDataArray.findIndex((userData: UserData) => userData.hashedVisitID === myHashedVisitID);
+
             expect(indexOfMyData).toBeGreaterThan(-1);
+            expect(usersDataArray[indexOfMyData].position).toBeNull();
+            expect(usersDataArray[indexOfMyData].orientationQuat).toBeNull();
+            expect(usersDataArray[indexOfMyData].orientationEuler).toBeNull();
+            expect(usersDataArray[indexOfMyData].volumeDecibels).toBeDefined();
         });
 
-        // test(`Can change own user data`, async () => {
+        test(`Can change own user data`, async () => {
+            hifiCommunicator.updateUserDataAndTransmit({
+                position: { x: 0, y: 5, z: 10 },
+                orientationQuat: { w: 1, x: 1, y: 1, z: -1 }
+            });
 
-        // });
+            await sleep(2000);
+            indexOfMyData = usersDataArray.findIndex((userData: UserData) => userData.hashedVisitID === myHashedVisitID);
+            expect(indexOfMyData).toBeGreaterThan(-1);
+            let position = new Point3D(usersDataArray[indexOfMyData].position);
+            expect(position.x).toBe(0);
+            expect(position.y).toBe(5);
+            expect(position.z).toBe(10);
 
-        // test(`Can receive data about peers (Position, Orientation, Volume, Gain, Attenuation, Rolloff)`, async () => {
+            let orientationQ = new OrientationQuat3D(usersDataArray[indexOfMyData].orientationQuat);
+            expect(orientationQ.w).toBe(1);
+            expect(orientationQ.x).toBe(1);
+            expect(orientationQ.y).toBe(1);
+            expect(orientationQ.z).toBe(-1);
 
-        // });
+            hifiCommunicator.updateUserDataAndTransmit({
+                orientationEuler: { pitchDegrees: 45, yawDegrees: 45, rollDegrees: 45 },
+            });
+
+            await sleep(2000);
+            let orientationE = new OrientationEuler3D(usersDataArray[indexOfMyData].orientationEuler);
+            expect(orientationE.pitchDegrees).toBeCloseTo(45);
+            expect(orientationE.yawDegrees).toBeCloseTo(45);
+            expect(orientationE.rollDegrees).toBeCloseTo(45);
+        });
+
+        test(`Can receive data about peers (Position, Orientation, Volume)`, async () => {
+            let otherUser: TestUser;
+            let indexOfPeerData: number;
+            let peerHashedVisitID: string;
+            try {
+                let tokenData = tokenTypes.NONADMIN_ID_APP2
+                tokenData['user_id'] = generateUUID();
+                otherUser = new TestUser(tokenData['user_id']);
+                let token = await generateJWT(tokenData, space1id);
+                await otherUser.communicator.connectToHiFiAudioAPIServer(token, stackURL)
+                    .then(data => {
+                        peerHashedVisitID = data.audionetInitResponse.visit_id_hash;
+                    });
+                await sleep(2000);
+            } catch (e) {
+                console.warn("Could not create second user.")
+            }
+
+            indexOfPeerData = usersDataArray.findIndex((userData: UserData) => userData.hashedVisitID === peerHashedVisitID);
+
+            expect(indexOfPeerData).toBeGreaterThan(-1);
+            expect(usersDataArray[indexOfPeerData].position).toBeNull();
+            expect(usersDataArray[indexOfPeerData].orientationQuat).toBeNull();
+            expect(usersDataArray[indexOfPeerData].orientationEuler).toBeNull();
+            expect(usersDataArray[indexOfPeerData].volumeDecibels).toBeDefined();
+        });
     });
 
     test(`Disconnecting`, async () => {
