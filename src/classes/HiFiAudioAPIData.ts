@@ -399,7 +399,7 @@ export class HiFiAudioAPIData {
      * 
      * ✔ The client sends `hiFiGain` data to the server when `_transmitHiFiAudioAPIDataToServer()` is called.
      * 
-     * x The server does not send `hiFiGain` data to all clients as part of "peer updates".
+     * ❌ The server does not send `hiFiGain` data to all clients as part of "peer updates".
      */
     hiFiGain: number;
     /**
