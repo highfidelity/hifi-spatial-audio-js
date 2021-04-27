@@ -21,15 +21,15 @@ const pako = require('pako');
 const INIT_TIMEOUT_MS = 5000;
 const PERSONAL_VOLUME_ADJUST_TIMEOUT_MS = 5000;
 
-interface AudionetSetOtherUserGainForThisConnectionResponse {
+interface AudionetSetOtherUserGainsForThisConnectionResponse {
     success: boolean,
     reason?: string
 }
 
-export interface SetOtherUserGainForThisConnectionResponse {
+export interface SetOtherUserGainsForThisConnectionResponse {
     success: boolean,
     error?: string,
-    audionetSetOtherUserGainForThisConnectionResponse?: AudionetSetOtherUserGainForThisConnectionResponse
+    audionetSetOtherUserGainsForThisConnectionResponse?: AudionetSetOtherUserGainsForThisConnectionResponse
 }
 
 /**

@@ -351,14 +351,12 @@ export function eulerFromQuaternion(quat: OrientationQuat3D, order: OrientationE
     return new OrientationEuler3D({ pitchDegrees: RAD_TO_DEG * pitch, yawDegrees: RAD_TO_DEG * yaw, rollDegrees: RAD_TO_DEG * roll });
 }
 
-/*
- * This is an internal class and it is not recommended for normal usage of the API.
+/**
+ * Instantiations of this class define a map between hashed visit IDs and the gains of other users.
+ * You can use this in {@link HiFiAudioAPIData.setOtherUserGainsForThisConnection} to change the gains of other users as perceived by the current connection, providing a more comfortable listening experience for the client. If you need to perform moderation actions on the server side, use the {@link https://docs.highfidelity.com/rest/latest/index.html|Administrative REST API}.
  *
- * See instead {@link HiFiCommunicator.setOtherUserGainForThisConnection}, which allows you to set the desired gain for a user. If you need to perform moderation actions which apply to all users, use the {@link https://docs.highfidelity.com/rest/latest/index.html|Administrative REST API}.
- *
- * Internally, this class is used to keep track of which other user gain changes need to be sent to the server. The keys are hashed visit IDs, and the values are gains.
+ * Internally, this class is used to keep track of which other user gain changes need to be sent to the server.
  */
-/** @internal */
 export type OtherUserGainMap = { [key: string]: number };
 
 /**
@@ -459,7 +457,7 @@ export class HiFiAudioAPIData {
     /*
      * This is an internal class and it is not recommended for normal usage of the API.
      *
-     * See instead {@link HiFiCommunicator.setOtherUserGainForThisConnection}, which allows you to set the desired gain for a user. If you need to perform moderation actions which apply to all users, use the {@link https://docs.highfidelity.com/rest/latest/index.html|Administrative REST API}.
+     * See instead {@link HiFiCommunicator.setOtherUserGainsForThisConnection}, which allows you to set the desired gains for one or more users as perceived by this client only. If you need to perform moderation actions on the server side, use the {@link https://docs.highfidelity.com/rest/latest/index.html|Administrative REST API}.
      *
      * Internally, this variable is used to keep track of which other user gain changes need to be sent to the server. The keys are hashed visit IDs, and the values are gains.
      */

@@ -12,9 +12,9 @@ import { HiFiConstants } from "../constants/HiFiConstants";
 import { WebRTCSessionParams } from "../libravi/RaviSession";
 import { HiFiLogger } from "../utilities/HiFiLogger";
 import { HiFiUtilities } from "../utilities/HiFiUtilities";
-import { HiFiAudioAPIData, ReceivedHiFiAudioAPIData, Point3D, OrientationQuat3D, OrientationEuler3D, OrientationEuler3DOrder, eulerToQuaternion, eulerFromQuaternion } from "./HiFiAudioAPIData";
+import { HiFiAudioAPIData, ReceivedHiFiAudioAPIData, Point3D, OrientationQuat3D, OrientationEuler3D, OrientationEuler3DOrder, eulerToQuaternion, eulerFromQuaternion, OtherUserGainMap } from "./HiFiAudioAPIData";
 import { HiFiAxisConfiguration, HiFiAxisUtilities, ourHiFiAxisConfiguration } from "./HiFiAxisConfiguration";
-import { HiFiMixerSession, SetOtherUserGainForThisConnectionResponse } from "./HiFiMixerSession";
+import { HiFiMixerSession, SetOtherUserGainsForThisConnectionResponse } from "./HiFiMixerSession";
 import { AvailableUserDataSubscriptionComponents, UserDataSubscription } from "./HiFiUserDataSubscription";
 
 /**
@@ -263,8 +263,8 @@ export class HiFiCommunicator {
     }
 
     /**
-     * Adjusts the gain of another user for this communicator's current connection only.
-     * This can be used to provide a more comfortable listening experience for the client. If you need to perform moderation actions which apply to all users, use the {@link https://docs.highfidelity.com/rest/latest/index.html|Administrative REST API}.
+     * Adjusts the gain of one or more users for this communicator's current connection only.
+     * This can be used to provide a more comfortable listening experience for the client. If you need to perform moderation actions on the server side, use the {@link https://docs.highfidelity.com/rest/latest/index.html|Administrative REST API}.
      * 
      * To use this command, the communicator must currently be connected to a space. You can connect to a space using {@link connectToHiFiAudioAPIServer}.
      * 
@@ -276,11 +276,11 @@ export class HiFiCommunicator {
      * @param gain  The relative gain to apply to the other user. By default, this is `1.0`. The gain can be any value greater or equal to `0.0`.
      * For example: a gain of `2.0` will double the loudness of the user, while a gain of `0.5` will halve the user's loudness. A gain of `0.0` will effectively mute the user.
      * 
-     * @returns If this operation is successful, the Promise will resolve with {@link SetOtherUserGainForThisConnectionResponse} with `success` equal to `true`.
-     * If unsuccessful, the Promise will reject with {@link SetOtherUserGainForThisConnectionResponse} with `success` equal to `false` and `error` set to an error message describing what went wrong.
+     * @returns If this operation is successful, the Promise will resolve with {@link SetOtherUserGainsForThisConnectionResponse} with `success` equal to `true`.
+     * If unsuccessful, the Promise will reject with {@link SetOtherUserGainsForThisConnectionResponse} with `success` equal to `false` and `error` set to an error message describing what went wrong.
      */
-    async setOtherUserGainForThisConnection(visitIdHash: string, gain: number): Promise<SetOtherUserGainForThisConnectionResponse> {
-        this._currentHiFiAudioAPIData._otherUserGainQueue[visitIdHash] = gain;
+    async setOtherUserGainsForThisConnection(otherUserGainMap: OtherUserGainMap): Promise<SetOtherUserGainsForThisConnectionResponse> {
+        Object.assign(this._currentHiFiAudioAPIData._otherUserGainQueue, otherUserGainMap);
 
         let result = this._transmitHiFiAudioAPIDataToServer();
         return Promise.resolve({
