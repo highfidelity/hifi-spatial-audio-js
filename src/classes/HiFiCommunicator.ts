@@ -14,7 +14,7 @@ import { HiFiLogger } from "../utilities/HiFiLogger";
 import { HiFiUtilities } from "../utilities/HiFiUtilities";
 import { HiFiAudioAPIData, ReceivedHiFiAudioAPIData, Point3D, OrientationQuat3D, OrientationEuler3D, OrientationEuler3DOrder, eulerToQuaternion, eulerFromQuaternion, OtherUserGainMap } from "./HiFiAudioAPIData";
 import { HiFiAxisConfiguration, HiFiAxisUtilities, ourHiFiAxisConfiguration } from "./HiFiAxisConfiguration";
-import { HiFiMixerSession, SetOtherUserGainsForThisConnectionResponse } from "./HiFiMixerSession";
+import { HiFiMixerSession, SetOtherUserGainForThisConnectionResponse, SetOtherUserGainsForThisConnectionResponse } from "./HiFiMixerSession";
 import { AvailableUserDataSubscriptionComponents, UserDataSubscription } from "./HiFiUserDataSubscription";
 
 /**
@@ -263,8 +263,8 @@ export class HiFiCommunicator {
     }
 
     /**
-     * Adjusts the gain of one or more users for this communicator's current connection only.
-     * This can be used to provide a more comfortable listening experience for the client. If you need to perform moderation actions on the server side, use the {@link https://docs.highfidelity.com/rest/latest/index.html|Administrative REST API}.
+     * Adjusts the gain of another user for this communicator's current connection only. This is a single user version of {@link HiFiCommunicator.setOtherUserGainsForThisConnection}.
+     * This can be used to provide a more comfortable listening experience for the client. If you need to perform moderation actions which apply server side, use the {@link https://docs.highfidelity.com/rest/latest/index.html|Administrative REST API}.
      * 
      * To use this command, the communicator must currently be connected to a space. You can connect to a space using {@link connectToHiFiAudioAPIServer}.
      * 
@@ -274,6 +274,31 @@ export class HiFiCommunicator {
      * When you subscribe to user data, you will get a list of {@link ReceivedHiFiAudioAPIData} objects, which each contain, at minimum, {@link ReceivedHifiAudioAPIData.hashedVisitID}s and {@link ReceivedHifiAudioAPIData.providedUserID}s for each user in the space. By inspecting each of these objects, you can associate a user with their hashed visit ID, if you know their provided user ID.
      *
      * @param gain  The relative gain to apply to the other user. By default, this is `1.0`. The gain can be any value greater or equal to `0.0`.
+     * For example: a gain of `2.0` will double the loudness of the user, while a gain of `0.5` will halve the user's loudness. A gain of `0.0` will effectively mute the user.
+     * 
+     * @returns If this operation is successful, the Promise will resolve with {@link SetOtherUserGainForThisConnectionResponse} with `success` equal to `true`.
+     * If unsuccessful, the Promise will reject with {@link SetOtherUserGainForThisConnectionResponse} with `success` equal to `false` and `error` set to an error message describing what went wrong.
+     */
+    async setOtherUserGainForThisConnection(visitIdHash: string, gain: number): Promise<SetOtherUserGainForThisConnectionResponse> {
+        let otherUserGainMap: OtherUserGainMap = {};
+        otherUserGainMap[visitIdHash] = gain;
+        let result = this.setOtherUserGainsForThisConnection(otherUserGainMap);
+        return Promise.resolve(result);
+    }
+
+    /**
+     * Adjusts the gain of one or more users for this communicator's current connection only.
+     * This can be used to provide a more comfortable listening experience for the client. If you need to perform moderation actions on the server side, use the {@link https://docs.highfidelity.com/rest/latest/index.html|Administrative REST API}.
+     * 
+     * To use this command, the communicator must currently be connected to a space. You can connect to a space using {@link connectToHiFiAudioAPIServer}.
+     * 
+     * @param otherUserGainMap  The map between hashed visit IDs and the desired adjusted gains of users from the perspective of this client, for this connection only.
+     * 
+     * Use {@link addUserDataSubscription} and {@link HiFiCommunicator.onUsersDisconnected} to keep track of the hashed visit IDs of currently connected users.
+     * 
+     * When you subscribe to user data, you will get a list of {@link ReceivedHiFiAudioAPIData} objects, which each contain, at minimum, {@link ReceivedHifiAudioAPIData.hashedVisitID}s and {@link ReceivedHifiAudioAPIData.providedUserID}s for each user in the space. By inspecting each of these objects, you can associate a user with their hashed visit ID, if you know their provided user ID.
+     * 
+     * The relative gain will be applied to the other user with the matching hashed visit ID. By default, this is `1.0`. The gain can be any value greater or equal to `0.0`.
      * For example: a gain of `2.0` will double the loudness of the user, while a gain of `0.5` will halve the user's loudness. A gain of `0.0` will effectively mute the user.
      * 
      * @returns If this operation is successful, the Promise will resolve with {@link SetOtherUserGainsForThisConnectionResponse} with `success` equal to `true`.

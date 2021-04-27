@@ -32,6 +32,8 @@ export interface SetOtherUserGainsForThisConnectionResponse {
     audionetSetOtherUserGainsForThisConnectionResponse?: AudionetSetOtherUserGainsForThisConnectionResponse
 }
 
+export type SetOtherUserGainForThisConnectionResponse = SetOtherUserGainsForThisConnectionResponse;
+
 /**
  * Instantiations of this class contain data about a connection between a client and a mixer.
  * Client library users shouldn't have to care at all about the variables and methods contained in this class.
