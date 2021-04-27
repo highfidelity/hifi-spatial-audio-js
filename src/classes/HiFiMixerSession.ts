@@ -437,6 +437,13 @@ export class HiFiMixerSession {
                     serverSentNewUserData = true;
                 }
 
+                // `ReceivedHiFiAudioAPIData.isStereo`
+                if (typeof (peerDataFromMixer.s) === "boolean") {
+                    userDataCache.isStereo = peerDataFromMixer.s;
+                    newUserData.isStereo = peerDataFromMixer.s;
+                    serverSentNewUserData = true;
+                }
+
                 // the newUserData AND the userDataCache have been updated with the new values
                 // propagate newUserData to user space
                 if (serverSentNewUserData) {
@@ -721,6 +728,20 @@ export class HiFiMixerSession {
     }
 
     /**
+     * Sets the state of the current connection, and
+     * fires the onChange handler if that state has, in fact, changed.
+     * @param state
+     */
+    _setCurrentHiFiConnectionState(state: HiFiConnectionStates): void {
+        if (this._currentHiFiConnectionState !== state) {
+            this._currentHiFiConnectionState = state;
+            if (this.onConnectionStateChanged) {
+                this.onConnectionStateChanged(this._currentHiFiConnectionState);
+            }
+        }
+    }
+
+    /**
      * Fires when the RAVI Signaling State chantges.
      * @param event 
      */
@@ -728,10 +749,7 @@ export class HiFiMixerSession {
         HiFiLogger.log(`New RAVI signaling state: \`${event.state}\``);
         switch (event.state) {
             case RaviSignalingStates.UNAVAILABLE:
-                this._currentHiFiConnectionState = HiFiConnectionStates.Unavailable;
-                if (this.onConnectionStateChanged) {
-                    this.onConnectionStateChanged(this._currentHiFiConnectionState);
-                }
+                this._setCurrentHiFiConnectionState(HiFiConnectionStates.Unavailable);
                 this.disconnectFromHiFiMixer();
                 break;
         }
@@ -746,36 +764,20 @@ export class HiFiMixerSession {
         switch (event.state) {
             case RaviSessionStates.CONNECTED:
                 this._mixerPeerKeyToStateCacheDict = {};
-
-                this._currentHiFiConnectionState = HiFiConnectionStates.Connected;
-
-                if (this.onConnectionStateChanged) {
-                    this.onConnectionStateChanged(this._currentHiFiConnectionState);
-                }
+                this._setCurrentHiFiConnectionState(HiFiConnectionStates.Connected);
                 break;
             case RaviSessionStates.DISCONNECTED:
                 if (this._currentHiFiConnectionState === HiFiConnectionStates.Unavailable) {
                     break;
                 }
-
-                this._currentHiFiConnectionState = HiFiConnectionStates.Disconnected;
-
-                if (this.onConnectionStateChanged) {
-                    this.onConnectionStateChanged(this._currentHiFiConnectionState);
-                }
-
+                this._setCurrentHiFiConnectionState(HiFiConnectionStates.Disconnected);
                 this.disconnectFromHiFiMixer();
                 break;
             case RaviSessionStates.FAILED:
                 if (this._currentHiFiConnectionState === HiFiConnectionStates.Unavailable) {
                     break;
                 }
-
-                this._currentHiFiConnectionState = HiFiConnectionStates.Failed;
-
-                if (this.onConnectionStateChanged) {
-                    this.onConnectionStateChanged(this._currentHiFiConnectionState);
-                }
+                this._setCurrentHiFiConnectionState(HiFiConnectionStates.Failed);
                 break;
         }
     }

@@ -399,7 +399,7 @@ export class HiFiAudioAPIData {
      * 
      * ✔ The client sends `hiFiGain` data to the server when `_transmitHiFiAudioAPIDataToServer()` is called.
      * 
-     * ✔ The server sends `hiFiGain` data to all clients connected to a server during "peer updates".
+     * ❌ The server does not send `hiFiGain` data to all clients as part of "peer updates".
      */
     hiFiGain: number;
     /**
@@ -488,11 +488,19 @@ export class ReceivedHiFiAudioAPIData extends HiFiAudioAPIData {
      * ✔ The server sends `volumeDecibels` data to all clients connected to a server during "peer updates".
      */
     volumeDecibels: number;
+
+    /**
+     * Indicates that the peer is providing stereo audio.
+     *
+     * The server sends `isStereo` data to all clients connected to a server during "peer updates".
+     */
+    isStereo: boolean;
     
-    constructor(params: { providedUserID?: string, hashedVisitID?: string, volumeDecibels?: number, position?: Point3D, orientationQuat?: OrientationQuat3D, hiFiGain?: number } = {}) {
+    constructor(params: { providedUserID?: string, hashedVisitID?: string, volumeDecibels?: number, position?: Point3D, orientationQuat?: OrientationQuat3D, hiFiGain?: number, isStereo?: boolean } = {}) {
         super(params);
         this.providedUserID = params.providedUserID;
         this.hashedVisitID = params.hashedVisitID;
         this.volumeDecibels = params.volumeDecibels;
+        this.isStereo = params.isStereo;
     }
 }

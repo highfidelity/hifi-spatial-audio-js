@@ -11,10 +11,10 @@ const NEW_SPACE_NAME = generateUUID();
 const SPACE_1_NAME = generateUUID();
 
 let args = require('minimist')(process.argv.slice(2));
-let stackname = args.stackname || process.env.hostname || "api-staging-latest";
+let stackname = args.stackname || process.env.hostname || "api-staging-latest.highfidelity.com";
 console.log("_______________STACKNAME_______________________", stackname);
-let stackURL = `https://${stackname}.highfidelity.com`;
-let websocketEndpointURL = `wss://${stackname}.highfidelity.com/dev/account:8001/`;
+let stackURL = `https://${stackname}`;
+let websocketEndpointURL = `wss://${stackname}/dev/account:8001/`;
 let space1id: string;
 let spaceWithDuplicateNameID: string;
 let usersDataArray: UserData[] = [];
@@ -44,22 +44,21 @@ function onUserDataReceived<K extends keyof UserData>(receivedHiFiAudioAPIDataAr
 
 describe('Mixer connections', () => {
     let stackData: { apps: { APP_1: { id: string; secret: string; }; APP_2: { id: string; secret: string; }; }; };
-    if (stackname === "api-staging" || stackname === "api-staging-latest") {
+    if (stackname === "api-staging.highfidelity.com" || stackname === "api-staging-latest.highfidelity.com") {
         stackData = stacks.staging;
         console.log("_______________USING STAGING AUTH FILE_______________________");
-    } else if (stackname === "api-pro" || stackname === "api-pro-latest") {
+    } else if (stackname === "api-pro.highfidelity.com" || stackname === "api-pro-latest.highfidelity.com") {
         stackData = stacks.pro;
         console.log("_______________USING PRO AUTH FILE_______________________");
-    } else if (stackname === "api-pro-east" || stackname === "api-pro-latest-east") {
+    } else if (stackname === "api-pro-east.highfidelity.com" || stackname === "api-pro-latest-east.highfidelity.com") {
         stackData = stacks.east;
         console.log("_______________USING EAST AUTH FILE_______________________");
-    } else if (stackname === "api" || stackname === "api-hobby-latest") {
+    } else if (stackname === "api.highfidelity.com" || stackname === "api-hobby-latest.highfidelity.com") {
         stackData = stacks.hobby;
         console.log("_______________USING HOBBY AUTH FILE_______________________");
-    }
-    if (!stackData) {
-        console.error("Cannot proceed with tests. Stackname provided does not match any stack in the auth file.");
-        return;
+    } else {
+        stackData = stacks[stackname];
+        console.log(`_______________USING ${ stackname } AUTH FILE_______________________`);
     }
     setStackData(stackData);
 
