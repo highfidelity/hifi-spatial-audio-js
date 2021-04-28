@@ -52,8 +52,11 @@
     "webpack-cli": "^4.4.0"
   },
   "dependencies": {
+    "audio-decode": "^1.4.0",
+    "audio-format": "^2.3.2",
     "esm": "^3.2.25",
     "pako": "^2.0.3",
+    "pcm-convert": "^1.6.5",
     "wrtc": "^0.4.7",
     "ws": "^7.4.2"
   },

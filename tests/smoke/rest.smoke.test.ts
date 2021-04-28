@@ -39,7 +39,7 @@ describe('HiFi API REST Calls', () => {
         nonadminTokenNoSpace = await generateJWT(tokenTypes.NONADMIN_ID_APP1);
     });
 
-    describe('App spaces', () => {
+    describe.only('App spaces', () => {
         let spaceID: string;
         let adminToken: string;
         let nonAdminToken: string;
@@ -343,6 +343,7 @@ describe('HiFi API REST Calls', () => {
         beforeAll(async () => {
             jest.setTimeout(35000); // these tests need longer to complete
             try {
+                console.log("_____________________", adminTokenNoSpace);
                 let returnMessage = await fetch(`${stackURL}/api/v1/spaces/create?token=${adminTokenNoSpace}`);
                 let returnMessageJSON: any = {};
                 returnMessageJSON = await returnMessage.json();
