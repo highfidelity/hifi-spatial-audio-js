@@ -1,17 +1,22 @@
-const fetch = require('node-fetch');
+const { JSDOM } = require('jsdom');
+
+const jsdom = new JSDOM('<!doctype html><html><body></body></html>');
+const { window } = jsdom;
+
+global.window = window;
+global.document = window.document;
+global.self = window;
+
+require('fast-text-encoding');
+require('wrtc');
 const stacks = require('../secrets/auth.json').stacks;
-const { MediaStream, nonstandard: { RTCAudioSource } } = require('wrtc');
-const fs = require('fs');
-const decode = require('audio-decode');
-const format = require('audio-format');
-const convert = require('pcm-convert');
 const RTCAudioSourceSineWave = require('../testUtilities/rtcAudioSourceSineWave');
 
 import { tokenTypes, generateJWT, setStackData, UserData, sleep } from '../testUtilities/testUtils';
 import { HiFiCommunicator } from "../../src/classes/HiFiCommunicator";
 import { UserDataSubscription, AvailableUserDataSubscriptionComponents } from '../../src/classes/HiFiUserDataSubscription';
 import { HiFiAudioAPIData, Point3D } from '../../src/classes/HiFiAudioAPIData';
-
+import {components, pipelines} from 'media-stream-library';
 
 let args = require('minimist')(process.argv.slice(2));
 let stackname = args.stackname || process.env.hostname || "api-staging-latest.highfidelity.com";
@@ -127,12 +132,12 @@ describe('Audio', () => {
 
         test(`Nonadmin users can set input stream, get output stream, mute/unmute, and change peers' gain`, async () => {
             user1.setInputAudioMediaStream(inputAudioMediaStream);
-            setTimeout(() => {
-                user1.setInputAudioMuted(true);
-            }, 1000);
-            setTimeout(() => {
-                user1.setInputAudioMuted(false);
-            }, 2000);
+            // setTimeout(() => {
+            //     user1.setInputAudioMuted(true);
+            // }, 1000);
+            // setTimeout(() => {
+            //     user1.setInputAudioMuted(false);
+            // }, 2000);
             for (let i = 0; i < 50; i++) {
                 await sleep(200);
                 usersDataArray.forEach((userData) => {

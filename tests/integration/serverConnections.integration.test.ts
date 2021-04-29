@@ -35,10 +35,10 @@ function onUserDataReceived<K extends keyof UserData>(receivedHiFiAudioAPIDataAr
                     }
                 }
             }
-            if (newUser) {
-                usersDataArray.push(receivedUserData);
-            }
         });
+        if (newUser) {
+            usersDataArray.push(receivedUserData);
+        }
     });
 }
 

@@ -55,8 +55,13 @@
     "audio-decode": "^1.4.0",
     "audio-format": "^2.3.2",
     "esm": "^3.2.25",
+    "fast-text-encoding": "^1.0.3",
+    "jsdom": "^16.5.3",
+    "media-stream-library": "^9.3.0",
+    "mediastream": "0.0.5",
     "pako": "^2.0.3",
     "pcm-convert": "^1.6.5",
+    "puppeteer": "^9.0.0",
     "wrtc": "^0.4.7",
     "ws": "^7.4.2"
   },
