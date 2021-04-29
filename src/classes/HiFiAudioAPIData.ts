@@ -352,6 +352,14 @@ export function eulerFromQuaternion(quat: OrientationQuat3D, order: OrientationE
 }
 
 /**
+ * Instantiations of this class define a map between hashed visit IDs and the gains of other users.
+ * You can use this in {@link HiFiAudioAPIData.setOtherUserGainsForThisConnection} to change the gains of other users as perceived by the current connection, providing a more comfortable listening experience for the client. If you need to perform moderation actions on the server side, use the {@link https://docs.highfidelity.com/rest/latest/index.html|Administrative REST API}.
+ *
+ * Internally, this class is used to keep track of which other user gain changes need to be sent to the server.
+ */
+export type OtherUserGainMap = { [key: string]: number };
+
+/**
  * Instantiations of this class contain all of the data that is possible to **send to AND receive from** the High Fidelity Audio API Server.
  * All member data inside this `class` can be sent to the High Fidelity Audio API Server. See below for more details.
  * 
@@ -399,7 +407,7 @@ export class HiFiAudioAPIData {
      * 
      * ✔ The client sends `hiFiGain` data to the server when `_transmitHiFiAudioAPIDataToServer()` is called.
      * 
-     * ✔ The server sends `hiFiGain` data to all clients connected to a server during "peer updates".
+     * ❌ The server does not send `hiFiGain` data to all clients as part of "peer updates".
      */
     hiFiGain: number;
     /**
@@ -445,6 +453,16 @@ export class HiFiAudioAPIData {
      * ❌ The server never sends `userRolloff` data.
      */
     userRolloff: number;
+
+    /*
+     * This is an internal class and it is not recommended for normal usage of the API.
+     *
+     * See instead {@link HiFiCommunicator.setOtherUserGainsForThisConnection}, which allows you to set the desired gains for one or more users as perceived by this client only. If you need to perform moderation actions on the server side, use the {@link https://docs.highfidelity.com/rest/latest/index.html|Administrative REST API}.
+     *
+     * Internally, this variable is used to keep track of which other user gain changes need to be sent to the server. The keys are hashed visit IDs, and the values are gains.
+     */
+    /** @internal */
+    _otherUserGainQueue: OtherUserGainMap;
     
     constructor({ position = null, orientationQuat = null, orientationEuler = null, volumeThreshold = null, hiFiGain = null, userAttenuation = null, userRolloff = null }: { position?: Point3D, orientationQuat?: OrientationQuat3D, orientationEuler?: OrientationEuler3D, volumeThreshold?: number, hiFiGain?: number, userAttenuation?: number, userRolloff?: number } = {}) {
         this.position = position;
@@ -454,6 +472,7 @@ export class HiFiAudioAPIData {
         this.hiFiGain = hiFiGain;
         this.userAttenuation = userAttenuation;
         this.userRolloff = userRolloff;
+        this._otherUserGainQueue = {};
     }
 }
 

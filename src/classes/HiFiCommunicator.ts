@@ -12,9 +12,9 @@ import { HiFiConstants } from "../constants/HiFiConstants";
 import { WebRTCSessionParams } from "../libravi/RaviSession";
 import { HiFiLogger } from "../utilities/HiFiLogger";
 import { HiFiUtilities } from "../utilities/HiFiUtilities";
-import { HiFiAudioAPIData, ReceivedHiFiAudioAPIData, Point3D, OrientationQuat3D, OrientationEuler3D, OrientationEuler3DOrder, eulerToQuaternion, eulerFromQuaternion } from "./HiFiAudioAPIData";
+import { HiFiAudioAPIData, ReceivedHiFiAudioAPIData, Point3D, OrientationQuat3D, OrientationEuler3D, OrientationEuler3DOrder, eulerToQuaternion, eulerFromQuaternion, OtherUserGainMap } from "./HiFiAudioAPIData";
 import { HiFiAxisConfiguration, HiFiAxisUtilities, ourHiFiAxisConfiguration } from "./HiFiAxisConfiguration";
-import { HiFiMixerSession, SetOtherUserGainForThisConnectionResponse } from "./HiFiMixerSession";
+import { HiFiMixerSession, SetOtherUserGainForThisConnectionResponse, SetOtherUserGainsForThisConnectionResponse } from "./HiFiMixerSession";
 import { AvailableUserDataSubscriptionComponents, UserDataSubscription } from "./HiFiUserDataSubscription";
 
 /**
@@ -263,8 +263,8 @@ export class HiFiCommunicator {
     }
 
     /**
-     * Adjusts the gain of another user for this communicator's current connection only.
-     * This can be used to provide a more comfortable listening experience for the client. If you need to perform moderation actions which apply to all users, use the {@link https://docs.highfidelity.com/rest/latest/index.html|Administrative REST API}.
+     * Adjusts the gain of another user for this communicator's current connection only. This is a single user version of {@link HiFiCommunicator.setOtherUserGainsForThisConnection}.
+     * This can be used to provide a more comfortable listening experience for the client. If you need to perform moderation actions which apply server side, use the {@link https://docs.highfidelity.com/rest/latest/index.html|Administrative REST API}.
      * 
      * To use this command, the communicator must currently be connected to a space. You can connect to a space using {@link connectToHiFiAudioAPIServer}.
      * 
@@ -279,37 +279,38 @@ export class HiFiCommunicator {
      * @returns If this operation is successful, the Promise will resolve with {@link SetOtherUserGainForThisConnectionResponse} with `success` equal to `true`.
      * If unsuccessful, the Promise will reject with {@link SetOtherUserGainForThisConnectionResponse} with `success` equal to `false` and `error` set to an error message describing what went wrong.
      */
-    async setOtherUserGainForThisConnection(visitIdHash: String, gain: Number): Promise<SetOtherUserGainForThisConnectionResponse> {
-        let setOtherUserGainForThisConnectionResponse;
+    async setOtherUserGainForThisConnection(visitIdHash: string, gain: number): Promise<SetOtherUserGainForThisConnectionResponse> {
+        let otherUserGainMap: OtherUserGainMap = {};
+        otherUserGainMap[visitIdHash] = gain;
+        let result = this.setOtherUserGainsForThisConnection(otherUserGainMap);
+        return Promise.resolve(result);
+    }
 
-        if (!this._mixerSession) {
-            let errMsg = `\`this._mixerSession\` is falsey!`;
-            return Promise.reject({
-                success: false,
-                error: errMsg
-            });
-        }
+    /**
+     * Adjusts the gain of one or more users for this communicator's current connection only.
+     * This can be used to provide a more comfortable listening experience for the client. If you need to perform moderation actions on the server side, use the {@link https://docs.highfidelity.com/rest/latest/index.html|Administrative REST API}.
+     * 
+     * To use this command, the communicator must currently be connected to a space. You can connect to a space using {@link connectToHiFiAudioAPIServer}.
+     * 
+     * @param otherUserGainMap  The map between hashed visit IDs and the desired adjusted gains of users from the perspective of this client, for this connection only.
+     * 
+     * Use {@link addUserDataSubscription} and {@link HiFiCommunicator.onUsersDisconnected} to keep track of the hashed visit IDs of currently connected users.
+     * 
+     * When you subscribe to user data, you will get a list of {@link ReceivedHiFiAudioAPIData} objects, which each contain, at minimum, {@link ReceivedHifiAudioAPIData.hashedVisitID}s and {@link ReceivedHifiAudioAPIData.providedUserID}s for each user in the space. By inspecting each of these objects, you can associate a user with their hashed visit ID, if you know their provided user ID.
+     * 
+     * The relative gain will be applied to the other user with the matching hashed visit ID. By default, this is `1.0`. The gain can be any value greater or equal to `0.0`.
+     * For example: a gain of `2.0` will double the loudness of the user, while a gain of `0.5` will halve the user's loudness. A gain of `0.0` will effectively mute the user.
+     * 
+     * @returns If this operation is successful, the Promise will resolve with {@link SetOtherUserGainsForThisConnectionResponse} with `success` equal to `true`.
+     * If unsuccessful, the Promise will reject with {@link SetOtherUserGainsForThisConnectionResponse} with `success` equal to `false` and `error` set to an error message describing what went wrong.
+     */
+    async setOtherUserGainsForThisConnection(otherUserGainMap: OtherUserGainMap): Promise<SetOtherUserGainsForThisConnectionResponse> {
+        Object.assign(this._currentHiFiAudioAPIData._otherUserGainQueue, otherUserGainMap);
 
-        try {
-            setOtherUserGainForThisConnectionResponse = await this._mixerSession.setOtherUserGainForThisConnection(visitIdHash, gain);
-        } catch (errorSettingUserGain) {
-            let errorReason : any;
-            if (errorSettingUserGain.error) {
-                errorReason = errorSettingUserGain.error;
-            } else {
-                errorReason = JSON.stringify(errorSettingUserGain);
-            }
-            let errMsg = `Error when setting other user gain for this connection. Error: \n${errorReason}`;
-            return Promise.reject({
-                success: false,
-                error: errMsg,
-                audionetSetOtherUserGainForThisConnectionResponse: errorSettingUserGain.audionetSetOtherUserGainForThisConnectionResponse
-            });
-        }
-
+        let result = this._transmitHiFiAudioAPIDataToServer();
         return Promise.resolve({
-            success: true,
-            audionetSetOtherUserGainForThisConnectionResponse: setOtherUserGainForThisConnectionResponse.audionetSetOtherUserGainForThisConnectionResponse
+            success: result.success,
+            error: result.error
         });
     }
 
@@ -559,6 +560,14 @@ export class HiFiCommunicator {
         if (typeof (dataJustTransmitted.userRolloff) === "number") {
             this._lastTransmittedHiFiAudioAPIData["userRolloff"] = dataJustTransmitted.userRolloff;
         }
+        if (typeof (dataJustTransmitted._otherUserGainQueue) === "object") {
+            if (typeof(this._lastTransmittedHiFiAudioAPIData._otherUserGainQueue) !== "object") {
+                this._lastTransmittedHiFiAudioAPIData._otherUserGainQueue = {};
+            }
+            for (const idToGain of Object.entries(dataJustTransmitted._otherUserGainQueue)) {
+                this._lastTransmittedHiFiAudioAPIData._otherUserGainQueue[idToGain[0]] = idToGain[1];
+            }
+        }
     }
 
     /**
@@ -595,6 +604,9 @@ export class HiFiCommunicator {
                 // Now we have to update our "last transmitted" `HiFiAudioAPIData` object
                 // to contain the data that we just transmitted.
                 this._updateLastTransmittedHiFiAudioAPIData(this._currentHiFiAudioAPIData);
+                // Finally, in some cases, clean up some of the transmitted data history
+                // (particularly, _otherUserGainQueue)
+                this._cleanUpHiFiAudioAPIDataHistory();
 
                 return {
                     success: true,
@@ -617,6 +629,23 @@ export class HiFiCommunicator {
                 success: false,
                 error: `No server connection yet; can't transmit user data.`
             };
+        }
+    }
+
+    /**
+     * Normally, we try to limit the amount of data we transmit to the High Fidelity Audio API server, by remembering what we
+     * sent. See {@link _updateUserData} for more information on how this is done.
+     *
+     * This function exists to handle any scenarios of remembering too much sent data. It is called just after data is succesfully sent, when data is known to no longer be needed.
+     */
+    private _cleanUpHiFiAudioAPIDataHistory(): void {
+        // Always clear _otherUserGainQueue in our local data
+        this._currentHiFiAudioAPIData._otherUserGainQueue = {};
+
+        let maxCachedOtherUserGains = 1000;
+        if (Object.keys(this._lastTransmittedHiFiAudioAPIData._otherUserGainQueue).length > maxCachedOtherUserGains) {
+            this._lastTransmittedHiFiAudioAPIData._otherUserGainQueue = {};
+            HiFiLogger.warn(`Stored \`_lastTransmittedHiFiAudioAPIData._otherUserGainQueue\` was too large and was cleared to save space.`);
         }
     }
 

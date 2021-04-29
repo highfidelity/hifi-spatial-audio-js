@@ -6,30 +6,29 @@ import { TestUser } from '../testUtilities/TestUser';
 import { HiFiConnectionStates } from "../../src/classes/HiFiCommunicator";
 
 let args = require('minimist')(process.argv.slice(2));
-let stackname = args.stackname || process.env.hostname || "api-staging-latest";
+let stackname = args.stackname || process.env.hostname || "api-staging-latest.highfidelity.com";
 console.log("_______________STACKNAME_______________________", stackname);
-let stackURL = `https://${stackname}.highfidelity.com`;
+let stackURL = `https://${stackname}`;
 let adminTokenNoSpace: string;
 let nonadminTokenNoSpace: string;
 
 describe('HiFi API REST Calls', () => {
     let stackData: { apps: { APP_1: { id: string; secret: string; }; APP_2: { id: string; secret: string; }; }; };
-    if (stackname === "api-staging" || stackname === "api-staging-latest") {
+    if (stackname === "api-staging.highfidelity.com" || stackname === "api-staging-latest.highfidelity.com") {
         stackData = stacks.staging;
         console.log("_______________USING STAGING AUTH FILE_______________________");
-    } else if (stackname === "api-pro" || stackname === "api-pro-latest") {
+    } else if (stackname === "api-pro.highfidelity.com" || stackname === "api-pro-latest.highfidelity.com") {
         stackData = stacks.pro;
         console.log("_______________USING PRO AUTH FILE_______________________");
-    } else if (stackname === "api-pro-east" || stackname === "api-pro-latest-east") {
+    } else if (stackname === "api-pro-east.highfidelity.com" || stackname === "api-pro-latest-east.highfidelity.com") {
         stackData = stacks.east;
         console.log("_______________USING EAST AUTH FILE_______________________");
-    } else if (stackname === "api" || stackname === "api-hobby-latest") {
+    } else if (stackname === "api.highfidelity.com" || stackname === "api-hobby-latest.highfidelity.com") {
         stackData = stacks.hobby;
         console.log("_______________USING HOBBY AUTH FILE_______________________");
-    }
-    if (!stackData) {
-        console.error("Cannot proceed with tests. Stackname provided does not match any stack in the auth file.");
-        return;
+    } else {
+        stackData = stacks[stackname];
+        console.log(`_______________USING ${ stackname } AUTH FILE_______________________`);
     }
     setStackData(stackData);
 
@@ -126,7 +125,7 @@ describe('HiFi API REST Calls', () => {
             expect(settingsJSON['global-frequency-rolloff']).toBe(null);
             expect(settingsJSON['global-attenuation']).toBe(null);
             expect(settingsJSON['client-limit']).toBe(null);
-            expect(settingsJSON['max-client-limit']).toBe(20);
+            // Removed check for max client limit, maybe add back after https://github.com/highfidelity/speakeasy-infra/pull/366
 
             // Read setting from the 'space-id' path`, async () => {
             returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/space-id/?token=${adminToken}`);
@@ -171,7 +170,7 @@ describe('HiFi API REST Calls', () => {
             // Read setting from the 'max-client-limit' path`, async () => {
             returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/max-client-limit/?token=${adminToken}`);
             settingsJSON = await returnMessage.json();
-            expect(settingsJSON['max-client-limit']).toBe(20);
+            // Removed check for max client limit, maybe add back after https://github.com/highfidelity/speakeasy-infra/pull/366
 
             // Change settings using 'GET'
             space1Name = generateUUID();
