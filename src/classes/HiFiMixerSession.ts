@@ -17,7 +17,6 @@ import { RaviSession, RaviSessionStates, WebRTCSessionParams } from "../libravi/
 import { RaviSignalingConnection, RaviSignalingStates } from "../libravi/RaviSignalingConnection";
 import { HiFiAxisUtilities, ourHiFiAxisConfiguration } from "./HiFiAxisConfiguration";
 const pako = require('pako');
-let navigator: Navigator;
 
 const INIT_TIMEOUT_MS = 5000;
 const PERSONAL_VOLUME_ADJUST_TIMEOUT_MS = 5000;
@@ -643,15 +642,15 @@ export class HiFiMixerSession {
         if (this._raviSession && streamController) {
             let hasMicPermission = false;
 
-            // if (navigator.permissions && navigator.permissions.query) {
-            //     let result: PermissionStatus;
-            //     try {
-            //         result = await navigator.permissions.query({ name: 'microphone' });
-            //     } catch { }
-            //     if (result && result.state === "granted") {
-            //         hasMicPermission = true;
-            //     }
-            // }
+            if (navigator && navigator.permissions && navigator.permissions.query) {
+                let result: PermissionStatus;
+                try {
+                    result = await navigator.permissions.query({ name: 'microphone' });
+                } catch { }
+                if (result && result.state === "granted") {
+                    hasMicPermission = true;
+                }
+            }
 
             if (!tryToStopMicStream || !hasMicPermission || typeof self === 'undefined') {
                 // Developer has explicitly or implicitly set `tryToStopMicStream` to `false` OR

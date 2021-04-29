@@ -613,15 +613,15 @@ methods when it has data channel and track channels ready.
  */
 let crossPlatformRTCPeerConnection:any = null;
 let crossPlatformRTCSessionDescription:any = null;
-// if (typeof self === 'undefined') {
+if (typeof self === 'undefined') {
   // node context
   crossPlatformRTCPeerConnection = require('wrtc').RTCPeerConnection;
   crossPlatformRTCSessionDescription = require('wrtc').RTCSessionDescription;
-// } else {
-//   // browser context
-//   crossPlatformRTCPeerConnection = RTCPeerConnection;
-//   crossPlatformRTCSessionDescription = RTCSessionDescription;
-// }
+} else {
+  // browser context
+  crossPlatformRTCPeerConnection = RTCPeerConnection;
+  crossPlatformRTCSessionDescription = RTCSessionDescription;
+}
 
 /**
  * @internal

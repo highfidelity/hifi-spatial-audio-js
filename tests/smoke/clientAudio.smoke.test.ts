@@ -1,17 +1,14 @@
+const puppeteer = require('puppeteer');
+let browser: any;
 const fetch = require('node-fetch');
 const stacks = require('../secrets/auth.json').stacks;
-const { MediaStream, nonstandard: { RTCAudioSource } } = require('wrtc');
-const fs = require('fs');
-const decode = require('audio-decode');
-const format = require('audio-format');
-const convert = require('pcm-convert');
+const { MediaStream } = require('wrtc');
 const RTCAudioSourceSineWave = require('../testUtilities/rtcAudioSourceSineWave');
 
 import { tokenTypes, generateJWT, setStackData, UserData, sleep } from '../testUtilities/testUtils';
 import { HiFiCommunicator } from "../../src/classes/HiFiCommunicator";
 import { UserDataSubscription, AvailableUserDataSubscriptionComponents } from '../../src/classes/HiFiUserDataSubscription';
 import { HiFiAudioAPIData, Point3D } from '../../src/classes/HiFiAudioAPIData';
-
 
 let args = require('minimist')(process.argv.slice(2));
 let stackname = args.stackname || process.env.hostname || "api-staging-latest.highfidelity.com";
@@ -40,7 +37,12 @@ describe('Audio', () => {
     setStackData(stackData);
 
     beforeAll(async () => {
-        // adminTokenNoSpace = await generateJWT(tokenTypes.ADMIN_ID_APP1);
+        browser = await puppeteer.launch({ args: ['--use-fake-ui-for-media-stream'] });
+        const page = await browser.newPage();
+        page.setContent('<!doctype html><html><body></body></html>');
+        global.window = page;
+        global.navigator = window.navigator;
+        adminTokenNoSpace = await generateJWT(tokenTypes.ADMIN_ID_APP1);
     });
 
     describe(`Users can hear peers at a comfortable volume when the peer is not muted`, () => {
@@ -51,9 +53,6 @@ describe('Audio', () => {
         let user2: HiFiCommunicator;
         let user1HashedVisitID: string;
         let usersDataArray: UserData[] = [];
-        let numberOfChannels: number;
-        let convertedAudioBuffer: any;
-        let currentAudioData: any;
         let inputAudioMediaStream: MediaStream;
 
         function onUserDataReceived<K extends keyof UserData>(receivedHiFiAudioAPIDataArray: UserData[], ouputUsersArray: UserData[]) {
@@ -72,7 +71,6 @@ describe('Audio', () => {
                             }
                         }
                     }
-
                 });
                 if (newUser) {
                     usersDataArray.push(receivedUserData);
@@ -82,16 +80,14 @@ describe('Audio', () => {
 
         // create the space
         beforeAll(async () => {
-            jest.setTimeout(60000);
+            jest.setTimeout(10000);
             try {
-                // let returnMessage = await fetch(`${stackURL}/api/v1/spaces/create?token=${adminTokenNoSpace}`);
-                // let returnMessageJSON: any = {};
-                // returnMessageJSON = await returnMessage.json();
-                // spaceID = returnMessageJSON['space-id'];
-                spaceID = '6dd58f24-40cf-4c72-a46a-f4d58fb5de08';
-                // adminToken = await generateJWT(tokenTypes.ADMIN_ID_APP1, spaceID);
-                // nonadminToken = await generateJWT(tokenTypes.NONADMIN_ID_APP1, spaceID);
-                nonadminToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcHBfaWQiOiJjMzBjZWQ2Yi0xODU1LTQ0OTYtYjRjNS02MzE3ZTZkNThmOTEiLCJ1c2VyX2lkIjoiYSIsInNwYWNlX2lkIjoiNmRkNThmMjQtNDBjZi00YzcyLWE0NmEtZjRkNThmYjVkZTA4Iiwic3RhY2siOiJhdWRpb25ldC1taXhlci1hcGktc3RhZ2luZy0xOCJ9.ZuJ8ozVfBUe1MxNMbKecL6w5_3VMrSpoP9KI4A2_bhE';
+                let returnMessage = await fetch(`${stackURL}/api/v1/spaces/create?token=${adminTokenNoSpace}`);
+                let returnMessageJSON: any = {};
+                returnMessageJSON = await returnMessage.json();
+                spaceID = returnMessageJSON['space-id']; // swap in your space ID to view bot testing
+                adminToken = await generateJWT(tokenTypes.ADMIN_ID_APP1, spaceID);
+                nonadminToken = await generateJWT(tokenTypes.NONADMIN_ID_APP1, spaceID); // swap in your token to view bot testing
             } catch (err) {
                 console.error("Failed to create space before tests.");
             }
@@ -112,42 +108,40 @@ describe('Audio', () => {
                 "components": [AvailableUserDataSubscriptionComponents.VolumeDecibels],
                 "callback": onUserDataReceived
             });
-            user1.addUserDataSubscription(userDataSubscription);
+            user2.addUserDataSubscription(userDataSubscription);
 
-            let source = new RTCAudioSourceSineWave();
+            let source = new RTCAudioSourceSineWave({ frequency: 300 });
             let track = source.createTrack();
             inputAudioMediaStream = new MediaStream([track]);
         });
 
         afterAll(async () => {
-            // await fetch(`${stackURL}/api/v1/spaces/${spaceID}?token=${adminToken}`, {
-            //     method: 'DELETE'
-            // });
+            await fetch(`${stackURL}/api/v1/spaces/${spaceID}?token=${adminToken}`, {
+                method: 'DELETE'
+            });
         });
 
         test(`Nonadmin users can set input stream, get output stream, mute/unmute, and change peers' gain`, async () => {
+            // user 1 can set input audio, user 2 can hear user 1
             user1.setInputAudioMediaStream(inputAudioMediaStream);
-            setTimeout(() => {
-                user1.setInputAudioMuted(true);
-            }, 1000);
-            setTimeout(() => {
-                user1.setInputAudioMuted(false);
-            }, 2000);
-            for (let i = 0; i < 50; i++) {
-                await sleep(200);
-                usersDataArray.forEach((userData) => {
-                    if (userData.hashedVisitID === user1HashedVisitID) {
-                        console.log("_______________________", userData.hashedVisitID, "      :      ", userData.volumeDecibels);
-                    }
-                })
+            await sleep(1000);
+            expect(usersDataArray[usersDataArray.findIndex((userData: UserData) => userData.hashedVisitID === user1HashedVisitID)].volumeDecibels).toBe(0);
 
-                // console.log("____________________", user1Data);
-                // console.log("____________________", userOtherData);
-            }
+            // user 1 can mute, user 2 stops hearing user 1
+            user1.setInputAudioMuted(true);
+            await sleep(1000);
+            // what is the right value here?
+            expect(usersDataArray[usersDataArray.findIndex((userData: UserData) => userData.hashedVisitID === user1HashedVisitID)].volumeDecibels).toBeLessThan(-60);
+
+            // user 1 can unmute, user 2 can hear user 1 again
+            user1.setInputAudioMuted(false);
+            await sleep(1000);
+            expect(usersDataArray[usersDataArray.findIndex((userData: UserData) => userData.hashedVisitID === user1HashedVisitID)].volumeDecibels).toBe(0);
+
+            // user 2 can set gain for user 1
+            user2.setOtherUserGainForThisConnection(user1HashedVisitID, 0.1)
+                .then((data) => { expect(data.audionetSetOtherUserGainForThisConnectionResponse.success).toBeTruthy });
+            // comfirm once we have a way to do this
         });
     });
 });
-
-function generateUUID() {
-    throw new Error('Function not implemented.');
-}
