@@ -140,7 +140,7 @@ describe('Audio', () => {
 
             // user 2 can set gain for user 1
             user2.setOtherUserGainForThisConnection(user1HashedVisitID, 0.1)
-                .then((data) => { expect(data.audionetSetOtherUserGainForThisConnectionResponse.success).toBeTruthy });
+                .then((data) => { expect(data.success).toBeTruthy });
             // comfirm once we have a way to do this
         });
     });
