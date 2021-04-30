@@ -37,6 +37,7 @@
   "homepage": "https://highfidelity.com/",
   "devDependencies": {
     "@types/jest": "^26.0.20",
+    "@types/puppeteer": "^5.4.3",
     "aws-sdk": "^2.831.0",
     "clean-webpack-plugin": "^3.0.0",
     "jest": "^26.6.3",
@@ -44,6 +45,7 @@
     "jose": "^3.11.0",
     "minimist": "^1.2.5",
     "node-fetch": "^2.6.1",
+    "puppeteer": "^9.0.0",
     "ts-jest": "^26.4.4",
     "ts-loader": "^8.0.14",
     "typedoc": "^0.20.29",

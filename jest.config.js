@@ -9,16 +9,6 @@ module.exports = {
             moduleNameMapper: {
                 "^jose/(.*)$": "<rootDir>/node_modules/jose/dist/node/cjs/$1"
             }
-        },
-        {
-            preset: 'ts-jest',
-            displayName: 'dom',
-            testEnvironment: 'jsdom',
-            testMatch: ['**.test.dom.ts'],
-            globalTeardown: './tests/testUtilities/globalTeardown.js',
-            moduleNameMapper: {
-                "^jose/(.*)$": "<rootDir>/node_modules/jose/dist/node/cjs/$1"
-            }
         }
     ]
 };

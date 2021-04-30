@@ -590,7 +590,7 @@ export class HiFiMixerSession {
         if (this._raviSession && streamController) {
             let hasMicPermission = false;
 
-            if (navigator.permissions && navigator.permissions.query) {
+            if (navigator && navigator.permissions && navigator.permissions.query) {
                 let result: PermissionStatus;
                 try {
                     result = await navigator.permissions.query({ name: 'microphone' });
