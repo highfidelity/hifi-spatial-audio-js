@@ -204,7 +204,7 @@ describe('HiFi API REST Calls', () => {
             expect(returnMessageJSON['app-id']).toBe(appID);
 
             // clean up
-            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${space2id}?token=${adminToken}`, {
+            await fetch(`${stackURL}/api/v1/spaces/${space2id}?token=${adminToken}`, {
                 method: 'DELETE'
             });
         });
