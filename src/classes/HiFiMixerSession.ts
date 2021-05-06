@@ -35,6 +35,72 @@ export interface SetOtherUserGainsForThisConnectionResponse {
 export type SetOtherUserGainForThisConnectionResponse = SetOtherUserGainsForThisConnectionResponse;
 
 /**
+ * This enum string represents the reason the client's mute state has updated.
+ * See {@link OnMuteChangedCallback} for how this is used.
+ *
+ * {@link MuteReason.CLIENT} is used to indicate that the client has attempted to change the mute state using {@link HiFiCommunicator.setInputAudioMuted}
+ *
+ * {@link MuteReason.ADMIN} is used to indicate that the server has changed the client's mute state.
+ *
+ * {@link MuteReason.INTERNAL} is used to indicate that the client's mute state has changed due to an implementation detail of the spatial audio API, for example to keep the state of the client consistent with the server.
+*/
+export enum MuteReason {
+    CLIENT = "client",
+    ADMIN = "admin",
+    INTERNAL = "internal"
+}
+
+/**
+ * This event object describes how and why the mute state of the client has changed. It is passed in as a parameter to {@link OnMuteChangedCallback}.
+*/
+export class MuteChangedEvent {
+    /**
+     * Indicates whether the the mute state was set successfully.
+     * This may be `false` if the client is trying to unmute themselves when muted by an admin, or if there was a failure setting the mute state of the input device.
+    */
+    success: boolean;
+    /**
+     * Indicates the muted value that would have been set if the mute state was set succesfully.
+     * `true` means muted, `false` means unmuted.
+    */
+    targetInputAudioMutedValue: boolean;
+    /**
+     * Indicates the current muted value after attempting to set mute state.
+     * `true` means muted, `false` means unmuted.
+    */
+    currentInputAudioMutedValue: boolean;
+    /**
+     * Indicates whether the client is currently prevented from unmuting using {@link HiFiCommunicator.setInputAudioMuted}.
+    */
+    adminPreventsInputAudioUnmuting: boolean;
+    /**
+     * Indicates the reason the mute state has changed.
+    */
+    muteReason: MuteReason;
+
+    constructor({ success, targetInputAudioMutedValue, currentInputAudioMutedValue, adminPreventsInputAudioUnmuting, muteReason }: { success: boolean, targetInputAudioMutedValue: boolean, currentInputAudioMutedValue: boolean, adminPreventsInputAudioUnmuting: boolean, muteReason: MuteReason }) {
+        this.success = success;
+        this.targetInputAudioMutedValue = targetInputAudioMutedValue;
+        this.currentInputAudioMutedValue = currentInputAudioMutedValue;
+        this.adminPreventsInputAudioUnmuting = adminPreventsInputAudioUnmuting;
+        this.muteReason = muteReason;
+    }
+}
+
+/**
+ * An `onMuteChanged` callback function with this signature can be provided to {@link HiFiCommunicator.constructor}. The function you provide will be called whenever the mute state of the client may have updated.
+ *
+ * One situation where this is useful is when the client's mute state has been changed by an admin, i.e. when {@link MuteChangedEvent.muteReason} is {@link MuteReason.ADMIN}. If {@link MuteChangedEvent.adminPreventsInputAudioUnmuting} is `true`, then the client is muted, and is prevented from unmuting when using {@link HiFiCommunicator.setInputAudioMuted}. If {@link MuteChangedEvent.adminPreventsInputAudioUnmuting} is `false`, then the client is no longer prevented from unmuting, but is not automatically unmuted. The client is allowed to mute themself at any time regardless of the current mute state.
+ *
+ * If {@link MuteChangedEvent.muteReason} is equal to {@link MuteReason.CLIENT}, the client attempted to set the mute state through {@link HiFiCommunicator.setInputAudioMuted}.
+ *
+ * If {@link MuteChangedEvent.muteReason} is equal to {@link MuteReason.INTERNAL}, the client's mute state has changed due to an implementation detail of the spatial audio API, for example to keep the state of the client consistent with the server.
+ *
+ * This callback can also be used to keep track of whether the client is muted and display this in the client UI, and can also be used for debugging purposes. The mute state of the client may not have changed after this callback.
+*/
+export type OnMuteChangedCallback = (muteChangedEvent: MuteChangedEvent) => void;
+
+/**
  * Instantiations of this class contain data about a connection between a client and a mixer.
  * Client library users shouldn't have to care at all about the variables and methods contained in this class.
  */
@@ -88,6 +154,11 @@ export class HiFiMixerSession {
      */
     private _inputAudioMediaStreamIsStereo: boolean;
 
+    private _adminPreventsInputAudioUnmuting: boolean;
+    private _lastSuccessfulInputAudioMutedValue: boolean;
+
+    private onMuteChanged: OnMuteChangedCallback;
+
     /**
      * The WebRTC Stats Observer callback
      */
@@ -132,12 +203,14 @@ export class HiFiMixerSession {
      * @param onUserDataUpdated - The function to call when the server sends user data to the client. Irrelevant if `userDataStreamingScope` is `HiFiUserDataStreamingScopes.None`.
      * @param onUsersDisconnected - The function to call when the server sends user data about peers who just disconnected to the client.
      */
-    constructor({ userDataStreamingScope = HiFiUserDataStreamingScopes.All, onUserDataUpdated, onUsersDisconnected, onConnectionStateChanged }: { userDataStreamingScope?: HiFiUserDataStreamingScopes, onUserDataUpdated?: Function, onUsersDisconnected?: Function, onConnectionStateChanged?: Function }) {
+    constructor({ userDataStreamingScope = HiFiUserDataStreamingScopes.All, onUserDataUpdated, onUsersDisconnected, onConnectionStateChanged, onMuteChanged }: { userDataStreamingScope?: HiFiUserDataStreamingScopes, onUserDataUpdated?: Function, onUsersDisconnected?: Function, onConnectionStateChanged?: Function, onMuteChanged?: OnMuteChangedCallback }) {
         this.webRTCAddress = undefined;
         this.userDataStreamingScope = userDataStreamingScope;
         this.onUserDataUpdated = onUserDataUpdated;
         this.onUsersDisconnected = onUsersDisconnected;
         this._mixerPeerKeyToStateCacheDict = {};
+        this._lastSuccessfulInputAudioMutedValue = false;
+        this.onMuteChanged = onMuteChanged;
 
         RaviUtils.setDebug(false);
 
@@ -403,6 +476,30 @@ export class HiFiMixerSession {
                 this.onUserDataUpdated(allNewUserData);
             }
         }
+        
+        if (jsonData.instructions) {
+            for (const instruction of jsonData.instructions) {
+                if (!Array.isArray(instruction) || !instruction.length) {
+                    continue;
+                }
+
+                let instructionName = instruction[0];
+                let instructionArguments = instruction.slice(1);
+                if (instructionName === "mute") {
+                    let shouldBeMuted: boolean;
+                    if (instructionArguments.length >= 1) {
+                        if (instructionArguments[0] === 1) {
+                            shouldBeMuted = true;
+                        } else if (instructionArguments[0] === 0) {
+                            shouldBeMuted = false;
+                        }
+                    }
+                    if (shouldBeMuted !== undefined) {
+                        this._setMutedByAdmin(shouldBeMuted, MuteReason.ADMIN);
+                    }
+                }
+            }
+        }
     }
 
     /**
@@ -503,6 +600,8 @@ export class HiFiMixerSession {
 
         this._resetMixerInfo();
 
+        await this._setMutedByAdmin(false, MuteReason.INTERNAL);
+
         return Promise.resolve(`Successfully disconnected.`);
     }
 
@@ -583,14 +682,57 @@ export class HiFiMixerSession {
      * and when a user can hear other users in a Space due to the fact that the Bluetooth audio device must
      * switch I/O profiles.
      * - Not all browsers support the `navigator.permissions` API
+     * 
+     * @param newMutedValue If `true`, the input audio stream will be muted. If `false`, the input stream will be unmuted.
+     * @param tryToStopMicStream If `false`, this function will use Method 2 described above to mute or unmute the input audio stream. If `true`, this function will use Method 1.
      * @returns `true` if the stream was successfully muted/unmuted, `false` if it was not.
      */
     async setInputAudioMuted(newMutedValue: boolean, tryToStopMicStream: boolean = false): Promise<boolean> {
+        return await this._setMuted(newMutedValue, tryToStopMicStream, MuteReason.CLIENT);
+    }
+
+    async _setMutedByAdmin(mutedByAdmin: boolean, muteReason: MuteReason): Promise<boolean> {
+        // For now:
+        // - Admin muting should mute the client, and prevent the client from unmuting
+        // - Admin unmuting should not unmute the client, but simply allow the client to unmute
+        // - When the connection ends, the client is allowed to unmute, which for now is equivalent to an admin unmute
+        this._adminPreventsInputAudioUnmuting = mutedByAdmin;
+        return await this._setMuted(mutedByAdmin || this._lastSuccessfulInputAudioMutedValue, false, muteReason);
+    }
+
+    async _setMuted(newMutedValue: boolean, tryToStopMicStream: boolean, muteReason: MuteReason): Promise<boolean> {
+        let success = true;
+        if (muteReason == MuteReason.CLIENT) {
+            if (this._adminPreventsInputAudioUnmuting && !newMutedValue) {
+                HiFiLogger.warn(`Couldn't set mute state: Muted by admin.`);
+                success = false;
+            }
+        }
+        if (success) {
+            success = await this._trySetInputAudioMuted(newMutedValue, tryToStopMicStream);
+        }
+        if (success) {
+            this._lastSuccessfulInputAudioMutedValue = newMutedValue;
+        }
+
+        if (this.onMuteChanged) {
+            this.onMuteChanged(new MuteChangedEvent({
+                success: success,
+                targetInputAudioMutedValue: newMutedValue,
+                currentInputAudioMutedValue: this._lastSuccessfulInputAudioMutedValue,
+                adminPreventsInputAudioUnmuting: this._adminPreventsInputAudioUnmuting,
+                muteReason: muteReason
+            }));
+        }
+        return success;
+    }
+
+    async _trySetInputAudioMuted(newMutedValue: boolean, tryToStopMicStream: boolean): Promise<boolean> {
         let streamController = this._raviSession.getStreamController();
         if (this._raviSession && streamController) {
             let hasMicPermission = false;
 
-            if (navigator.permissions && navigator.permissions.query) {
+            if (navigator && navigator.permissions && navigator.permissions.query) {
                 let result: PermissionStatus;
                 try {
                     result = await navigator.permissions.query({ name: 'microphone' });

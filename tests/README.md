@@ -9,6 +9,7 @@
     │   ├── auth.json  (You will create this file for local smoke or integration testing.)  
     │   └── auth.json.gpg  (An encrypted version of `auth.json` for the `staging-latest` stack used by GHA.)  
     ├── smoke  
+    │   ├── clientAudio.smoke.test.ts 
     │   └── rest.smoke.test.ts  
     ├── testUtilities  
     │   ├── globalTeardown.js  (A file used to ensure all `HiFiCommunicator` instances get shut down after testing.)
