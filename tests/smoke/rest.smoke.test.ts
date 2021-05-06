@@ -479,7 +479,7 @@ describe('HiFi API REST Calls', () => {
         let zone4Data: ZoneData;
 
         beforeAll(async () => {
-            jest.setTimeout(10000); // these tests need longer to complete
+            jest.setTimeout(20000); // these tests need longer to complete
             // Create a space for testing
             try {
                 let returnMessage = await fetch(`${stackURL}/api/v1/spaces/create?token=${adminTokenNoSpace}`);
