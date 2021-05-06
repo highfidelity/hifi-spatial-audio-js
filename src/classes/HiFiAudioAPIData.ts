@@ -353,7 +353,7 @@ export function eulerFromQuaternion(quat: OrientationQuat3D, order: OrientationE
 
 /**
  * Instantiations of this class define a map between hashed visit IDs and the gains of other users.
- * You can use this in {@link HiFiAudioAPIData.setOtherUserGainsForThisConnection} to change the gains of other users as perceived by the current connection, providing a more comfortable listening experience for the client. If you need to perform moderation actions on the server side, use the {@link https://docs.highfidelity.com/rest/latest/index.html|Administrative REST API}.
+ * You can use this in {@link HiFiCommunicator.setOtherUserGainsForThisConnection} to change the gains of other users as perceived by the current connection, providing a more comfortable listening experience for the client. If you need to perform moderation actions on the server side, use the {@link https://docs.highfidelity.com/rest/latest/index.html|Administrative REST API}.
  *
  * Internally, this class is used to keep track of which other user gain changes need to be sent to the server.
  */
