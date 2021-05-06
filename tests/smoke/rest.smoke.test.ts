@@ -204,7 +204,7 @@ describe('HiFi API REST Calls', () => {
             expect(returnMessageJSON['app-id']).toBe(appID);
 
             // clean up
-            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${space2id}?token=${adminToken}`, {
+            await fetch(`${stackURL}/api/v1/spaces/${space2id}?token=${adminToken}`, {
                 method: 'DELETE'
             });
         });
@@ -479,7 +479,7 @@ describe('HiFi API REST Calls', () => {
         let zone4Data: ZoneData;
 
         beforeAll(async () => {
-            jest.setTimeout(10000); // these tests need longer to complete
+            jest.setTimeout(20000); // these tests need longer to complete
             // Create a space for testing
             try {
                 let returnMessage = await fetch(`${stackURL}/api/v1/spaces/create?token=${adminTokenNoSpace}`);

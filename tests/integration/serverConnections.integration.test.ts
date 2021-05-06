@@ -58,7 +58,7 @@ describe('Mixer connections', () => {
         console.log("_______________USING HOBBY AUTH FILE_______________________");
     } else {
         stackData = stacks[stackname];
-        console.log(`_______________USING ${ stackname } AUTH FILE_______________________`);
+        console.log(`_______________USING ${stackname} AUTH FILE_______________________`);
     }
     setStackData(stackData);
 
@@ -74,7 +74,15 @@ describe('Mixer connections', () => {
     beforeAll(async () => {
         try {
             let adminTokenNoSpace = await generateJWT(tokenTypes.ADMIN_ID_APP2);
-            let returnMessage = await fetch(`${stackURL}/api/v1/spaces/create?token=${adminTokenNoSpace}&name=${SPACE_1_NAME}`);
+            let returnMessage = await fetch(`${stackURL}/api/v1/spaces/?token=${adminTokenNoSpace}`);
+            let spacesListJSON: any = {};
+            spacesListJSON = await returnMessage.json();
+            spacesListJSON.forEach(async (space: any) => {
+                await fetch(`${stackURL}/api/v1/spaces/${space['space-id']}?token=${adminTokenNoSpace}`, {
+                    method: 'DELETE'
+                });
+            });
+            returnMessage = await fetch(`${stackURL}/api/v1/spaces/create?token=${adminTokenNoSpace}&name=${SPACE_1_NAME}`);
             let returnMessageJSON = await returnMessage.json();
             space1id = returnMessageJSON['space-id'];
 
