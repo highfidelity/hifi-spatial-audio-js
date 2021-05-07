@@ -348,6 +348,19 @@ export class HiFiCommunicator {
     }
 
     /**
+     * @returns The current state of the connection to High Fidelity, as one of the HiFiConnectionStates.
+     * This will return null if the current state is not available (e.g. if the HiFiCommunicator
+     * is still in the process of initializing its underlying HiFiMixerSession).
+     */
+    getConnectionState(): HiFiConnectionStates {
+        if (this._mixerSession) {
+            return this._mixerSession.getCurrentHiFiConnectionState();
+        } else {
+            return null;
+        }
+    }
+
+    /**
      * Use this function to set the `MediaStream` associated with the user. This `MediaStream` will be sent up to the High Fidelity Audio Servers and
      * mixed with other users' audio streams. The resultant mixed stream will be sent to all connected clients.
      *

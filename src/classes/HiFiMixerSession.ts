@@ -832,7 +832,14 @@ export class HiFiMixerSession {
     }
 
     /**
-     * Fires when the RAVI Signaling State chantges.
+     * Return the current state of the connection.
+     */
+    getCurrentHiFiConnectionState(): HiFiConnectionStates {
+        return this._currentHiFiConnectionState;
+    }
+
+    /**
+     * Fires when the RAVI Signaling State changes.
      * @param event 
      */
     onRAVISignalingStateChanged(event: any): void {
