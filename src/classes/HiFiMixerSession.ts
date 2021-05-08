@@ -510,6 +510,12 @@ export class HiFiMixerSession {
      * @returns A Promise that rejects with an error message string upon failure, or resolves with the response from `audionet.init` as a string.
      */
     async connectToHiFiMixer({ webRTCSessionParams }: { webRTCSessionParams?: WebRTCSessionParams }): Promise<any> {
+
+        if (this._currentHiFiConnectionState === HiFiConnectionStates.Connected && this.mixerInfo["connected"]) {
+            let errMsg = `Already connected! If a reconnect is needed, explicitly disconnect and try again.`;
+            return Promise.reject(errMsg);
+        }
+
         if (!this.webRTCAddress) {
             let errMsg = `Couldn't connect: \`this.webRTCAddress\` is falsey!`;
             this.disconnectFromHiFiMixer();
