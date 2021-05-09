@@ -253,11 +253,18 @@ export class HiFiMixerSession {
                 });
             }
 
-            let initTimeout = setTimeout(() => {
-                this.disconnectFromHiFiMixer();
+            let initTimeout = setTimeout(async () => {
+                let errMsg = `Couldn't connect to mixer: Call to \`init\` timed out!`
+                try {
+                    await this.disconnectFromHiFiMixer();
+                } catch (errorClosing) {
+                    errMsg += `
+Additionally, there was an error trying to close the failed connection. Error:
+${errorClosing}`;
+                }
                 return Promise.reject({
                     success: false,
-                    error: `Couldn't connect to mixer: Call to \`init\` timed out!`
+                    error: errMsg
                 });
             }, INIT_TIMEOUT_MS);
 
@@ -278,7 +285,8 @@ export class HiFiMixerSession {
                 } catch (e) {
                     reject({
                         success: false,
-                        error: `Couldn't parse init response! Parse error:\n${e}`
+                        error: `Couldn't parse init response! Parse error:
+${e}`
                     });
                 }
             });
@@ -512,13 +520,19 @@ export class HiFiMixerSession {
     async connectToHiFiMixer({ webRTCSessionParams }: { webRTCSessionParams?: WebRTCSessionParams }): Promise<any> {
 
         if (this._currentHiFiConnectionState === HiFiConnectionStates.Connected && this.mixerInfo["connected"]) {
-            let errMsg = `Already connected! If a reconnect is needed, explicitly disconnect and try again.`;
+            let errMsg = `Already connected! If a reconnect is needed, please hang up and try again.`;
             return Promise.reject(errMsg);
         }
 
         if (!this.webRTCAddress) {
             let errMsg = `Couldn't connect: \`this.webRTCAddress\` is falsey!`;
-            this.disconnectFromHiFiMixer();
+            try {
+                await this.disconnectFromHiFiMixer();
+            } catch (errorClosing) {
+                errMsg += `
+Additionally, there was an error trying to close the failed connection. Error:
+${errorClosing}`;
+            }
             return Promise.reject(errMsg);
         }
 
@@ -537,8 +551,15 @@ export class HiFiMixerSession {
         try {
             await this._raviSignalingConnection.openRAVISignalingConnection(this.webRTCAddress)
         } catch (errorOpeningSignalingConnection) {
-            let errMsg = `Couldn't open signaling connection to \`${this.webRTCAddress.slice(0, this.webRTCAddress.indexOf("token="))}<token redacted>\`! Error:\n${errorOpeningSignalingConnection}`;
-            this.disconnectFromHiFiMixer();
+            let errMsg = `Couldn't open signaling connection to \`${this.webRTCAddress.slice(0, this.webRTCAddress.indexOf("token="))}<token redacted>\`! Error:
+${errorOpeningSignalingConnection}`;
+            try {
+                await this.disconnectFromHiFiMixer();
+            } catch (errorClosing) {
+                errMsg += `
+Additionally, there was an error trying to close the failed connection. Error:
+${errorClosing}`;
+            }
             this._raviSignalingConnection.removeStateChangeHandler(tempUnavailableStateHandler);
             return Promise.reject(errMsg);
         }
@@ -546,11 +567,18 @@ export class HiFiMixerSession {
         try {
             await this._raviSession.openRAVISession({ signalingConnection: this._raviSignalingConnection, params: webRTCSessionParams });
         } catch (errorOpeningRAVISession) {
-            let errMsg = `Couldn't open RAVI session associated with \`${this.webRTCAddress.slice(0, this.webRTCAddress.indexOf("token="))}<token redacted>\`! Error:\n${errorOpeningRAVISession}`;
+            let errMsg = `Couldn't open RAVI session associated with \`${this.webRTCAddress.slice(0, this.webRTCAddress.indexOf("token="))}<token redacted>\`! Error:
+${errorOpeningRAVISession}`;
             if (mixerIsUnavailable) {
                 errMsg = `High Fidelity server is at capacity; service is unavailable.`;
             }
-            this.disconnectFromHiFiMixer();
+            try {
+                await this.disconnectFromHiFiMixer();
+            } catch (errorClosing) {
+                errMsg += `
+Additionally, there was an error trying to close the connection. Error:
+${errorClosing}`;
+            }
             this._raviSignalingConnection.removeStateChangeHandler(tempUnavailableStateHandler);
             return Promise.reject(errMsg);
         }
@@ -559,8 +587,15 @@ export class HiFiMixerSession {
         try {
             audionetInitResponse = await this.promiseToRunAudioInit();
         } catch (initError) {
-            let errMsg = `\`audionet.init\` command failed! Error:\n${initError.error}`;
-            this.disconnectFromHiFiMixer();
+            let errMsg = `\`audionet.init\` command failed! Error:
+${initError.error}`;
+            try {
+                await this.disconnectFromHiFiMixer();
+            } catch (errorClosing) {
+                errMsg += `
+Additionally, there was an error trying to close the failed connection. Error:
+${errorClosing}`;
+            }
             this._raviSignalingConnection.removeStateChangeHandler(tempUnavailableStateHandler);
             return Promise.reject(errMsg);
         }
@@ -591,7 +626,8 @@ export class HiFiMixerSession {
                         }
                         HiFiLogger.log(`The RAVI ${nameOfThingToClose} closed successfully from state ${state}.`);
                     } catch (e) {
-                        HiFiLogger.warn(`The RAVI ${nameOfThingToClose} didn't close successfully from state ${state}! Error:\n${e}`);
+                        HiFiLogger.warn(`The RAVI ${nameOfThingToClose} didn't close successfully from state ${state}! Error:
+${e}`);
                     }
                 }
             } else {
@@ -649,7 +685,8 @@ export class HiFiMixerSession {
                         // It just means that the mixer will continue to treat the new stream as
                         // whatever setting it was before. For now, just return the error and
                         // let the user try again if they want.
-                        let errMsg = `Attempt to call \`audionet.init\` for change in stereo status failed! Error:\n${initError.error}`;
+                        let errMsg = `Attempt to call \`audionet.init\` for change in stereo status failed! Error:
+${initError.error}`;
                         return Promise.reject(errMsg);
                     }
                 } else {
@@ -848,12 +885,17 @@ export class HiFiMixerSession {
      * Fires when the RAVI Signaling State changes.
      * @param event 
      */
-    onRAVISignalingStateChanged(event: any): void {
+    async onRAVISignalingStateChanged(event: any): Promise<void> {
         HiFiLogger.log(`New RAVI signaling state: \`${event.state}\``);
         switch (event.state) {
             case RaviSignalingStates.UNAVAILABLE:
                 this._setCurrentHiFiConnectionState(HiFiConnectionStates.Unavailable);
-                this.disconnectFromHiFiMixer();
+                try {
+                    await this.disconnectFromHiFiMixer();
+                } catch (errorClosing) {
+                    HiFiLogger.log(`Error encountered while trying to close the connection. Error:
+${errorClosing}`);
+                }
                 break;
         }
     }
@@ -862,7 +904,7 @@ export class HiFiMixerSession {
      * Fires when the RAVI Session State changes.
      * @param event
      */
-    onRAVISessionStateChanged(event: any): void {
+    async onRAVISessionStateChanged(event: any): Promise<void> {
         HiFiLogger.log(`New RAVI session state: \`${event.state}\``);
         switch (event.state) {
             case RaviSessionStates.CONNECTED:
@@ -874,7 +916,12 @@ export class HiFiMixerSession {
                     break;
                 }
                 this._setCurrentHiFiConnectionState(HiFiConnectionStates.Disconnected);
-                this.disconnectFromHiFiMixer();
+                try {
+                    await this.disconnectFromHiFiMixer();
+                } catch (errorClosing) {
+                    HiFiLogger.log(`Error encountered while trying to close the connection. Error:
+${errorClosing}`);
+                }
                 break;
             case RaviSessionStates.FAILED:
                 if (this._currentHiFiConnectionState === HiFiConnectionStates.Unavailable) {

@@ -102,8 +102,8 @@ export class HiFiCommunicator {
      * @param userDataStreamingScope - Cannot be set later. See {@link HiFiUserDataStreamingScopes}.
      * @param hiFiAxisConfiguration - Cannot be set later. The 3D axis configuration. See {@link ourHiFiAxisConfiguration} for defaults.
      * @param webrtcSessionParams - Cannot be set later. Extra parameters used for configuring the underlying WebRTC connection to the API servers.
-     * @param onMuteChanged - A function that will be called when the mute state of the client has changed, for example when muted by an admin. See {@link OnMuteChangedCallback} for the information this function will receive.
      * These settings are not frequently used; they are primarily for specific jitter buffer configurations.
+     * @param onMuteChanged - A function that will be called when the mute state of the client has changed, for example when muted by an admin. See {@link OnMuteChangedCallback} for the information this function will receive.
      */
     constructor({
         initialHiFiAudioAPIData = new HiFiAudioAPIData(),
@@ -225,7 +225,15 @@ export class HiFiCommunicator {
      */
     async connectToHiFiAudioAPIServer(hifiAuthJWT: string, signalingHostURL?: string, signalingPort?: number): Promise<any> {
         if (!this._mixerSession) {
-            let errMsg = `\`this._mixerSession\` is falsey!`;
+            let errMsg = `\`this._mixerSession\` is falsey; try creating a new HiFiCommunicator and starting over.`;
+            return Promise.reject({
+                success: false,
+                error: errMsg
+            });
+        }
+
+        if (this._mixerSession.getCurrentHiFiConnectionState() === HiFiConnectionStates.Connected) {
+            let errMsg = `Session is already connected! If you need to reset the connection, please disconnect fully and call this method again.`;
             return Promise.reject({
                 success: false,
                 error: errMsg
@@ -248,11 +256,13 @@ export class HiFiCommunicator {
             let webRTCSignalingAddress = `wss://${signalingHostURLSafe}:${signalingPort}/?token=`;
             this._mixerSession.webRTCAddress = `${webRTCSignalingAddress}${hifiAuthJWT}`;
 
-            HiFiLogger.log(`Using WebRTC Signaling Address:\n${webRTCSignalingAddress}<token redacted>`);
+            HiFiLogger.log(`Using WebRTC Signaling Address:
+${webRTCSignalingAddress}<token redacted>`);
 
             mixerConnectionResponse = await this._mixerSession.connectToHiFiMixer({ webRTCSessionParams: this._webRTCSessionParams });
         } catch (errorConnectingToMixer) {
-            let errMsg = `Error when connecting to mixer! Error:\n${errorConnectingToMixer}`;
+            let errMsg = `Error when connecting to mixer!
+${errorConnectingToMixer}`;
             return Promise.reject({
                 success: false,
                 error: errMsg
@@ -815,7 +825,8 @@ export class HiFiCommunicator {
             return;
         }
 
-        HiFiLogger.log(`Adding new User Data Subscription:\n${JSON.stringify(newSubscription)}`);
+        HiFiLogger.log(`Adding new User Data Subscription:
+${JSON.stringify(newSubscription)}`);
         this._userDataSubscriptions.push(newSubscription);
     }
 }
