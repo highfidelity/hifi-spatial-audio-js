@@ -233,10 +233,10 @@ export class HiFiCommunicator {
         }
 
         if (this._mixerSession.getCurrentHiFiConnectionState() === HiFiConnectionStates.Connected) {
-            let errMsg = `Session is already connected! If you need to reset the connection, please disconnect fully and call this method again.`;
+            let msg = `Session is already connected! If you need to reset the connection, please disconnect fully and call this method again.`;
             return Promise.resolve({
                 success: true,
-                error: errMsg
+                error: msg
             });
         }
 
