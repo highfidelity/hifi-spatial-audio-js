@@ -520,8 +520,8 @@ ${e}`
     async connectToHiFiMixer({ webRTCSessionParams }: { webRTCSessionParams?: WebRTCSessionParams }): Promise<any> {
 
         if (this._currentHiFiConnectionState === HiFiConnectionStates.Connected && this.mixerInfo["connected"]) {
-            let errMsg = `Already connected! If a reconnect is needed, please hang up and try again.`;
-            return Promise.reject(errMsg);
+            let msg = `Already connected! If a reconnect is needed, please hang up and try again.`;
+            return Promise.resolve(msg);
         }
 
         if (!this.webRTCAddress) {
