@@ -443,14 +443,6 @@ export class HiFiMixerSession {
                     serverSentNewUserData = true;
                 }
 
-
-                // `ReceivedHiFiAudioAPIData.hiFiGain`
-                if (typeof (peerDataFromMixer.g) === "number") {
-                    userDataCache.hiFiGain = peerDataFromMixer.g;
-                    newUserData.hiFiGain = peerDataFromMixer.g;
-                    serverSentNewUserData = true;
-                }
-
                 // `ReceivedHiFiAudioAPIData.volumeDecibels`
                 if (typeof (peerDataFromMixer.v) === "number") {
                     userDataCache.volumeDecibels = peerDataFromMixer.v;
