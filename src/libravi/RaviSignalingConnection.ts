@@ -370,6 +370,14 @@ class RaviSignalingWebSocketImplementation {
    * @private
    */
   _open(socketAddress: string) {
+
+    // If we already have an open websocket, just log and return
+    if (this._webSocket && this._webSocket.readyState === crossPlatformWebSocket.OPEN) {
+        RaviUtils.err("There is already an open WebSocket connection. To reconnect, first close the existing WebSocket and then attempt to open again.",
+                "RaviSignalingWebSocketImplementation");
+        return;
+    }
+
     this._webSocket = new crossPlatformWebSocket(socketAddress);
 
     // The WebSocket's open, error, and close events will just

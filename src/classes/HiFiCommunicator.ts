@@ -102,8 +102,8 @@ export class HiFiCommunicator {
      * @param userDataStreamingScope - Cannot be set later. See {@link HiFiUserDataStreamingScopes}.
      * @param hiFiAxisConfiguration - Cannot be set later. The 3D axis configuration. See {@link ourHiFiAxisConfiguration} for defaults.
      * @param webrtcSessionParams - Cannot be set later. Extra parameters used for configuring the underlying WebRTC connection to the API servers.
-     * @param onMuteChanged - A function that will be called when the mute state of the client has changed, for example when muted by an admin. See {@link OnMuteChangedCallback} for the information this function will receive.
      * These settings are not frequently used; they are primarily for specific jitter buffer configurations.
+     * @param onMuteChanged - A function that will be called when the mute state of the client has changed, for example when muted by an admin. See {@link OnMuteChangedCallback} for the information this function will receive.
      */
     constructor({
         initialHiFiAudioAPIData = new HiFiAudioAPIData(),
@@ -225,10 +225,18 @@ export class HiFiCommunicator {
      */
     async connectToHiFiAudioAPIServer(hifiAuthJWT: string, signalingHostURL?: string, signalingPort?: number): Promise<any> {
         if (!this._mixerSession) {
-            let errMsg = `\`this._mixerSession\` is falsey!`;
+            let errMsg = `\`this._mixerSession\` is falsey; try creating a new HiFiCommunicator and starting over.`;
             return Promise.reject({
                 success: false,
                 error: errMsg
+            });
+        }
+
+        if (this._mixerSession.getCurrentHiFiConnectionState() === HiFiConnectionStates.Connected) {
+            let msg = `Session is already connected! If you need to reset the connection, please disconnect fully using \`disconnectFromHiFiAudioAPIServer()\` and call this method again.`;
+            return Promise.resolve({
+                success: true,
+                error: msg
             });
         }
 
@@ -252,7 +260,7 @@ export class HiFiCommunicator {
 
             mixerConnectionResponse = await this._mixerSession.connectToHiFiMixer({ webRTCSessionParams: this._webRTCSessionParams });
         } catch (errorConnectingToMixer) {
-            let errMsg = `Error when connecting to mixer! Error:\n${errorConnectingToMixer}`;
+            let errMsg = `Error when connecting to mixer!\n${errorConnectingToMixer}`;
             return Promise.reject({
                 success: false,
                 error: errMsg
@@ -342,6 +350,19 @@ export class HiFiCommunicator {
     getOutputAudioMediaStream(): MediaStream {
         if (this._mixerSession) {
             return this._mixerSession.getOutputAudioMediaStream();
+        } else {
+            return null;
+        }
+    }
+
+    /**
+     * @returns The current state of the connection to High Fidelity, as one of the HiFiConnectionStates.
+     * This will return null if the current state is not available (e.g. if the HiFiCommunicator
+     * is still in the process of initializing its underlying HiFiMixerSession).
+     */
+    getConnectionState(): HiFiConnectionStates {
+        if (this._mixerSession) {
+            return this._mixerSession.getCurrentHiFiConnectionState();
         } else {
             return null;
         }
