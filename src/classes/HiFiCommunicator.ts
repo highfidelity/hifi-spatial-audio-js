@@ -256,13 +256,11 @@ export class HiFiCommunicator {
             let webRTCSignalingAddress = `wss://${signalingHostURLSafe}:${signalingPort}/?token=`;
             this._mixerSession.webRTCAddress = `${webRTCSignalingAddress}${hifiAuthJWT}`;
 
-            HiFiLogger.log(`Using WebRTC Signaling Address:
-${webRTCSignalingAddress}<token redacted>`);
+            HiFiLogger.log(`Using WebRTC Signaling Address:\n${webRTCSignalingAddress}<token redacted>`);
 
             mixerConnectionResponse = await this._mixerSession.connectToHiFiMixer({ webRTCSessionParams: this._webRTCSessionParams });
         } catch (errorConnectingToMixer) {
-            let errMsg = `Error when connecting to mixer!
-${errorConnectingToMixer}`;
+            let errMsg = `Error when connecting to mixer!\n${errorConnectingToMixer}`;
             return Promise.reject({
                 success: false,
                 error: errMsg
@@ -825,8 +823,7 @@ ${errorConnectingToMixer}`;
             return;
         }
 
-        HiFiLogger.log(`Adding new User Data Subscription:
-${JSON.stringify(newSubscription)}`);
+        HiFiLogger.log(`Adding new User Data Subscription:\n${JSON.stringify(newSubscription)}`);
         this._userDataSubscriptions.push(newSubscription);
     }
 }
