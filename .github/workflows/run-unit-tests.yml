@@ -7,14 +7,15 @@ on:
         description: "Host name, i.e. 'api', `api-hobby-latest`, or 'api-pro'"
         required: true
         default: api-staging-latest
-    branches:
-      - main
-      - gha
   push:
-    pull_request:
     branches:
       - main
-      - gha
+      - release
+      
+  pull_request:
+    branches:
+      - main
+      - release
  
 
 jobs:
