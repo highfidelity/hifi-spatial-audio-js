@@ -1,3 +1,5 @@
+const puppeteer = require('puppeteer');
+let browser: any;
 const fetch = require('node-fetch');
 const stacks = require('../secrets/auth.json').stacks;
 
@@ -35,6 +37,11 @@ describe('HiFi API REST Calls', () => {
     let appID = stackData.apps.APP_1.id;
 
     beforeAll(async () => {
+        browser = await puppeteer.launch({ args: ['--use-fake-ui-for-media-stream'] });
+        const page = await browser.newPage();
+        page.setContent('<!doctype html><html><body></body></html>');
+        global.window = page;
+        global.navigator = window.navigator;
         adminTokenNoSpace = await generateJWT(tokenTypes.ADMIN_ID_APP1);
         nonadminTokenNoSpace = await generateJWT(tokenTypes.NONADMIN_ID_APP1);
     });
