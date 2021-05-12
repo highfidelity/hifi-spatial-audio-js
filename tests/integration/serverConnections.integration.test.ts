@@ -1,3 +1,5 @@
+const puppeteer = require('puppeteer');
+let browser: any;
 const fetch = require('node-fetch');
 const stacks = require('../secrets/auth.json').stacks;
 
@@ -72,6 +74,11 @@ describe('Mixer connections', () => {
     let nonadminDupSpaceName: string;
     let hifiCommunicator: HiFiCommunicator;
     beforeAll(async () => {
+        browser = await puppeteer.launch({ args: ['--use-fake-ui-for-media-stream'] });
+        const page = await browser.newPage();
+        page.setContent('<!doctype html><html><body></body></html>');
+        global.window = page;
+        global.navigator = window.navigator;
         try {
             let adminTokenNoSpace = await generateJWT(tokenTypes.ADMIN_ID_APP2);
             let returnMessage = await fetch(`${stackURL}/api/v1/spaces/?token=${adminTokenNoSpace}`);
