@@ -485,10 +485,8 @@ export class HiFiMixerSession {
                 if (instructionName === "mute") {
                     let shouldBeMuted: boolean;
                     if (instructionArguments.length >= 1) {
-                        if (instructionArguments[0] === true) {
-                            shouldBeMuted = true;
-                        } else if (instructionArguments[0] === false) {
-                            shouldBeMuted = false;
+                        if (typeof(instructionArguments[0]) === "boolean") {
+                            shouldBeMuted = instructionArguments[0];
                         }
                     }
                     if (shouldBeMuted !== undefined) {
