@@ -7,8 +7,8 @@
     5. Run `git push -u origin <new branch name>` to push the version changes to your branch.
     6. Make a new PR against the base repository containing your version changes.
     7. Have someone at High Fidelity merge the PR.
-2. Make a Pull Request to pull all of the code from the `main` branch **of your fork** into the `release` branch.
-    - If you followed the instructions from step (1) above, you can make a pull request with a base of `main` and a compare branch of `<new branch name>`.
+2. Make a Pull Request to pull all of the code from the `main` branch, **including the new version changes**, into the `release` branch.
+    - If you followed the detailed instructions from step (1) above, you can make a pull request with a base of `main` and a compare branch of `<new branch name>`.
 3. Have the PR reviewed and merged.
 4. Once the PR is merged and the latest code is now on the `release` branch, [click here to start drafting a new release](https://github.com/highfidelity/hifi-spatial-audio-js/releases/new).
 5. Under "Tag version", input `v<Package Version>`
