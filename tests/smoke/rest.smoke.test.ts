@@ -41,7 +41,7 @@ describe('HiFi API REST Calls', () => {
         nonadminTokenNoSpace = await generateJWT(tokenTypes.NONADMIN_ID_APP1);
     });
 
-    describe.skip('App spaces', () => {
+    describe('App spaces', () => {
         let spaceID: string;
         let adminToken: string;
         let nonAdminToken: string;
@@ -335,109 +335,7 @@ describe('HiFi API REST Calls', () => {
         });
     });
 
-    // describe.skip('Kicking users', () => {
-    //     const numberTestUsers = 4;
-    //     let testUsers: Array<any> = [];
-    //     let spaceID: string;
-    //     let adminToken: string;
-    //     let nonAdminToken: string;
-
-    //     beforeAll(async () => {
-    //         jest.setTimeout(35000); // these tests need longer to complete
-    //         try {
-    //             let returnMessage = await fetch(`${stackURL}/api/v1/spaces/create?token=${adminTokenNoSpace}`);
-    //             let returnMessageJSON: any = {};
-    //             returnMessageJSON = await returnMessage.json();
-    //             spaceID = returnMessageJSON['space-id'];
-    //             adminToken = await generateJWT(tokenTypes.ADMIN_ID_APP1, spaceID);
-    //             nonAdminToken = await generateJWT(tokenTypes.NONADMIN_ID_APP1, spaceID);
-    //         } catch (e) {
-    //             console.error("Failed to create a space before tests for kicking.");
-    //         }
-    //     });
-
-    //     afterAll(async () => {
-    //         jest.setTimeout(5000); // restore to default
-    //         await fetch(`${stackURL}/api/v1/spaces/${spaceID}?token=${adminToken}`, {
-    //             method: 'DELETE'
-    //         });
-    //     });
-
-    //     beforeEach(async () => {
-    //         testUsers = [];
-    //         for (let i = 0; i < numberTestUsers; i++) {
-    //             let tokenData = tokenTypes.NONADMIN_ID_APP1
-    //             tokenData['user_id'] = generateUUID();
-    //             testUsers.push(new TestUser(tokenData['user_id']));
-    //             let token = await generateJWT(tokenData, spaceID);
-    //             await testUsers[i].communicator.connectToHiFiAudioAPIServer(token, stackURL);
-    //             expect(testUsers[i].connectionState).toBe(HiFiConnectionStates.Connected);
-    //         }
-    //     });
-
-    //     afterEach(async () => {
-    //         // disconnect communicators to avoid using too many mixers
-    //         for (let i = 0; i < numberTestUsers; i++) {
-    //             await testUsers[i].communicator.disconnectFromHiFiAudioAPIServer();
-    //             expect(testUsers[i].connectionState).toBe(HiFiConnectionStates.Disconnected);
-    //         }
-    //     });
-
-    //     describe('Admin CAN kick users', () => {
-    //         test(`Kick one user`, async () => {
-    //             await fetch(`${stackURL}/api/v1/spaces/${spaceID}/users/${testUsers[0].name}?token=${adminToken}`, {
-    //                 method: 'DELETE'
-    //             });
-    //             await sleep(30000);
-    //             for (let i = 0; i < numberTestUsers; i++) {
-    //                 if (i === 0) expect(testUsers[i].connectionState).toBe(HiFiConnectionStates.Failed);
-    //                 else expect(testUsers[i].connectionState).toBe(HiFiConnectionStates.Connected);
-    //             }
-    //         });
-
-    //         test(`Kick all users`, async () => {
-    //             await fetch(`${stackURL}/api/v1/spaces/${spaceID}/users?token=${adminToken}`, {
-    //                 method: 'DELETE'
-    //             });
-    //             await sleep(30000);
-    //             for (let i = 0; i < numberTestUsers; i++) {
-    //                 expect(testUsers[i].connectionState).toBe(HiFiConnectionStates.Failed);
-    //             }
-    //         });
-    //     });
-
-    //     describe('Nonadmin CANNOT kick users', () => {
-    //         test(`Kick one user`, async () => {
-    //             let returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/users/${testUsers[0].name}?token=${nonAdminToken}`, {
-    //                 method: 'DELETE'
-    //             });
-    //             let returnMessageJSON: any = {};
-    //             returnMessageJSON = await returnMessage.json();
-    //             await sleep(30000);
-    //             expect(returnMessageJSON.code).toBe(401);
-    //             expect(returnMessageJSON.errors).toMatchObject({ description: expect.stringMatching(/token isn't an admin token/) });
-    //             for (let i = 0; i < numberTestUsers; i++) {
-    //                 expect(testUsers[i].connectionState).toBe(HiFiConnectionStates.Connected);
-    //             }
-    //         });
-
-    //         test(`Kick all users`, async () => {
-    //             let returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/users?token=${nonAdminToken}`, {
-    //                 method: 'DELETE'
-    //             });
-    //             let returnMessageJSON: any = {};
-    //             returnMessageJSON = await returnMessage.json();
-    //             await sleep(30000);
-    //             expect(returnMessageJSON.code).toBe(401);
-    //             expect(returnMessageJSON.errors).toMatchObject({ description: expect.stringMatching(/token isn't an admin token/) });
-    //             for (let i = 0; i < numberTestUsers; i++) {
-    //                 expect(testUsers[i].connectionState).toBe(HiFiConnectionStates.Connected);
-    //             }
-    //         });
-    //     });
-    // });
-
-    describe.only('Muting users', () => {
+    describe('Kicking users', () => {
         const numberTestUsers = 4;
         let testUsers: Array<any> = [];
         let spaceID: string;
@@ -447,47 +345,137 @@ describe('HiFi API REST Calls', () => {
         beforeAll(async () => {
             jest.setTimeout(35000); // these tests need longer to complete
             try {
-                // let returnMessage = await fetch(`${stackURL}/api/v1/spaces/create?token=${adminTokenNoSpace}`);
-                // let returnMessageJSON: any = {};
-                // returnMessageJSON = await returnMessage.json();
-                // spaceID = returnMessageJSON['space-id'];
-                spaceID = '4a34ad54-d5ae-42e7-b52b-9fa67a8b1847';
-                // adminToken = await generateJWT(tokenTypes.ADMIN_ID_APP1, spaceID);
-                adminToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcHBfaWQiOiJjMzBjZWQ2Yi0xODU1LTQ0OTYtYjRjNS02MzE3ZTZkNThmOTEiLCJ1c2VyX2lkIjoiYSIsImFkbWluIjp0cnVlLCJkZXZlbG9wZXJfaWQiOiJhYzUwOWQxMC03N2U0LTQxYWUtYWIyMy02MGYzOWFiYTgwYTYiLCJzdGFjayI6ImF1ZGlvbmV0LW1peGVyLWFwaS1zdGFnaW5nLTE5In0.tP2yhh20l4NL0tYfyAcOLGkxHO3QSGjeIyephozCAsw';
-                // nonAdminToken = await generateJWT(tokenTypes.NONADMIN_ID_APP1, spaceID);
-                nonAdminToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcHBfaWQiOiJjMzBjZWQ2Yi0xODU1LTQ0OTYtYjRjNS02MzE3ZTZkNThmOTEiLCJ1c2VyX2lkIjoiYiIsInNwYWNlX2lkIjoiNGEzNGFkNTQtZDVhZS00MmU3LWI1MmItOWZhNjdhOGIxODQ3Iiwic3RhY2siOiJhdWRpb25ldC1taXhlci1hcGktc3RhZ2luZy0xOSJ9.VMNCPH-8c96sqvPe6QEhRLi2PSdLNwCIyDL7rhqUMU0';
+                let returnMessage = await fetch(`${stackURL}/api/v1/spaces/create?token=${adminTokenNoSpace}`);
+                let returnMessageJSON: any = {};
+                returnMessageJSON = await returnMessage.json();
+                spaceID = returnMessageJSON['space-id'];
+                adminToken = await generateJWT(tokenTypes.ADMIN_ID_APP1, spaceID);
+                nonAdminToken = await generateJWT(tokenTypes.NONADMIN_ID_APP1, spaceID);
+            } catch (e) {
+                console.error("Failed to create a space before tests for kicking.");
+            }
+        });
+
+        afterAll(async () => {
+            jest.setTimeout(5000); // restore to default
+            await fetch(`${stackURL}/api/v1/spaces/${spaceID}?token=${adminToken}`, {
+                method: 'DELETE'
+            });
+        });
+
+        beforeEach(async () => {
+            testUsers = [];
+            for (let i = 0; i < numberTestUsers; i++) {
+                let tokenData = tokenTypes.NONADMIN_ID_APP1
+                tokenData['user_id'] = generateUUID();
+                testUsers.push(new TestUser(tokenData['user_id']));
+                let token = await generateJWT(tokenData, spaceID);
+                await testUsers[i].communicator.connectToHiFiAudioAPIServer(token, stackURL);
+                expect(testUsers[i].connectionState).toBe(HiFiConnectionStates.Connected);
+            }
+        });
+
+        afterEach(async () => {
+            // disconnect communicators to avoid using too many mixers
+            for (let i = 0; i < numberTestUsers; i++) {
+                await testUsers[i].communicator.disconnectFromHiFiAudioAPIServer();
+                expect(testUsers[i].connectionState).toBe(HiFiConnectionStates.Disconnected);
+            }
+        });
+
+        describe('Admin CAN kick users', () => {
+            test(`Kick one user`, async () => {
+                await fetch(`${stackURL}/api/v1/spaces/${spaceID}/users/${testUsers[0].name}?token=${adminToken}`, {
+                    method: 'DELETE'
+                });
+                await sleep(30000);
+                for (let i = 0; i < numberTestUsers; i++) {
+                    if (i === 0) expect(testUsers[i].connectionState).toBe(HiFiConnectionStates.Failed);
+                    else expect(testUsers[i].connectionState).toBe(HiFiConnectionStates.Connected);
+                }
+            });
+
+            test(`Kick all users`, async () => {
+                await fetch(`${stackURL}/api/v1/spaces/${spaceID}/users?token=${adminToken}`, {
+                    method: 'DELETE'
+                });
+                await sleep(30000);
+                for (let i = 0; i < numberTestUsers; i++) {
+                    expect(testUsers[i].connectionState).toBe(HiFiConnectionStates.Failed);
+                }
+            });
+        });
+
+        describe('Nonadmin CANNOT kick users', () => {
+            test(`Kick one user`, async () => {
+                let returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/users/${testUsers[0].name}?token=${nonAdminToken}`, {
+                    method: 'DELETE'
+                });
+                let returnMessageJSON: any = {};
+                returnMessageJSON = await returnMessage.json();
+                await sleep(30000);
+                expect(returnMessageJSON.code).toBe(401);
+                expect(returnMessageJSON.errors).toMatchObject({ description: expect.stringMatching(/token isn't an admin token/) });
+                for (let i = 0; i < numberTestUsers; i++) {
+                    expect(testUsers[i].connectionState).toBe(HiFiConnectionStates.Connected);
+                }
+            });
+
+            test(`Kick all users`, async () => {
+                let returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/users?token=${nonAdminToken}`, {
+                    method: 'DELETE'
+                });
+                let returnMessageJSON: any = {};
+                returnMessageJSON = await returnMessage.json();
+                await sleep(30000);
+                expect(returnMessageJSON.code).toBe(401);
+                expect(returnMessageJSON.errors).toMatchObject({ description: expect.stringMatching(/token isn't an admin token/) });
+                for (let i = 0; i < numberTestUsers; i++) {
+                    expect(testUsers[i].connectionState).toBe(HiFiConnectionStates.Connected);
+                }
+            });
+        });
+    });
+
+    describe('Muting users', () => {
+        const numberTestUsers = 4;
+        let testUsers: Array<any> = [];
+        let spaceID: string;
+        let adminToken: string;
+        let nonAdminToken: string;
+
+        beforeAll(async () => {
+            jest.setTimeout(30000); // these tests need longer to complete
+            try {
+                let returnMessage = await fetch(`${stackURL}/api/v1/spaces/create?token=${adminTokenNoSpace}`);
+                let returnMessageJSON: any = {};
+                returnMessageJSON = await returnMessage.json();
+                spaceID = returnMessageJSON['space-id'];
+                adminToken = await generateJWT(tokenTypes.ADMIN_ID_APP1, spaceID);
+                nonAdminToken = await generateJWT(tokenTypes.NONADMIN_ID_APP1, spaceID);
             } catch (e) {
                 console.error("Failed to create a space before tests for muting.");
             }
         });
 
         afterAll(async () => {
-            // jest.setTimeout(5000); // restore to default
-            // await fetch(`${stackURL}/api/v1/spaces/${spaceID}?token=${adminToken}`, {
-            //     method: 'DELETE'
-            // });
+            jest.setTimeout(5000); // restore to default
+            await fetch(`${stackURL}/api/v1/spaces/${spaceID}?token=${adminToken}`, {
+                method: 'DELETE'
+            });
         });
 
         beforeEach(async () => {
             testUsers = [];
-            let notesHz = [110, 130.81, 164.81, 196];
             for (let i = 0; i < numberTestUsers; i++) {
-                // let tokenData = tokenTypes.NONADMIN_ID_APP1;
-                let tokenData = {
-                    "admin": false,
-                    "signed": true,
-                    "user_id": "qateamNonAdmin",
-                    "app_id": 'c30ced6b-1855-4496-b4c5-6317e6d58f91',
-                    "app_secret": '881ea557-1ab5-4a7b-8d08-d59e13fb26aa'
-                };
+                let tokenData = tokenTypes.NONADMIN_ID_APP1;
                 tokenData['user_id'] = generateUUID();
-                testUsers.push(new TestUser(tokenData['user_id'], i + 1 * 3));
+                testUsers.push(new TestUser(tokenData['user_id']));
                 let token = await generateJWT(tokenData, spaceID);
-                console.log("__________________USER_______________", tokenData['user_id'], "_____________", token);
                 await testUsers[i].communicator.connectToHiFiAudioAPIServer(token, stackURL);
                 expect(testUsers[i].connectionState).toBe(HiFiConnectionStates.Connected);
 
-                let source = new RTCAudioSourceSineWave({ frequency: notesHz[i] });
+                let source = new RTCAudioSourceSineWave({ frequency: 330 });
                 let track = source.createTrack();
                 let inputAudioMediaStream = new MediaStream([track]);
                 testUsers[i].communicator.setInputAudioMediaStream(inputAudioMediaStream);
@@ -497,17 +485,82 @@ describe('HiFi API REST Calls', () => {
         afterEach(async () => {
             // disconnect communicators to avoid using too many mixers
             for (let i = 0; i < numberTestUsers; i++) {
-                console.log("____________DISCONNECT__________________");
                 await testUsers[i].communicator.disconnectFromHiFiAudioAPIServer();
                 expect(testUsers[i].connectionState).toBe(HiFiConnectionStates.Disconnected);
             }
         });
 
         describe('Admin CAN mute/unmute users', () => {
-            test.only(`Mute one user`, async () => {
-                await sleep(10000);
-                console.log("__________________MUTE_______________", `${stackURL}/api/v1/spaces/${spaceID}/users?token=${adminToken}`);
+            test(`Mute one user`, async () => {
+                // All users are unmuted
+                for (let i = 0; i < numberTestUsers; i++) {
+                    expect(testUsers[i].muteState).toBe("UNMUTED");
+                }
 
+                // Admin mutes one user
+                let returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/users/${testUsers[0].name}?token=${adminToken}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ mute: true })
+                });
+                let responseJSON: any = {};
+                responseJSON = await returnMessage.json();
+                expect(responseJSON.status).toBe("ok");
+
+                await sleep(2000);
+                // User is muted, other users are not muted
+                for (let i = 0; i < numberTestUsers; i++) {
+                    if (i === 0) expect(testUsers[i].muteState).toBe("MUTED_FIXED");
+                    else expect(testUsers[i].muteState).toBe("UNMUTED");
+                }
+
+                // Muted user tries to unmute
+                returnMessage = await testUsers[0].communicator.setInputAudioMuted(false);
+                expect(returnMessage).toBe(false);
+
+                // User is still muted and fixed, other users are not muted
+                for (let i = 0; i < numberTestUsers; i++) {
+                    if (i === 0) expect(testUsers[i].muteState).toBe("MUTED_FIXED");
+                    else expect(testUsers[i].muteState).toBe("UNMUTED");
+                }
+
+                // Admin unmutes muted user
+                returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/users/${testUsers[0].name}?token=${adminToken}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ mute: false })
+                });
+                responseJSON = await returnMessage.json();
+                expect(responseJSON.status).toBe("ok");
+
+                await sleep(2000);
+                // User is still muted, but not fixed, other users are not muted
+                for (let i = 0; i < numberTestUsers; i++) {
+                    if (i === 0) expect(testUsers[i].muteState).toBe("MUTED_NOT_FIXED");
+                    else expect(testUsers[i].muteState).toBe("UNMUTED");
+                }
+
+                // Muted user tries to unmute
+                returnMessage = await testUsers[0].communicator.setInputAudioMuted(false);
+                expect(returnMessage).toBe(true);
+
+                // All users are unmuted
+                for (let i = 0; i < numberTestUsers; i++) {
+                    expect(testUsers[i].muteState).toBe("UNMUTED");
+                }
+            });
+
+            test(`Mute all users`, async () => {
+                // All users are unmuted
+                for (let i = 0; i < numberTestUsers; i++) {
+                    expect(testUsers[i].muteState).toBe("UNMUTED");
+                }
+
+                // Admin mutes all users
                 let returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/users?token=${adminToken}`, {
                     method: 'POST',
                     headers: {
@@ -515,14 +568,28 @@ describe('HiFi API REST Calls', () => {
                     },
                     body: JSON.stringify({ mute: true })
                 });
-
                 let responseJSON: any = {};
                 responseJSON = await returnMessage.json();
-                console.log("__________mute response___________", responseJSON);
+                expect(responseJSON.status).toBe("ok");
 
-                await sleep(10000);
-                console.log("__________________UNMUTE_______________", `${stackURL}/api/v1/spaces/${spaceID}/users?token=${adminToken}`);
+                await sleep(2000);
+                // All users are muted, fixed
+                for (let i = 0; i < numberTestUsers; i++) {
+                    expect(testUsers[i].muteState).toBe("MUTED_FIXED");
+                }
 
+                // Users try to unmute
+                for (let i = 0; i < numberTestUsers; i++) {
+                    returnMessage = await testUsers[0].communicator.setInputAudioMuted(false);
+                    expect(returnMessage).toBe(false);
+                }
+
+                // Users are still muted and fixed
+                for (let i = 0; i < numberTestUsers; i++) {
+                    expect(testUsers[i].muteState).toBe("MUTED_FIXED");
+                }
+
+                // Admin unmutes all users
                 returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/users?token=${adminToken}`, {
                     method: 'POST',
                     headers: {
@@ -530,793 +597,794 @@ describe('HiFi API REST Calls', () => {
                     },
                     body: JSON.stringify({ mute: false })
                 });
-
                 responseJSON = await returnMessage.json();
-                console.log("__________mute response___________", responseJSON);
-                await sleep(10000);
-                // for (let i = 0; i < numberTestUsers; i++) {
-                //     if (i === 0) expect(testUsers[i].connectionState).toBe(HiFiConnectionStates.Failed);
-                //     else expect(testUsers[i].connectionState).toBe(HiFiConnectionStates.Connected);
-                // }
-                // await fetch(`${stackURL}/api/v1/spaces/${spaceID}/users/${testUsers[0].name}?token=${adminToken}`, {
-                //     method: 'POST',
-                //     headers: {
-                //         'Content-Type': 'application/json'
-                //     },
-                //     body: JSON.stringify({ mute: false })
-                // })
-                //     .then((data: any) => {
-                //         console.log("__________________DATA_______________", data);
-                //     });
-            });
+                expect(responseJSON.status).toBe("ok");
 
-            // test(`Mute all users`, async () => {
-            //     await fetch(`${stackURL}/api/v1/spaces/${spaceID}/users?token=${adminToken}`, {
-            //         method: 'POST',
-            //         headers: {
-            //             'Content-Type': 'application/json'
-            //         },
-            //         body: JSON.stringify({ mute: true })
-            //     });
-            //     await sleep(30000);
-            //     // for (let i = 0; i < numberTestUsers; i++) {
-            //     //     expect(testUsers[i].connectionState).toBe(HiFiConnectionStates.Failed);
-            //     // }
-            // });
+                await sleep(2000);
+                // Users are still muted, but not fixed
+                for (let i = 0; i < numberTestUsers; i++) {
+                    expect(testUsers[i].muteState).toBe("MUTED_NOT_FIXED");
+                }
+
+                // Users try to unmute
+                for (let i = 0; i < numberTestUsers; i++) {
+                    returnMessage = await testUsers[i].communicator.setInputAudioMuted(false);
+                    expect(returnMessage).toBe(true);
+                }
+
+                // All users are unmuted
+                for (let i = 0; i < numberTestUsers; i++) {
+                    expect(testUsers[i].muteState).toBe("UNMUTED");
+                }
+            });
         });
 
-        // describe('Nonadmin CANNOT mute users', () => {
-        //     test(`Mute one user`, async () => {
-        //         let returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/users/${testUsers[0].name}?token=${nonAdminToken}`, {
-        //             method: 'POST',
-        //             headers: {
-        //                 'Content-Type': 'application/json'
-        //             },
-        //             body: JSON.stringify({ mute: true })
-        //         });
-        //         let returnMessageJSON: any = {};
-        //         returnMessageJSON = await returnMessage.json();
-        //         await sleep(30000);
-        //         expect(returnMessageJSON.code).toBe(401);
-        //         expect(returnMessageJSON.errors).toMatchObject({ description: expect.stringMatching(/token isn't an admin token/) });
-        //         for (let i = 0; i < numberTestUsers; i++) {
-        //             expect(testUsers[i].connectionState).toBe(HiFiConnectionStates.Connected);
-        //         }
-        //     });
+        describe('Nonadmin CANNOT mute/unmute users', () => {
+            test(`Mute one user`, async () => {
+                // All users are unmuted
+                for (let i = 0; i < numberTestUsers; i++) {
+                    expect(testUsers[i].muteState).toBe("UNMUTED");
+                }
 
-        //     test(`Mute all users`, async () => {
-        //         let returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/users?token=${nonAdminToken}`, {
-        //             method: 'POST',
-        //             headers: {
-        //                 'Content-Type': 'application/json'
-        //             },
-        //             body: JSON.stringify({ mute: true })
-        //         });
-        //         let returnMessageJSON: any = {};
-        //         returnMessageJSON = await returnMessage.json();
-        //         await sleep(30000);
-        //         expect(returnMessageJSON.code).toBe(401);
-        //         expect(returnMessageJSON.errors).toMatchObject({ description: expect.stringMatching(/token isn't an admin token/) });
-        //         for (let i = 0; i < numberTestUsers; i++) {
-        //             expect(testUsers[i].connectionState).toBe(HiFiConnectionStates.Connected);
-        //         }
-        //     });
-        // });
+                // Nonadmin tries to mute one user
+                let returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/users/${testUsers[0].name}?token=${nonAdminToken}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ mute: true })
+                });
+                let responseJSON: any = {};
+                responseJSON = await returnMessage.json();
+                expect(responseJSON.status).toBe("Unauthorized");
+
+                await sleep(2000);
+                // All users are unmuted
+                for (let i = 0; i < numberTestUsers; i++) {
+                    expect(testUsers[i].muteState).toBe("UNMUTED");
+                }
+            });
+
+            test(`Mute all users`, async () => {
+                // All users are unmuted
+                for (let i = 0; i < numberTestUsers; i++) {
+                    expect(testUsers[i].muteState).toBe("UNMUTED");
+                }
+
+                // Nonadmin tries to mute all users
+                let returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/users/${testUsers[0].name}?token=${nonAdminToken}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ mute: true })
+                });
+                let responseJSON: any = {};
+                responseJSON = await returnMessage.json();
+                expect(responseJSON.status).toBe("Unauthorized");
+
+                await sleep(2000);
+                // All users are unmuted
+                for (let i = 0; i < numberTestUsers; i++) {
+                    expect(testUsers[i].muteState).toBe("UNMUTED");
+                }
+            });
+        });
     });
 
-    // describe.skip('Wrong admin tokens', () => {
-    //     describe(`CANNOT read/alter App A by using a valid admin token for App B`, () => {
-    //         let spaceID: string;
-    //         let adminTokenApp1: string;
-    //         let adminTokenApp2: string;
-    //         beforeAll(async () => {
-    //             try {
-    //                 let returnMessage = await fetch(`${stackURL}/api/v1/spaces/create?token=${adminTokenNoSpace}`);
-    //                 let returnMessageJSON: any = {};
-    //                 returnMessageJSON = await returnMessage.json();
-    //                 spaceID = returnMessageJSON['space-id'];
-    //                 adminTokenApp1 = await generateJWT(tokenTypes.ADMIN_ID_APP1, spaceID);
-    //                 adminTokenApp2 = await generateJWT(tokenTypes.ADMIN_ID_APP2);
-    //             } catch (err) {
-    //                 console.error("Failed to create spaces before tests for wrong admin.");
-    //             }
-    //         });
-
-    //         afterAll(async () => {
-    //             await fetch(`${stackURL}/api/v1/spaces/${spaceID}?token=${adminTokenApp1}`, {
-    //                 method: 'DELETE'
-    //             });
-    //         });
-
-    //         test(`Read settings for a space`, async () => {
-    //             let returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/app-id/?token=${adminTokenApp2}`);
-    //             let returnMessageJSON: any = {};
-    //             returnMessageJSON = await returnMessage.json();
-    //             expect(returnMessageJSON.code).toBe(422);
-    //             expect(returnMessageJSON.errors).toMatchObject({ description: expect.stringMatching(/space\/app mismatch/) });
-    //         });
-    //     });
-    // });
-
-    // describe.skip('Zones and attenuations', () => {
-    //     let spaceID: string;
-    //     let adminToken: string;
-    //     let nonAdminToken: string;
-    //     let zone1Data: ZoneData;
-    //     let zone2Data: ZoneData;
-    //     let zone3Data: ZoneData;
-    //     let zone4Data: ZoneData;
-
-    //     beforeAll(async () => {
-    //         jest.setTimeout(20000); // these tests need longer to complete
-    //         // Create a space for testing
-    //         try {
-    //             let returnMessage = await fetch(`${stackURL}/api/v1/spaces/create?token=${adminTokenNoSpace}`);
-    //             let returnMessageJSON: any = {};
-    //             returnMessageJSON = await returnMessage.json();
-    //             spaceID = returnMessageJSON['space-id'];
-    //             adminToken = await generateJWT(tokenTypes.ADMIN_ID_APP1, spaceID);
-    //             nonAdminToken = await generateJWT(tokenTypes.NONADMIN_ID_APP1, spaceID);
-    //         } catch (e) {
-    //             console.error("Failed to create a space before tests for zones and attenuations.");
-    //         }
-
-    //         zone1Data = {
-    //             "x-min": -5,
-    //             "x-max": 5,
-    //             "y-min": 0,
-    //             "y-max": 10,
-    //             "z-min": -5,
-    //             "z-max": 5,
-    //             "name": generateUUID()
-    //         };
-    //         zone2Data = {
-    //             "x-min": 5,
-    //             "x-max": 15,
-    //             "y-min": 0,
-    //             "y-max": 10,
-    //             "z-min": -5,
-    //             "z-max": 5,
-    //             "name": generateUUID()
-    //         };
-    //         zone3Data = {
-    //             "x-min": 15,
-    //             "x-max": 25,
-    //             "y-min": 0,
-    //             "y-max": 10,
-    //             "z-min": -5,
-    //             "z-max": 5,
-    //             "name": generateUUID()
-    //         };
-    //         zone4Data = {
-    //             "x-min": 25,
-    //             "x-max": 35,
-    //             "y-min": 0,
-    //             "y-max": 10,
-    //             "z-min": -5,
-    //             "z-max": 5,
-    //             "name": generateUUID()
-    //         };
-    //     });
-
-    //     afterAll(async () => {
-    //         jest.setTimeout(5000); // restore to default
-    //         await fetch(`${stackURL}/api/v1/spaces/${spaceID}?token=${adminToken}`, {
-    //             method: 'DELETE'
-    //         });
-    //     });
-
-    //     beforeEach(async () => {
-    //         try {
-    //             await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zones?token=${adminToken}`, {
-    //                 method: 'DELETE'
-    //             });
-    //         } catch (err) {
-    //             console.error("Failed to delete all zones before test. Please manually remove them and then rerun the test.");
-    //         }
-    //     });
-
-    //     test(`Admin CAN access, edit, create, and delete zones and attenuations`, async () => {
-    //         // Create multiple zones via space `settings/zones` POST request
-    //         let returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zones?token=${adminToken}`, {
-    //             method: 'POST',
-    //             headers: {
-    //                 'Content-Type': 'application/json'
-    //             },
-    //             body: JSON.stringify([zone1Data, zone2Data])
-    //         });
-
-    //         // Response will be the zone datas plus a new zone ID for each zone. Add the IDs to our data and the response should match
-    //         let responseJSON: any = {};
-    //         responseJSON = await returnMessage.json();
-    //         expect(responseJSON[0].id).toBeDefined();
-    //         expect(responseJSON[1].id).toBeDefined();
-    //         if (responseJSON[0].name === zone1Data.name) {
-    //             zone1Data['id'] = responseJSON[0].id;
-    //             zone2Data['id'] = responseJSON[1].id;
-    //         } else {
-    //             zone1Data['id'] = responseJSON[1].id;
-    //             zone2Data['id'] = responseJSON[0].id;
-    //         }
-    //         expect(responseJSON.map((a: { id: any; }) => a.id).sort()).toEqual([zone1Data, zone2Data].map(a => a.id).sort());
-
-    //         // Create one zone via space `settings/zones/create` POST request
-    //         returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zones?token=${adminToken}`, {
-    //             method: 'POST',
-    //             headers: {
-    //                 'Content-Type': 'application/json'
-    //             },
-    //             body: JSON.stringify([zone3Data])
-    //         });
-    //         responseJSON = await returnMessage.json();
-    //         expect(responseJSON[0].id).toBeDefined();
-    //         zone3Data['id'] = responseJSON[0].id;
-    //         expect(responseJSON).toEqual([zone3Data]);
-
-    //         // Create one zone via space settings/zones/create GET request
-    //         returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zones/create?token=${adminToken}&x-min=${zone4Data["x-min"]}&x-max=${zone4Data["x-max"]}&y-min=${zone4Data["y-min"]}&y-max=${zone4Data["y-max"]}&z-min=${zone4Data["z-min"]}&z-max=${zone4Data["z-max"]}&name=${zone4Data["name"]}`);
-    //         responseJSON = await returnMessage.json();
-    //         expect(responseJSON.id).toBeDefined();
-    //         zone4Data['id'] = responseJSON.id;
-    //         expect(responseJSON).toEqual(zone4Data);
-
-    //         // Get the list of zones and make sure it is accurate
-    //         returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zones?token=${adminToken}`);
-    //         responseJSON = await returnMessage.json();
-    //         expect(responseJSON.map((a: { id: any; }) => a.id).sort()).toEqual([zone1Data, zone2Data, zone3Data, zone4Data].map(a => a.id).sort());
-
-
-    //         // Get a zone's settings via GET request
-    //         returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zones/${zone1Data.id}?token=${adminToken}`);
-    //         responseJSON = await returnMessage.json();
-    //         expect(responseJSON).toEqual(zone1Data);
-
-    //         // Change a zone's settings via GET request
-    //         zone1Data['x-min'] = -6;
-    //         zone1Data['x-max'] = 6;
-    //         zone1Data['y-min'] = 10;
-    //         zone1Data['y-max'] = 20;
-    //         zone1Data['z-min'] = -6;
-    //         zone1Data['z-max'] = -6;
-    //         zone1Data['name'] = generateUUID();
-
-    //         returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zones/${zone1Data.id}?token=${adminToken}&x-min=${zone1Data["x-min"]}&x-max=${zone1Data["x-max"]}&y-min=${zone1Data["y-min"]}&y-max=${zone1Data["y-max"]}&z-min=${zone1Data["z-min"]}&z-max=${zone1Data["z-max"]}&name=${zone1Data["name"]}`);
-    //         responseJSON = await returnMessage.json();
-    //         expect(responseJSON).toEqual(zone1Data);
-
-    //         // Get a zone's settings via POST request
-    //         returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zones/${zone1Data.id}?token=${adminToken}`, {
-    //             method: 'POST',
-    //             headers: {
-    //                 'Content-Type': 'application/json'
-    //             },
-    //             body: '{}'
-    //         });
-    //         responseJSON = await returnMessage.json();
-    //         expect(responseJSON).toEqual(zone1Data);
-
-    //         // Change a zone's settings via POST request
-    //         let zoneID = zone1Data.id;
-    //         zone1Data = {
-    //             "x-min": -7,
-    //             "x-max": 7,
-    //             "y-min": 0,
-    //             "y-max": 10,
-    //             "z-min": -7,
-    //             "z-max": 7,
-    //             "name": generateUUID()
-    //         };
-
-    //         returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zones/${zoneID}?token=${adminToken}`, {
-    //             method: 'POST',
-    //             headers: {
-    //                 'Content-Type': 'application/json'
-    //             },
-    //             body: JSON.stringify(zone1Data)
-    //         });
-    //         responseJSON = await returnMessage.json();
-    //         zone1Data.id = zoneID;
-    //         expect(responseJSON).toEqual(zone1Data);
-
-    //         // Create multiple attenuations via space `settings/attenuations` POST request
-    //         let attenuation1Data: AttenuationData;
-    //         let attenuation2Data: AttenuationData;
-    //         let attenuation3Data: AttenuationData;
-    //         let attenuation4Data: AttenuationData;
-    //         attenuation1Data = {
-    //             "attenuation": 0.5,
-    //             "listener-zone-id": zone1Data.id,
-    //             "source-zone-id": zone2Data.id,
-    //             "za-offset": -5
-    //         };
-    //         attenuation2Data = {
-    //             "attenuation": 0.5,
-    //             "listener-zone-id": zone1Data.id,
-    //             "source-zone-id": zone2Data.id,
-    //             "za-offset": -5
-    //         };
-    //         attenuation3Data = {
-    //             "attenuation": 0.5,
-    //             "listener-zone-id": zone1Data.id,
-    //             "source-zone-id": zone3Data.id,
-    //             "za-offset": -5
-    //         };
-    //         attenuation4Data = {
-    //             "attenuation": 0.5,
-    //             "listener-zone-id": zone1Data.id,
-    //             "source-zone-id": zone4Data.id,
-    //             "za-offset": -5
-    //         };
-    //         returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zone_attenuations?token=${adminToken}`, {
-    //             method: 'POST',
-    //             headers: {
-    //                 'Content-Type': 'application/json'
-    //             },
-    //             body: JSON.stringify([attenuation1Data, attenuation2Data])
-    //         });
-
-    //         // Response will be the attenuation datas plus a new attenuation ID for each attenuation. Add the IDs to our data and the response should match
-    //         responseJSON = await returnMessage.json();
-    //         expect(responseJSON[0]['id']).toBeDefined();
-    //         expect(responseJSON[1]['id']).toBeDefined();
-    //         attenuation1Data['id'] = responseJSON[0]['id'];
-    //         attenuation2Data['id'] = responseJSON[1]['id'];
-    //         expect(responseJSON.map((a: { id: any; }) => a.id).sort()).toEqual([attenuation1Data, attenuation2Data].map(a => a.id).sort());
-
-    //         // Create one attenuation via space `settings/attenuations/create` POST request
-    //         returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zone_attenuations?token=${adminToken}`, {
-    //             method: 'POST',
-    //             headers: {
-    //                 'Content-Type': 'application/json'
-    //             },
-    //             body: JSON.stringify([attenuation3Data])
-    //         });
-    //         responseJSON = await returnMessage.json();
-    //         expect(responseJSON[0]['id']).toBeDefined();
-    //         attenuation3Data['id'] = responseJSON[0]['id'];
-    //         expect(responseJSON).toEqual([attenuation3Data]);
-
-    //         // Create one attenuation via space settings/attenuations/create GET request
-    //         returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zone_attenuations/create?token=${adminToken}&attenuation=${attenuation4Data["attenuation"]}&source-zone-id=${attenuation4Data["source-zone-id"]}&listener-zone-id=${attenuation4Data["listener-zone-id"]}&za-offset=${attenuation4Data["za-offset"]}`);
-    //         responseJSON = await returnMessage.json();
-    //         expect(responseJSON['id']).toBeDefined();
-    //         attenuation4Data['id'] = responseJSON['id'];
-    //         expect(responseJSON).toEqual(attenuation4Data);
-
-    //         // Get the list of attenuations and make sure it is accurate
-    //         returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zone_attenuations?token=${adminToken}`);
-    //         responseJSON = await returnMessage.json();
-    //         expect(responseJSON.map((a: { id: any; }) => a.id).sort()).toEqual([attenuation1Data, attenuation2Data, attenuation3Data, attenuation4Data].map(a => a.id).sort());
-
-    //         // Get a zone attenuation's settings via GET request
-    //         returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zone_attenuations/${attenuation1Data.id}?token=${adminToken}`);
-    //         responseJSON = await returnMessage.json();
-    //         expect(responseJSON).toEqual(attenuation1Data);
-
-    //         // Change a zone attenuation's settings via GET request
-    //         attenuation1Data['attenuation'] = -6;
-    //         attenuation1Data['listener-zone-id'] = zone2Data.id;
-    //         attenuation1Data['source-zone-id'] = zone3Data.id;
-    //         attenuation1Data['za-offset'] = 20;
-
-    //         returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zone_attenuations/${attenuation1Data.id}?token=${adminToken}&attenuation=${attenuation1Data["attenuation"]}&listener-zone-id=${attenuation1Data["listener-zone-id"]}&source-zone-id=${attenuation1Data["source-zone-id"]}&za-offset=${attenuation1Data["za-offset"]}`);
-    //         responseJSON = await returnMessage.json();
-    //         expect(responseJSON).toEqual(attenuation1Data);
-
-    //         // Get a zone attenuation's settings via POST request
-    //         returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zone_attenuations/${attenuation1Data.id}?token=${adminToken}`, {
-    //             method: 'POST',
-    //             headers: {
-    //                 'Content-Type': 'application/json'
-    //             },
-    //             body: '{}'
-    //         });
-    //         responseJSON = await returnMessage.json();
-    //         expect(responseJSON).toEqual(attenuation1Data);
-
-    //         // Change a zone attenuation's settings via POST request
-    //         let attenuationID = attenuation1Data.id;
-    //         attenuation1Data = {
-    //             "attenuation": 0.8,
-    //             "listener-zone-id": zone3Data.id,
-    //             "source-zone-id": zone4Data.id,
-    //             "za-offset": -7
-    //         }
-    //         returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zone_attenuations/${attenuationID}?token=${adminToken}`, {
-    //             method: 'POST',
-    //             headers: {
-    //                 'Content-Type': 'application/json'
-    //             },
-    //             body: JSON.stringify(attenuation1Data)
-    //         });
-    //         responseJSON = await returnMessage.json();
-    //         attenuation1Data.id = attenuationID;
-    //         expect(responseJSON).toEqual(attenuation1Data);
-
-    //         // Delete one zone attenuation
-    //         returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zone_attenuations/${attenuation1Data.id}?token=${adminToken}`, {
-    //             method: 'DELETE'
-    //         });
-    //         responseJSON = await returnMessage.json();
-    //         expect(responseJSON.id).toBe(attenuation1Data.id);
-
-    //         // Delete all zone attenuations
-    //         returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zone_attenuations?token=${adminToken}`, {
-    //             method: 'DELETE'
-    //         });
-    //         responseJSON = await returnMessage.json();
-    //         returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zone_attenuations?token=${adminToken}`);
-    //         responseJSON = await returnMessage.json();
-    //         expect(responseJSON).toEqual([]);
-
-    //         // Delete one zone
-    //         returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zones/${zone1Data.id}?token=${adminToken}`, {
-    //             method: 'DELETE'
-    //         });
-    //         responseJSON = await returnMessage.json();
-    //         expect(responseJSON.id).toBe(zone1Data.id);
-
-    //         // Delete all zones
-    //         returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zones?token=${adminToken}`, {
-    //             method: 'DELETE'
-    //         });
-
-    //         // check
-    //         responseJSON = await returnMessage.json();
-    //         returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zones?token=${adminToken}`);
-    //         responseJSON = await returnMessage.json();
-    //         expect(responseJSON).toEqual([]);
-    //     });
-
-    //     test(`Nonadmin CANNOT access, edit, create, and delete zones and attenuations`, async () => {
-    //         // reset zone 1 and 2 as they are the only ones we will use for nonadmin testing
-    //         zone1Data = {
-    //             "x-min": -5,
-    //             "x-max": 5,
-    //             "y-min": 0,
-    //             "y-max": 10,
-    //             "z-min": -5,
-    //             "z-max": 5,
-    //             "name": generateUUID()
-    //         };
-    //         zone2Data = {
-    //             "x-min": 5,
-    //             "x-max": 15,
-    //             "y-min": 0,
-    //             "y-max": 10,
-    //             "z-min": -5,
-    //             "z-max": 5,
-    //             "name": generateUUID()
-    //         };
-
-    //         // Try to create multiple zones via space `settings/zones` POST request
-    //         let returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zones?token=${nonAdminToken}`, {
-    //             method: 'POST',
-    //             headers: {
-    //                 'Content-Type': 'application/json'
-    //             },
-    //             body: JSON.stringify([zone1Data, zone2Data])
-    //         });
-    //         let responseJSON: any = {};
-    //         responseJSON = await returnMessage.json();
-    //         expect(responseJSON.errors.description).toBe(`token isn't an admin token`);
-
-    //         // Try to create one zone via space `settings/zones/create` POST request
-    //         returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zones?token=${nonAdminToken}`, {
-    //             method: 'POST',
-    //             headers: {
-    //                 'Content-Type': 'application/json'
-    //             },
-    //             body: JSON.stringify([zone1Data])
-    //         });
-    //         responseJSON = await returnMessage.json();
-    //         expect(responseJSON.errors.description).toBe(`token isn't an admin token`);
-
-    //         // Try to create one zone via space settings/zones/create GET request
-    //         returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zones/create?token=${nonAdminToken}&x-min=${zone1Data["x-min"]}&x-max=${zone4Data["x-max"]}&y-min=${zone4Data["y-min"]}&y-max=${zone4Data["y-max"]}&z-min=${zone4Data["z-min"]}&z-max=${zone4Data["z-max"]}&name=${zone4Data["name"]}`);
-    //         responseJSON = await returnMessage.json();
-    //         expect(responseJSON.errors.description).toBe(`token isn't an admin token`);
-
-    //         // Try to get the list of zones
-    //         returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zones?token=${nonAdminToken}`);
-    //         responseJSON = await returnMessage.json();
-    //         expect(responseJSON.errors.description).toBe(`token isn't an admin token`);
-
-    //         // Try to get a zone's settings via GET request
-    //         // Create 2 zones to test against (need 2 for attenualtions)
-    //         try {
-    //             returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zones?token=${adminTokenNoSpace}`, {
-    //                 method: 'POST',
-    //                 headers: {
-    //                     'Content-Type': 'application/json'
-    //                 },
-    //                 body: JSON.stringify([zone1Data, zone2Data])
-    //             });
-    //             responseJSON = await returnMessage.json();
-    //             if (responseJSON[0].name === zone1Data.name) {
-    //                 zone1Data['id'] = responseJSON[0].id;
-    //                 zone2Data['id'] = responseJSON[1].id;
-    //             } else {
-    //                 zone1Data['id'] = responseJSON[1].id;
-    //                 zone2Data['id'] = responseJSON[0].id;
-    //             }
-    //         } catch (e) {
-    //             console.error("Failed to create a zone before tests for nonadmins to edit zones.");
-    //         }
-
-    //         returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zones/${zone1Data.id}?token=${nonAdminToken}`);
-    //         responseJSON = await returnMessage.json();
-    //         expect(responseJSON.errors.description).toBe(`token isn't an admin token`);
-
-    //         // Try to change a zone's settings via GET request
-    //         zone1Data['x-min'] = -6;
-    //         zone1Data['x-max'] = 6;
-    //         zone1Data['y-min'] = 10;
-    //         zone1Data['y-max'] = 20;
-    //         zone1Data['z-min'] = -6;
-    //         zone1Data['z-max'] = -6;
-    //         zone1Data['name'] = generateUUID();
-
-    //         returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zones/${zone1Data.id}?token=${nonAdminToken}&x-min=${zone1Data["x-min"]}&x-max=${zone1Data["x-max"]}&y-min=${zone1Data["y-min"]}&y-max=${zone1Data["y-max"]}&z-min=${zone1Data["z-min"]}&z-max=${zone1Data["z-max"]}&name=${zone1Data["name"]}`);
-    //         responseJSON = await returnMessage.json();
-    //         expect(responseJSON.errors.description).toBe(`token isn't an admin token`);
-
-    //         // Try to get a zone's settings via POST request
-    //         returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zones/${zone1Data.id}?token=${nonAdminToken}`, {
-    //             method: 'POST',
-    //             headers: {
-    //                 'Content-Type': 'application/json'
-    //             },
-    //             body: '{}'
-    //         });
-    //         responseJSON = await returnMessage.json();
-    //         expect(responseJSON.errors.description).toBe(`token isn't an admin token`);
-
-    //         // Try to change a zone's settings via POST request
-    //         let zoneID = zone1Data.id;
-    //         zone1Data = {
-    //             "x-min": -7,
-    //             "x-max": 7,
-    //             "y-min": 0,
-    //             "y-max": 10,
-    //             "z-min": -7,
-    //             "z-max": 7,
-    //             "name": generateUUID()
-    //         };
-
-    //         returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zones/${zoneID}?token=${nonAdminToken}`, {
-    //             method: 'POST',
-    //             headers: {
-    //                 'Content-Type': 'application/json'
-    //             },
-    //             body: JSON.stringify(zone1Data)
-    //         });
-    //         responseJSON = await returnMessage.json();
-    //         zone1Data.id = zoneID;
-    //         expect(responseJSON.errors.description).toBe(`token isn't an admin token`);
-
-    //         // Try to  create multiple attenuations via space `settings/attenuations` POST request
-    //         let attenuation1Data: AttenuationData;
-    //         let attenuation2Data: AttenuationData;
-    //         attenuation1Data = {
-    //             "attenuation": 0.5,
-    //             "listener-zone-id": zone1Data.id,
-    //             "source-zone-id": zone2Data.id,
-    //             "za-offset": -5
-    //         };
-    //         attenuation2Data = {
-    //             "attenuation": 0.5,
-    //             "listener-zone-id": zone2Data.id,
-    //             "source-zone-id": zone1Data.id,
-    //             "za-offset": -5
-    //         };
-    //         returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zone_attenuations?token=${nonAdminToken}`, {
-    //             method: 'POST',
-    //             headers: {
-    //                 'Content-Type': 'application/json'
-    //             },
-    //             body: JSON.stringify([attenuation1Data, attenuation2Data])
-    //         });
-    //         responseJSON = await returnMessage.json();
-    //         expect(responseJSON.errors.description).toBe(`token isn't an admin token`);
-
-    //         // Try to create one attenuation via space `settings/attenuations/create` POST request
-    //         returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zone_attenuations?token=${nonAdminToken}`, {
-    //             method: 'POST',
-    //             headers: {
-    //                 'Content-Type': 'application/json'
-    //             },
-    //             body: JSON.stringify([attenuation2Data])
-    //         });
-    //         responseJSON = await returnMessage.json();
-    //         expect(responseJSON.errors.description).toBe(`token isn't an admin token`);
-
-    //         // Try to create one attenuation via space settings/attenuations/create GET request
-    //         returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zone_attenuations/create?token=${nonAdminToken}&attenuation=${attenuation1Data["attenuation"]}&source-zone-id=${attenuation2Data["source-zone-id"]}&listener-zone-id=${attenuation2Data["listener-zone-id"]}&za-offset=${attenuation1Data["za-offset"]}`);
-    //         responseJSON = await returnMessage.json();
-    //         expect(responseJSON.errors.description).toBe(`token isn't an admin token`);
-
-    //         // Try to get the list of attenuations
-    //         returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zone_attenuations?token=${nonAdminToken}`);
-    //         responseJSON = await returnMessage.json();
-    //         expect(responseJSON.errors.description).toBe(`token isn't an admin token`);
-
-    //         // Try to get a zone attenuation's settings via GET request
-    //         // Create 2 attenuations to test against
-    //         try {
-    //             returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zone_attenuations?token=${adminTokenNoSpace}`, {
-    //                 method: 'POST',
-    //                 headers: {
-    //                     'Content-Type': 'application/json'
-    //                 },
-    //                 body: JSON.stringify([attenuation1Data, attenuation2Data])
-    //             });
-    //             responseJSON = await returnMessage.json();
-    //             attenuation1Data['id'] = responseJSON[0]['id'];
-    //             attenuation1Data['id'] = responseJSON[1]['id'];
-    //         } catch (e) {
-    //             console.error("Failed to create an attenuation before tests for nonadmins to edit attenuations.");
-    //         }
-    //         returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zone_attenuations/${attenuation1Data.id}?token=${nonAdminToken}`);
-    //         responseJSON = await returnMessage.json();
-    //         expect(responseJSON.errors.description).toBe(`token isn't an admin token`);
-
-    //         // Try to change a zone attenuation's settings via GET request
-    //         attenuation1Data['attenuation'] = -6;
-    //         attenuation1Data['listener-zone-id'] = zone2Data.id;
-    //         attenuation1Data['source-zone-id'] = zone3Data.id;
-    //         attenuation1Data['za-offset'] = 20;
-
-    //         returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zone_attenuations/${attenuation1Data.id}?token=${nonAdminToken}&attenuation=${attenuation1Data["attenuation"]}&listener-zone-id=${attenuation1Data["listener-zone-id"]}&source-zone-id=${attenuation1Data["source-zone-id"]}&za-offset=${attenuation1Data["za-offset"]}`);
-    //         responseJSON = await returnMessage.json();
-    //         expect(responseJSON.errors.description).toBe(`token isn't an admin token`);
-
-    //         // Try to get a zone attenuation's settings via POST request
-    //         returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zone_attenuations/${attenuation1Data.id}?token=${nonAdminToken}`, {
-    //             method: 'POST',
-    //             headers: {
-    //                 'Content-Type': 'application/json'
-    //             },
-    //             body: '{}'
-    //         });
-    //         responseJSON = await returnMessage.json();
-    //         expect(responseJSON.errors.description).toBe(`token isn't an admin token`);
-
-    //         // Try to change a zone attenuation's settings via POST request
-    //         let attenuationID = attenuation1Data.id;
-    //         attenuation1Data = {
-    //             "attenuation": 0.8,
-    //             "listener-zone-id": zone3Data.id,
-    //             "source-zone-id": zone4Data.id,
-    //             "za-offset": -7
-    //         }
-    //         returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zone_attenuations/${attenuationID}?token=${nonAdminToken}`, {
-    //             method: 'POST',
-    //             headers: {
-    //                 'Content-Type': 'application/json'
-    //             },
-    //             body: JSON.stringify(attenuation1Data)
-    //         });
-    //         responseJSON = await returnMessage.json();
-    //         expect(responseJSON.errors.description).toBe(`token isn't an admin token`);
-    //         attenuation1Data.id = attenuationID;
-
-    //         // Try to delete one zone attenuation
-    //         returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zone_attenuations/${attenuation1Data.id}?token=${nonAdminToken}`, {
-    //             method: 'DELETE'
-    //         });
-    //         responseJSON = await returnMessage.json();
-    //         expect(responseJSON.errors.description).toBe(`token isn't an admin token`);
-
-    //         // Try to delete all zone attenuations
-    //         returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zone_attenuations?token=${nonAdminToken}`, {
-    //             method: 'DELETE'
-    //         });
-    //         responseJSON = await returnMessage.json();
-    //         returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zone_attenuations?token=${nonAdminToken}`);
-    //         responseJSON = await returnMessage.json();
-    //         expect(responseJSON.errors.description).toBe(`token isn't an admin token`);
-
-    //         // Try to delete one zone
-    //         returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zones/${zone1Data.id}?token=${nonAdminToken}`, {
-    //             method: 'DELETE'
-    //         });
-    //         responseJSON = await returnMessage.json();
-    //         expect(responseJSON.errors.description).toBe(`token isn't an admin token`);
-
-    //         // Try to delete all zones
-    //         returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zones?token=${nonAdminToken}`, {
-    //             method: 'DELETE'
-    //         });
-    //         responseJSON = await returnMessage.json();
-    //         returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zones?token=${nonAdminToken}`);
-    //         responseJSON = await returnMessage.json();
-    //         expect(responseJSON.errors.description).toBe(`token isn't an admin token`);
-
-    //         // Clean up
-    //         try {
-    //             returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zones?token=${adminToken}`, {
-    //                 method: 'DELETE'
-    //             });
-    //         } catch (e) {
-    //             console.error("Failed to clean up zones after testing.");
-    //         }
-    //     });
-    // });
-
-    // describe.skip('User data access', () => {
-    //     let spaceID: string;
-    //     let adminToken: string;
-    //     let adminID: string;
-    //     let adminVisitIDHash: string;
-    //     let nonadminToken: string;
-    //     let nonadminID: string;
-    //     let nonadminVisitIDHash: string;
-    //     let testUserAdmin: TestUser;
-    //     let testUserNonadmin: TestUser;
-
-    //     beforeAll(async () => {
-    //         jest.setTimeout(15000); // these tests need longer to complete
-    //         try {
-    //             let returnMessage = await fetch(`${stackURL}/api/v1/spaces/create?token=${adminTokenNoSpace}`);
-    //             let returnMessageJSON: any = {};
-    //             returnMessageJSON = await returnMessage.json();
-    //             spaceID = returnMessageJSON['space-id'];
-
-    //             // connect an admin test user to the space
-    //             let tokenData = tokenTypes.ADMIN_ID_APP1;
-    //             tokenData['user_id'] = generateUUID();
-    //             testUserAdmin = new TestUser(tokenData['user_id']);
-    //             adminToken = await generateJWT(tokenData, spaceID);
-    //             await testUserAdmin.communicator.connectToHiFiAudioAPIServer(adminToken, stackURL)
-    //                 .then(data => {
-    //                     adminID = data.audionetInitResponse.user_id;
-    //                     adminVisitIDHash = data.audionetInitResponse.visit_id_hash;
-    //                 });
-    //             expect(testUserAdmin.connectionState).toBe(HiFiConnectionStates.Connected);
-
-    //             // connect a nonadmin test user to the space
-    //             tokenData = tokenTypes.NONADMIN_ID_APP1;
-    //             tokenData['user_id'] = generateUUID();
-    //             testUserNonadmin = new TestUser(tokenData['user_id']);
-    //             nonadminToken = await generateJWT(tokenData, spaceID);
-    //             await testUserNonadmin.communicator.connectToHiFiAudioAPIServer(nonadminToken, stackURL)
-    //                 .then(data => {
-    //                     nonadminID = data.audionetInitResponse.user_id;
-    //                     nonadminVisitIDHash = data.audionetInitResponse.visit_id_hash;
-    //                 });
-    //             expect(testUserNonadmin.connectionState).toBe(HiFiConnectionStates.Connected);
-    //         } catch (err) {
-    //             console.error("Could not set up a space and connect users to test user data access.");
-    //         }
-    //     });
-
-    //     afterAll(async () => {
-    //         await fetch(`${stackURL}/api/v1/spaces/${spaceID}?token=${adminToken}`, {
-    //             method: 'DELETE'
-    //         });
-    //         jest.setTimeout(5000); // restore to default
-    //     });
-
-    //     test('Admin CAN access list of users', async () => {
-    //         let returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/users?token=${adminToken}`);
-    //         let returnMessageJSON = await returnMessage.json();
-    //         expect(returnMessageJSON.length).toBe(2);
-    //         let returnedAdmin = returnMessageJSON.filter((obj: { user_id: string; }) => {
-    //             return obj['user_id'] === adminID;
-    //         })
-    //         expect(returnedAdmin).toBeDefined();
-
-    //         let returnedNonadmin = returnMessageJSON.filter((obj: { user_id: string; }) => {
-    //             return obj['user_id'] === nonadminID;
-    //         })
-    //         expect(returnedNonadmin).toBeDefined();
-    //     });
-
-    //     test('Nonadmin CANNOT access list of users', async () => {
-    //         let returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/users?token=${nonadminToken}`);
-    //         let returnMessageJSON = await returnMessage.json();
-    //         expect(returnMessageJSON.errors.description).toBe(`token isn't an admin token`);
-    //     });
-    // });
+    describe('Wrong admin tokens', () => {
+        describe(`CANNOT read/alter App A by using a valid admin token for App B`, () => {
+            let spaceID: string;
+            let adminTokenApp1: string;
+            let adminTokenApp2: string;
+            beforeAll(async () => {
+                try {
+                    let returnMessage = await fetch(`${stackURL}/api/v1/spaces/create?token=${adminTokenNoSpace}`);
+                    let returnMessageJSON: any = {};
+                    returnMessageJSON = await returnMessage.json();
+                    spaceID = returnMessageJSON['space-id'];
+                    adminTokenApp1 = await generateJWT(tokenTypes.ADMIN_ID_APP1, spaceID);
+                    adminTokenApp2 = await generateJWT(tokenTypes.ADMIN_ID_APP2);
+                } catch (err) {
+                    console.error("Failed to create spaces before tests for wrong admin.");
+                }
+            });
+
+            afterAll(async () => {
+                await fetch(`${stackURL}/api/v1/spaces/${spaceID}?token=${adminTokenApp1}`, {
+                    method: 'DELETE'
+                });
+            });
+
+            test(`Read settings for a space`, async () => {
+                let returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/app-id/?token=${adminTokenApp2}`);
+                let returnMessageJSON: any = {};
+                returnMessageJSON = await returnMessage.json();
+                expect(returnMessageJSON.code).toBe(422);
+                expect(returnMessageJSON.errors).toMatchObject({ description: expect.stringMatching(/space\/app mismatch/) });
+            });
+        });
+    });
+
+    describe('Zones and attenuations', () => {
+        let spaceID: string;
+        let adminToken: string;
+        let nonAdminToken: string;
+        let zone1Data: ZoneData;
+        let zone2Data: ZoneData;
+        let zone3Data: ZoneData;
+        let zone4Data: ZoneData;
+
+        beforeAll(async () => {
+            jest.setTimeout(20000); // these tests need longer to complete
+            // Create a space for testing
+            try {
+                let returnMessage = await fetch(`${stackURL}/api/v1/spaces/create?token=${adminTokenNoSpace}`);
+                let returnMessageJSON: any = {};
+                returnMessageJSON = await returnMessage.json();
+                spaceID = returnMessageJSON['space-id'];
+                adminToken = await generateJWT(tokenTypes.ADMIN_ID_APP1, spaceID);
+                nonAdminToken = await generateJWT(tokenTypes.NONADMIN_ID_APP1, spaceID);
+            } catch (e) {
+                console.error("Failed to create a space before tests for zones and attenuations.");
+            }
+
+            zone1Data = {
+                "x-min": -5,
+                "x-max": 5,
+                "y-min": 0,
+                "y-max": 10,
+                "z-min": -5,
+                "z-max": 5,
+                "name": generateUUID()
+            };
+            zone2Data = {
+                "x-min": 5,
+                "x-max": 15,
+                "y-min": 0,
+                "y-max": 10,
+                "z-min": -5,
+                "z-max": 5,
+                "name": generateUUID()
+            };
+            zone3Data = {
+                "x-min": 15,
+                "x-max": 25,
+                "y-min": 0,
+                "y-max": 10,
+                "z-min": -5,
+                "z-max": 5,
+                "name": generateUUID()
+            };
+            zone4Data = {
+                "x-min": 25,
+                "x-max": 35,
+                "y-min": 0,
+                "y-max": 10,
+                "z-min": -5,
+                "z-max": 5,
+                "name": generateUUID()
+            };
+        });
+
+        afterAll(async () => {
+            jest.setTimeout(5000); // restore to default
+            await fetch(`${stackURL}/api/v1/spaces/${spaceID}?token=${adminToken}`, {
+                method: 'DELETE'
+            });
+        });
+
+        beforeEach(async () => {
+            try {
+                await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zones?token=${adminToken}`, {
+                    method: 'DELETE'
+                });
+            } catch (err) {
+                console.error("Failed to delete all zones before test. Please manually remove them and then rerun the test.");
+            }
+        });
+
+        test(`Admin CAN access, edit, create, and delete zones and attenuations`, async () => {
+            // Create multiple zones via space `settings/zones` POST request
+            let returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zones?token=${adminToken}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify([zone1Data, zone2Data])
+            });
+
+            // Response will be the zone datas plus a new zone ID for each zone. Add the IDs to our data and the response should match
+            let responseJSON: any = {};
+            responseJSON = await returnMessage.json();
+            expect(responseJSON[0].id).toBeDefined();
+            expect(responseJSON[1].id).toBeDefined();
+            if (responseJSON[0].name === zone1Data.name) {
+                zone1Data['id'] = responseJSON[0].id;
+                zone2Data['id'] = responseJSON[1].id;
+            } else {
+                zone1Data['id'] = responseJSON[1].id;
+                zone2Data['id'] = responseJSON[0].id;
+            }
+            expect(responseJSON.map((a: { id: any; }) => a.id).sort()).toEqual([zone1Data, zone2Data].map(a => a.id).sort());
+
+            // Create one zone via space `settings/zones/create` POST request
+            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zones?token=${adminToken}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify([zone3Data])
+            });
+            responseJSON = await returnMessage.json();
+            expect(responseJSON[0].id).toBeDefined();
+            zone3Data['id'] = responseJSON[0].id;
+            expect(responseJSON).toEqual([zone3Data]);
+
+            // Create one zone via space settings/zones/create GET request
+            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zones/create?token=${adminToken}&x-min=${zone4Data["x-min"]}&x-max=${zone4Data["x-max"]}&y-min=${zone4Data["y-min"]}&y-max=${zone4Data["y-max"]}&z-min=${zone4Data["z-min"]}&z-max=${zone4Data["z-max"]}&name=${zone4Data["name"]}`);
+            responseJSON = await returnMessage.json();
+            expect(responseJSON.id).toBeDefined();
+            zone4Data['id'] = responseJSON.id;
+            expect(responseJSON).toEqual(zone4Data);
+
+            // Get the list of zones and make sure it is accurate
+            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zones?token=${adminToken}`);
+            responseJSON = await returnMessage.json();
+            expect(responseJSON.map((a: { id: any; }) => a.id).sort()).toEqual([zone1Data, zone2Data, zone3Data, zone4Data].map(a => a.id).sort());
+
+
+            // Get a zone's settings via GET request
+            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zones/${zone1Data.id}?token=${adminToken}`);
+            responseJSON = await returnMessage.json();
+            expect(responseJSON).toEqual(zone1Data);
+
+            // Change a zone's settings via GET request
+            zone1Data['x-min'] = -6;
+            zone1Data['x-max'] = 6;
+            zone1Data['y-min'] = 10;
+            zone1Data['y-max'] = 20;
+            zone1Data['z-min'] = -6;
+            zone1Data['z-max'] = -6;
+            zone1Data['name'] = generateUUID();
+
+            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zones/${zone1Data.id}?token=${adminToken}&x-min=${zone1Data["x-min"]}&x-max=${zone1Data["x-max"]}&y-min=${zone1Data["y-min"]}&y-max=${zone1Data["y-max"]}&z-min=${zone1Data["z-min"]}&z-max=${zone1Data["z-max"]}&name=${zone1Data["name"]}`);
+            responseJSON = await returnMessage.json();
+            expect(responseJSON).toEqual(zone1Data);
+
+            // Get a zone's settings via POST request
+            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zones/${zone1Data.id}?token=${adminToken}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: '{}'
+            });
+            responseJSON = await returnMessage.json();
+            expect(responseJSON).toEqual(zone1Data);
+
+            // Change a zone's settings via POST request
+            let zoneID = zone1Data.id;
+            zone1Data = {
+                "x-min": -7,
+                "x-max": 7,
+                "y-min": 0,
+                "y-max": 10,
+                "z-min": -7,
+                "z-max": 7,
+                "name": generateUUID()
+            };
+
+            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zones/${zoneID}?token=${adminToken}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(zone1Data)
+            });
+            responseJSON = await returnMessage.json();
+            zone1Data.id = zoneID;
+            expect(responseJSON).toEqual(zone1Data);
+
+            // Create multiple attenuations via space `settings/attenuations` POST request
+            let attenuation1Data: AttenuationData;
+            let attenuation2Data: AttenuationData;
+            let attenuation3Data: AttenuationData;
+            let attenuation4Data: AttenuationData;
+            attenuation1Data = {
+                "attenuation": 0.5,
+                "listener-zone-id": zone1Data.id,
+                "source-zone-id": zone2Data.id,
+                "za-offset": -5
+            };
+            attenuation2Data = {
+                "attenuation": 0.5,
+                "listener-zone-id": zone1Data.id,
+                "source-zone-id": zone2Data.id,
+                "za-offset": -5
+            };
+            attenuation3Data = {
+                "attenuation": 0.5,
+                "listener-zone-id": zone1Data.id,
+                "source-zone-id": zone3Data.id,
+                "za-offset": -5
+            };
+            attenuation4Data = {
+                "attenuation": 0.5,
+                "listener-zone-id": zone1Data.id,
+                "source-zone-id": zone4Data.id,
+                "za-offset": -5
+            };
+            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zone_attenuations?token=${adminToken}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify([attenuation1Data, attenuation2Data])
+            });
+
+            // Response will be the attenuation datas plus a new attenuation ID for each attenuation. Add the IDs to our data and the response should match
+            responseJSON = await returnMessage.json();
+            expect(responseJSON[0]['id']).toBeDefined();
+            expect(responseJSON[1]['id']).toBeDefined();
+            attenuation1Data['id'] = responseJSON[0]['id'];
+            attenuation2Data['id'] = responseJSON[1]['id'];
+            expect(responseJSON.map((a: { id: any; }) => a.id).sort()).toEqual([attenuation1Data, attenuation2Data].map(a => a.id).sort());
+
+            // Create one attenuation via space `settings/attenuations/create` POST request
+            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zone_attenuations?token=${adminToken}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify([attenuation3Data])
+            });
+            responseJSON = await returnMessage.json();
+            expect(responseJSON[0]['id']).toBeDefined();
+            attenuation3Data['id'] = responseJSON[0]['id'];
+            expect(responseJSON).toEqual([attenuation3Data]);
+
+            // Create one attenuation via space settings/attenuations/create GET request
+            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zone_attenuations/create?token=${adminToken}&attenuation=${attenuation4Data["attenuation"]}&source-zone-id=${attenuation4Data["source-zone-id"]}&listener-zone-id=${attenuation4Data["listener-zone-id"]}&za-offset=${attenuation4Data["za-offset"]}`);
+            responseJSON = await returnMessage.json();
+            expect(responseJSON['id']).toBeDefined();
+            attenuation4Data['id'] = responseJSON['id'];
+            expect(responseJSON).toEqual(attenuation4Data);
+
+            // Get the list of attenuations and make sure it is accurate
+            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zone_attenuations?token=${adminToken}`);
+            responseJSON = await returnMessage.json();
+            expect(responseJSON.map((a: { id: any; }) => a.id).sort()).toEqual([attenuation1Data, attenuation2Data, attenuation3Data, attenuation4Data].map(a => a.id).sort());
+
+            // Get a zone attenuation's settings via GET request
+            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zone_attenuations/${attenuation1Data.id}?token=${adminToken}`);
+            responseJSON = await returnMessage.json();
+            expect(responseJSON).toEqual(attenuation1Data);
+
+            // Change a zone attenuation's settings via GET request
+            attenuation1Data['attenuation'] = -6;
+            attenuation1Data['listener-zone-id'] = zone2Data.id;
+            attenuation1Data['source-zone-id'] = zone3Data.id;
+            attenuation1Data['za-offset'] = 20;
+
+            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zone_attenuations/${attenuation1Data.id}?token=${adminToken}&attenuation=${attenuation1Data["attenuation"]}&listener-zone-id=${attenuation1Data["listener-zone-id"]}&source-zone-id=${attenuation1Data["source-zone-id"]}&za-offset=${attenuation1Data["za-offset"]}`);
+            responseJSON = await returnMessage.json();
+            expect(responseJSON).toEqual(attenuation1Data);
+
+            // Get a zone attenuation's settings via POST request
+            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zone_attenuations/${attenuation1Data.id}?token=${adminToken}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: '{}'
+            });
+            responseJSON = await returnMessage.json();
+            expect(responseJSON).toEqual(attenuation1Data);
+
+            // Change a zone attenuation's settings via POST request
+            let attenuationID = attenuation1Data.id;
+            attenuation1Data = {
+                "attenuation": 0.8,
+                "listener-zone-id": zone3Data.id,
+                "source-zone-id": zone4Data.id,
+                "za-offset": -7
+            }
+            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zone_attenuations/${attenuationID}?token=${adminToken}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(attenuation1Data)
+            });
+            responseJSON = await returnMessage.json();
+            attenuation1Data.id = attenuationID;
+            expect(responseJSON).toEqual(attenuation1Data);
+
+            // Delete one zone attenuation
+            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zone_attenuations/${attenuation1Data.id}?token=${adminToken}`, {
+                method: 'DELETE'
+            });
+            responseJSON = await returnMessage.json();
+            expect(responseJSON.id).toBe(attenuation1Data.id);
+
+            // Delete all zone attenuations
+            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zone_attenuations?token=${adminToken}`, {
+                method: 'DELETE'
+            });
+            responseJSON = await returnMessage.json();
+            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zone_attenuations?token=${adminToken}`);
+            responseJSON = await returnMessage.json();
+            expect(responseJSON).toEqual([]);
+
+            // Delete one zone
+            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zones/${zone1Data.id}?token=${adminToken}`, {
+                method: 'DELETE'
+            });
+            responseJSON = await returnMessage.json();
+            expect(responseJSON.id).toBe(zone1Data.id);
+
+            // Delete all zones
+            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zones?token=${adminToken}`, {
+                method: 'DELETE'
+            });
+
+            // check
+            responseJSON = await returnMessage.json();
+            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zones?token=${adminToken}`);
+            responseJSON = await returnMessage.json();
+            expect(responseJSON).toEqual([]);
+        });
+
+        test(`Nonadmin CANNOT access, edit, create, and delete zones and attenuations`, async () => {
+            // reset zone 1 and 2 as they are the only ones we will use for nonadmin testing
+            zone1Data = {
+                "x-min": -5,
+                "x-max": 5,
+                "y-min": 0,
+                "y-max": 10,
+                "z-min": -5,
+                "z-max": 5,
+                "name": generateUUID()
+            };
+            zone2Data = {
+                "x-min": 5,
+                "x-max": 15,
+                "y-min": 0,
+                "y-max": 10,
+                "z-min": -5,
+                "z-max": 5,
+                "name": generateUUID()
+            };
+
+            // Try to create multiple zones via space `settings/zones` POST request
+            let returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zones?token=${nonAdminToken}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify([zone1Data, zone2Data])
+            });
+            let responseJSON: any = {};
+            responseJSON = await returnMessage.json();
+            expect(responseJSON.errors.description).toBe(`token isn't an admin token`);
+
+            // Try to create one zone via space `settings/zones/create` POST request
+            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zones?token=${nonAdminToken}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify([zone1Data])
+            });
+            responseJSON = await returnMessage.json();
+            expect(responseJSON.errors.description).toBe(`token isn't an admin token`);
+
+            // Try to create one zone via space settings/zones/create GET request
+            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zones/create?token=${nonAdminToken}&x-min=${zone1Data["x-min"]}&x-max=${zone4Data["x-max"]}&y-min=${zone4Data["y-min"]}&y-max=${zone4Data["y-max"]}&z-min=${zone4Data["z-min"]}&z-max=${zone4Data["z-max"]}&name=${zone4Data["name"]}`);
+            responseJSON = await returnMessage.json();
+            expect(responseJSON.errors.description).toBe(`token isn't an admin token`);
+
+            // Try to get the list of zones
+            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zones?token=${nonAdminToken}`);
+            responseJSON = await returnMessage.json();
+            expect(responseJSON.errors.description).toBe(`token isn't an admin token`);
+
+            // Try to get a zone's settings via GET request
+            // Create 2 zones to test against (need 2 for attenualtions)
+            try {
+                returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zones?token=${adminTokenNoSpace}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify([zone1Data, zone2Data])
+                });
+                responseJSON = await returnMessage.json();
+                if (responseJSON[0].name === zone1Data.name) {
+                    zone1Data['id'] = responseJSON[0].id;
+                    zone2Data['id'] = responseJSON[1].id;
+                } else {
+                    zone1Data['id'] = responseJSON[1].id;
+                    zone2Data['id'] = responseJSON[0].id;
+                }
+            } catch (e) {
+                console.error("Failed to create a zone before tests for nonadmins to edit zones.");
+            }
+
+            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zones/${zone1Data.id}?token=${nonAdminToken}`);
+            responseJSON = await returnMessage.json();
+            expect(responseJSON.errors.description).toBe(`token isn't an admin token`);
+
+            // Try to change a zone's settings via GET request
+            zone1Data['x-min'] = -6;
+            zone1Data['x-max'] = 6;
+            zone1Data['y-min'] = 10;
+            zone1Data['y-max'] = 20;
+            zone1Data['z-min'] = -6;
+            zone1Data['z-max'] = -6;
+            zone1Data['name'] = generateUUID();
+
+            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zones/${zone1Data.id}?token=${nonAdminToken}&x-min=${zone1Data["x-min"]}&x-max=${zone1Data["x-max"]}&y-min=${zone1Data["y-min"]}&y-max=${zone1Data["y-max"]}&z-min=${zone1Data["z-min"]}&z-max=${zone1Data["z-max"]}&name=${zone1Data["name"]}`);
+            responseJSON = await returnMessage.json();
+            expect(responseJSON.errors.description).toBe(`token isn't an admin token`);
+
+            // Try to get a zone's settings via POST request
+            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zones/${zone1Data.id}?token=${nonAdminToken}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: '{}'
+            });
+            responseJSON = await returnMessage.json();
+            expect(responseJSON.errors.description).toBe(`token isn't an admin token`);
+
+            // Try to change a zone's settings via POST request
+            let zoneID = zone1Data.id;
+            zone1Data = {
+                "x-min": -7,
+                "x-max": 7,
+                "y-min": 0,
+                "y-max": 10,
+                "z-min": -7,
+                "z-max": 7,
+                "name": generateUUID()
+            };
+
+            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zones/${zoneID}?token=${nonAdminToken}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(zone1Data)
+            });
+            responseJSON = await returnMessage.json();
+            zone1Data.id = zoneID;
+            expect(responseJSON.errors.description).toBe(`token isn't an admin token`);
+
+            // Try to  create multiple attenuations via space `settings/attenuations` POST request
+            let attenuation1Data: AttenuationData;
+            let attenuation2Data: AttenuationData;
+            attenuation1Data = {
+                "attenuation": 0.5,
+                "listener-zone-id": zone1Data.id,
+                "source-zone-id": zone2Data.id,
+                "za-offset": -5
+            };
+            attenuation2Data = {
+                "attenuation": 0.5,
+                "listener-zone-id": zone2Data.id,
+                "source-zone-id": zone1Data.id,
+                "za-offset": -5
+            };
+            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zone_attenuations?token=${nonAdminToken}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify([attenuation1Data, attenuation2Data])
+            });
+            responseJSON = await returnMessage.json();
+            expect(responseJSON.errors.description).toBe(`token isn't an admin token`);
+
+            // Try to create one attenuation via space `settings/attenuations/create` POST request
+            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zone_attenuations?token=${nonAdminToken}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify([attenuation2Data])
+            });
+            responseJSON = await returnMessage.json();
+            expect(responseJSON.errors.description).toBe(`token isn't an admin token`);
+
+            // Try to create one attenuation via space settings/attenuations/create GET request
+            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zone_attenuations/create?token=${nonAdminToken}&attenuation=${attenuation1Data["attenuation"]}&source-zone-id=${attenuation2Data["source-zone-id"]}&listener-zone-id=${attenuation2Data["listener-zone-id"]}&za-offset=${attenuation1Data["za-offset"]}`);
+            responseJSON = await returnMessage.json();
+            expect(responseJSON.errors.description).toBe(`token isn't an admin token`);
+
+            // Try to get the list of attenuations
+            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zone_attenuations?token=${nonAdminToken}`);
+            responseJSON = await returnMessage.json();
+            expect(responseJSON.errors.description).toBe(`token isn't an admin token`);
+
+            // Try to get a zone attenuation's settings via GET request
+            // Create 2 attenuations to test against
+            try {
+                returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zone_attenuations?token=${adminTokenNoSpace}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify([attenuation1Data, attenuation2Data])
+                });
+                responseJSON = await returnMessage.json();
+                attenuation1Data['id'] = responseJSON[0]['id'];
+                attenuation1Data['id'] = responseJSON[1]['id'];
+            } catch (e) {
+                console.error("Failed to create an attenuation before tests for nonadmins to edit attenuations.");
+            }
+            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zone_attenuations/${attenuation1Data.id}?token=${nonAdminToken}`);
+            responseJSON = await returnMessage.json();
+            expect(responseJSON.errors.description).toBe(`token isn't an admin token`);
+
+            // Try to change a zone attenuation's settings via GET request
+            attenuation1Data['attenuation'] = -6;
+            attenuation1Data['listener-zone-id'] = zone2Data.id;
+            attenuation1Data['source-zone-id'] = zone3Data.id;
+            attenuation1Data['za-offset'] = 20;
+
+            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zone_attenuations/${attenuation1Data.id}?token=${nonAdminToken}&attenuation=${attenuation1Data["attenuation"]}&listener-zone-id=${attenuation1Data["listener-zone-id"]}&source-zone-id=${attenuation1Data["source-zone-id"]}&za-offset=${attenuation1Data["za-offset"]}`);
+            responseJSON = await returnMessage.json();
+            expect(responseJSON.errors.description).toBe(`token isn't an admin token`);
+
+            // Try to get a zone attenuation's settings via POST request
+            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zone_attenuations/${attenuation1Data.id}?token=${nonAdminToken}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: '{}'
+            });
+            responseJSON = await returnMessage.json();
+            expect(responseJSON.errors.description).toBe(`token isn't an admin token`);
+
+            // Try to change a zone attenuation's settings via POST request
+            let attenuationID = attenuation1Data.id;
+            attenuation1Data = {
+                "attenuation": 0.8,
+                "listener-zone-id": zone3Data.id,
+                "source-zone-id": zone4Data.id,
+                "za-offset": -7
+            }
+            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zone_attenuations/${attenuationID}?token=${nonAdminToken}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(attenuation1Data)
+            });
+            responseJSON = await returnMessage.json();
+            expect(responseJSON.errors.description).toBe(`token isn't an admin token`);
+            attenuation1Data.id = attenuationID;
+
+            // Try to delete one zone attenuation
+            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zone_attenuations/${attenuation1Data.id}?token=${nonAdminToken}`, {
+                method: 'DELETE'
+            });
+            responseJSON = await returnMessage.json();
+            expect(responseJSON.errors.description).toBe(`token isn't an admin token`);
+
+            // Try to delete all zone attenuations
+            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zone_attenuations?token=${nonAdminToken}`, {
+                method: 'DELETE'
+            });
+            responseJSON = await returnMessage.json();
+            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zone_attenuations?token=${nonAdminToken}`);
+            responseJSON = await returnMessage.json();
+            expect(responseJSON.errors.description).toBe(`token isn't an admin token`);
+
+            // Try to delete one zone
+            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zones/${zone1Data.id}?token=${nonAdminToken}`, {
+                method: 'DELETE'
+            });
+            responseJSON = await returnMessage.json();
+            expect(responseJSON.errors.description).toBe(`token isn't an admin token`);
+
+            // Try to delete all zones
+            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zones?token=${nonAdminToken}`, {
+                method: 'DELETE'
+            });
+            responseJSON = await returnMessage.json();
+            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zones?token=${nonAdminToken}`);
+            responseJSON = await returnMessage.json();
+            expect(responseJSON.errors.description).toBe(`token isn't an admin token`);
+
+            // Clean up
+            try {
+                returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zones?token=${adminToken}`, {
+                    method: 'DELETE'
+                });
+            } catch (e) {
+                console.error("Failed to clean up zones after testing.");
+            }
+        });
+    });
+
+    describe('User data access', () => {
+        let spaceID: string;
+        let adminToken: string;
+        let adminID: string;
+        let adminVisitIDHash: string;
+        let nonadminToken: string;
+        let nonadminID: string;
+        let nonadminVisitIDHash: string;
+        let testUserAdmin: TestUser;
+        let testUserNonadmin: TestUser;
+
+        beforeAll(async () => {
+            jest.setTimeout(15000); // these tests need longer to complete
+            try {
+                let returnMessage = await fetch(`${stackURL}/api/v1/spaces/create?token=${adminTokenNoSpace}`);
+                let returnMessageJSON: any = {};
+                returnMessageJSON = await returnMessage.json();
+                spaceID = returnMessageJSON['space-id'];
+
+                // connect an admin test user to the space
+                let tokenData = tokenTypes.ADMIN_ID_APP1;
+                tokenData['user_id'] = generateUUID();
+                testUserAdmin = new TestUser(tokenData['user_id']);
+                adminToken = await generateJWT(tokenData, spaceID);
+                await testUserAdmin.communicator.connectToHiFiAudioAPIServer(adminToken, stackURL)
+                    .then(data => {
+                        adminID = data.audionetInitResponse.user_id;
+                        adminVisitIDHash = data.audionetInitResponse.visit_id_hash;
+                    });
+                expect(testUserAdmin.connectionState).toBe(HiFiConnectionStates.Connected);
+
+                // connect a nonadmin test user to the space
+                tokenData = tokenTypes.NONADMIN_ID_APP1;
+                tokenData['user_id'] = generateUUID();
+                testUserNonadmin = new TestUser(tokenData['user_id']);
+                nonadminToken = await generateJWT(tokenData, spaceID);
+                await testUserNonadmin.communicator.connectToHiFiAudioAPIServer(nonadminToken, stackURL)
+                    .then(data => {
+                        nonadminID = data.audionetInitResponse.user_id;
+                        nonadminVisitIDHash = data.audionetInitResponse.visit_id_hash;
+                    });
+                expect(testUserNonadmin.connectionState).toBe(HiFiConnectionStates.Connected);
+            } catch (err) {
+                console.error("Could not set up a space and connect users to test user data access.");
+            }
+        });
+
+        afterAll(async () => {
+            await fetch(`${stackURL}/api/v1/spaces/${spaceID}?token=${adminToken}`, {
+                method: 'DELETE'
+            });
+            jest.setTimeout(5000); // restore to default
+        });
+
+        test('Admin CAN access list of users', async () => {
+            let returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/users?token=${adminToken}`);
+            let returnMessageJSON = await returnMessage.json();
+            expect(returnMessageJSON.length).toBe(2);
+            let returnedAdmin = returnMessageJSON.filter((obj: { user_id: string; }) => {
+                return obj['user_id'] === adminID;
+            })
+            expect(returnedAdmin).toBeDefined();
+
+            let returnedNonadmin = returnMessageJSON.filter((obj: { user_id: string; }) => {
+                return obj['user_id'] === nonadminID;
+            })
+            expect(returnedNonadmin).toBeDefined();
+        });
+
+        test('Nonadmin CANNOT access list of users', async () => {
+            let returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/users?token=${nonadminToken}`);
+            let returnMessageJSON = await returnMessage.json();
+            expect(returnMessageJSON.errors.description).toBe(`token isn't an admin token`);
+        });
+    });
 });

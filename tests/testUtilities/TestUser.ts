@@ -1,28 +1,32 @@
-import { HiFiAudioAPIData, Point3D } from "../../src/classes/HiFiAudioAPIData";
 import { HiFiCommunicator, HiFiConnectionStates } from "../../src/classes/HiFiCommunicator";
+
+export type MuteState = "MUTED_FIXED" | "MUTED_NOT_FIXED" | "UNMUTED";
 
 export class TestUser {
     name: string;
     connectionState: HiFiConnectionStates;
+    muteState: MuteState;
     communicator: HiFiCommunicator;
 
-    constructor(name: string, xPosition: number) {
+    constructor(name: string) {
         this.name = name;
         this.connectionState = HiFiConnectionStates.Disconnected;
-        let initialAudioData = new HiFiAudioAPIData({ position: new Point3D({ x: xPosition }) });
+        this.muteState = "UNMUTED";
         this.communicator = new HiFiCommunicator({
-            initialHiFiAudioAPIData: initialAudioData,
             onConnectionStateChanged: this.onConnectionStateChanged.bind(this),
             onMuteChanged: this.onMuteChanged.bind(this),
         });
     }
 
     onConnectionStateChanged(connectionState: HiFiConnectionStates) {
-        console.log("______________________ connectionState __________", connectionState);
         this.connectionState = connectionState;
     }
 
-    onMuteChanged(data:any) {
-        console.log("______________________ User mute change: ", this.name, "__________State:", data);
+    onMuteChanged(data: any) {
+        if (data.currentInputAudioMutedValue === true) {
+            this.muteState = data.adminPreventsInputAudioUnmuting ? "MUTED_FIXED" : "MUTED_NOT_FIXED";
+        } else {
+            this.muteState = "UNMUTED";
+        }
     }
 }
