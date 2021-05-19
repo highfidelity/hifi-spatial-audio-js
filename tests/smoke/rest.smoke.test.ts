@@ -569,7 +569,7 @@ describe('HiFi API REST Calls', () => {
                 zone1Data['id'] = responseJSON[1].id;
                 zone2Data['id'] = responseJSON[0].id;
             }
-            expect(responseJSON.map((a: { id: any; }) => a.id).sort()).toEqual([zone1Data, zone2Data].map(a => a.id).sort());
+            expect(responseJSON.map((a: { id: number; }) => a.id).sort()).toEqual([zone1Data, zone2Data].map(a => a.id).sort());
 
             // Create one zone via space `settings/zones/create` POST request
             returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zones?token=${adminToken}`, {
@@ -594,7 +594,7 @@ describe('HiFi API REST Calls', () => {
             // Get the list of zones and make sure it is accurate
             returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zones?token=${adminToken}`);
             responseJSON = await returnMessage.json();
-            expect(responseJSON.map((a: { id: any; }) => a.id).sort()).toEqual([zone1Data, zone2Data, zone3Data, zone4Data].map(a => a.id).sort());
+            expect(responseJSON.map((a: { id: number; }) => a.id).sort()).toEqual([zone1Data, zone2Data, zone3Data, zone4Data].map(a => a.id).sort());
 
 
             // Get a zone's settings via GET request
@@ -655,15 +655,15 @@ describe('HiFi API REST Calls', () => {
             let attenuation3Data: AttenuationData;
             let attenuation4Data: AttenuationData;
             attenuation1Data = {
-                "attenuation": 0.5,
-                "frequency-rolloff": 12,
+                "attenuation": null,
+                "frequency-rolloff": null,
                 "listener-zone-id": zone1Data.id,
                 "source-zone-id": zone2Data.id,
                 "za-offset": -5
             };
             attenuation2Data = {
-                "attenuation": 0.5,
-                "frequency-rolloff": 12,
+                "attenuation": null,
+                "frequency-rolloff": null,
                 "listener-zone-id": zone1Data.id,
                 "source-zone-id": zone2Data.id,
                 "za-offset": -5
@@ -696,7 +696,7 @@ describe('HiFi API REST Calls', () => {
             expect(responseJSON[1]['id']).toBeDefined();
             attenuation1Data['id'] = responseJSON[0]['id'];
             attenuation2Data['id'] = responseJSON[1]['id'];
-            expect(responseJSON.map((a: { id: any; }) => a.id).sort()).toEqual([attenuation1Data, attenuation2Data].map(a => a.id).sort());
+            expect(responseJSON.map((a: { id: number; }) => a.id).sort()).toEqual([attenuation1Data, attenuation2Data].map(a => a.id).sort());
 
             // Create one attenuation via space `settings/attenuations/create` POST request
             returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zone_attenuations?token=${adminToken}`, {
@@ -721,7 +721,7 @@ describe('HiFi API REST Calls', () => {
             // Get the list of attenuations and make sure it is accurate
             returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zone_attenuations?token=${adminToken}`);
             responseJSON = await returnMessage.json();
-            expect(responseJSON.map((a: { id: any; }) => a.id).sort()).toEqual([attenuation1Data, attenuation2Data, attenuation3Data, attenuation4Data].map(a => a.id).sort());
+            expect(responseJSON.map((a: { id: number; }) => a.id).sort()).toEqual([attenuation1Data, attenuation2Data, attenuation3Data, attenuation4Data].map(a => a.id).sort());
 
             // Get a zone attenuation's settings via GET request
             returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zone_attenuations/${attenuation1Data.id}?token=${adminToken}`);
