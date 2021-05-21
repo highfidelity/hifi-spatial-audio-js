@@ -27,6 +27,9 @@ describe('Audio', () => {
     } else if (stackname === "api-pro-east.highfidelity.com" || stackname === "api-pro-latest-east.highfidelity.com") {
         stackData = stacks.east;
         console.log("_______________USING EAST AUTH FILE_______________________");
+    } else if (stackname === "api-pro-eu.highfidelity.com" || stackname === "api-pro-latest-eu.highfidelity.com") {
+        stackData = stacks['api-pro-eu.highfidelity.com'];
+        console.log("_______________USING EU AUTH FILE_______________________");
     } else if (stackname === "api.highfidelity.com" || stackname === "api-hobby-latest.highfidelity.com") {
         stackData = stacks.hobby;
         console.log("_______________USING HOBBY AUTH FILE_______________________");
