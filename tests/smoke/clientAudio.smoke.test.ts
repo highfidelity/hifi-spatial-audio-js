@@ -131,13 +131,13 @@ describe('Audio', () => {
             expect(usersDataArray[usersDataArray.findIndex((userData: UserData) => userData.hashedVisitID === user1HashedVisitID)].volumeDecibels).toBe(0);
 
             // user 1 can mute, user 2 stops hearing user 1
-            user1.setInputAudioMuted(true);
+            await user1.setInputAudioMuted(true);
             await sleep(1000);
             // what is the right value here?
             expect(usersDataArray[usersDataArray.findIndex((userData: UserData) => userData.hashedVisitID === user1HashedVisitID)].volumeDecibels).toBeLessThan(-60);
 
             // user 1 can unmute, user 2 can hear user 1 again
-            user1.setInputAudioMuted(false);
+            await user1.setInputAudioMuted(false);
             await sleep(1000);
             expect(usersDataArray[usersDataArray.findIndex((userData: UserData) => userData.hashedVisitID === user1HashedVisitID)].volumeDecibels).toBe(0);
 
