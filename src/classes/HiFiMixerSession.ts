@@ -4,14 +4,13 @@
  * @packageDocumentation
  */
 
-import { HiFiAudioAPIData, OrientationQuat3D, Point3D, ReceivedHiFiAudioAPIData, OtherUserGainMap } from "./HiFiAudioAPIData";
+import { HiFiAudioAPIData, HiFiCoordinateFrameUtil, OrientationQuat3D, Point3D, ReceivedHiFiAudioAPIData, OtherUserGainMap } from "./HiFiAudioAPIData";
 import { HiFiLogger } from "../utilities/HiFiLogger";
 import { HiFiConnectionStates, HiFiUserDataStreamingScopes } from "./HiFiCommunicator";
 
 import { RaviUtils } from "../libravi/RaviUtils";
 import { RaviSession, RaviSessionStates, WebRTCSessionParams, CustomSTUNandTURNConfig } from "../libravi/RaviSession";
 import { RaviSignalingConnection, RaviSignalingStates } from "../libravi/RaviSignalingConnection";
-import { HiFiAxisUtilities, ourHiFiAxisConfiguration } from "./HiFiAxisConfiguration";
 const pako = require('pako');
 
 const INIT_TIMEOUT_MS = 5000;
@@ -186,6 +185,19 @@ export class HiFiMixerSession {
     onConnectionStateChanged: Function;
 
     /**
+     * If the World coordinate system is NOT compatible with the HiFi coordindate frame used by the mixer
+     * then configure a HiFiCoordinateFrameUtil to transform to and from HiFi-frame.
+     *
+     * The World-frame is compatible iff:
+     * (1) It is right-handed
+     * (2) It uses the Y-axis (positive or negative, doesn't matter) for the UP direction.
+     *
+     * For all other cases create a HiFiCoordinateFrameUtil like so:
+     *
+     */
+    _coordFrameUtil: HiFiCoordinateFrameUtil;
+
+    /**
      * Contains information about the mixer to which we are currently connected.
      */
     mixerInfo: any;
@@ -199,7 +211,7 @@ export class HiFiMixerSession {
      * @param onUserDataUpdated - The function to call when the server sends user data to the client. Irrelevant if `userDataStreamingScope` is `HiFiUserDataStreamingScopes.None`.
      * @param onUsersDisconnected - The function to call when the server sends user data about peers who just disconnected to the client.
      */
-    constructor({ userDataStreamingScope = HiFiUserDataStreamingScopes.All, onUserDataUpdated, onUsersDisconnected, onConnectionStateChanged, onMuteChanged }: { userDataStreamingScope?: HiFiUserDataStreamingScopes, onUserDataUpdated?: Function, onUsersDisconnected?: Function, onConnectionStateChanged?: Function, onMuteChanged?: OnMuteChangedCallback }) {
+    constructor({ userDataStreamingScope = HiFiUserDataStreamingScopes.All, onUserDataUpdated, onUsersDisconnected, onConnectionStateChanged, onMuteChanged, coordFrameUtil }: { userDataStreamingScope?: HiFiUserDataStreamingScopes, onUserDataUpdated?: Function, onUsersDisconnected?: Function, onConnectionStateChanged?: Function, onMuteChanged?: OnMuteChangedCallback, coordFrameUtil?: HiFiCoordinateFrameUtil}) {
         this.webRTCAddress = undefined;
         this.userDataStreamingScope = userDataStreamingScope;
         this.onUserDataUpdated = onUserDataUpdated;
@@ -207,6 +219,7 @@ export class HiFiMixerSession {
         this._mixerPeerKeyToStateCacheDict = {};
         this._lastSuccessfulInputAudioMutedValue = false;
         this.onMuteChanged = onMuteChanged;
+        this._coordFrameUtil = coordFrameUtil;
 
         RaviUtils.setDebug(false);
 
@@ -396,12 +409,16 @@ export class HiFiMixerSession {
                     userDataCache.position.z = peerDataFromMixer.z / 1000;
                     serverSentNewPosition = true;
                 }
-                // We received a new position and updated the cache entry.
-                // Need to add the new position value in the newUserData
                 if (serverSentNewPosition) {
-                    // Create the new position value for the newUserData and
-                    // convert the received position (if any) to the user space
-                    newUserData.position = HiFiAxisUtilities.translatePoint3DFromMixerSpace(ourHiFiAxisConfiguration, userDataCache.position);
+                    // We received a new position and updated the cache entry.
+                    // Need to add the new position value in the newUserData
+                    if (this._coordFrameUtil == null) {
+                        // HiFi- and World-frame are assumed compatible --> copy position straight across
+                        newUserData.position = userDataCache.position;
+                    } else {
+                        // convert the received position from HiFi- to World-frame
+                        newUserData.position = this._coordFrameUtil.HiFiToWorld(userDataCache.position);
+                    }
                     serverSentNewUserData = true;
                 }
 
@@ -438,9 +455,8 @@ export class HiFiMixerSession {
                 // We received a new orientation and updated the cache entry.
                 // Need to add the new orientation value in the newUserData
                 if (serverSentNewOrientation) {
-                    // Create the new orientation value for the newUserData and
-                    // convert the received orientation (if any) to the user space
-                    newUserData.orientationQuat = HiFiAxisUtilities.translateOrientationQuat3DFromMixerSpace(ourHiFiAxisConfiguration, userDataCache.orientationQuat);
+                    // Note: orientation remains unchanged between HiFi- and World-frame
+                    newUserData.orientationQuat = userDataCache.orientationQuat;
                     serverSentNewUserData = true;
                 }
 
@@ -969,7 +985,11 @@ export class HiFiMixerSession {
 
             // Some position components have changed, let's fill in the payload
             if (changedComponents.changed) {
-                let translatedPosition = HiFiAxisUtilities.translatePoint3DToMixerSpace(ourHiFiAxisConfiguration, currentHifiAudioAPIData.position);
+                let translatedPosition = currentHifiAudioAPIData.position;
+                if (this._coordFrameUtil != null) {
+                    // convert the received position from HiFi- to World-frame
+                    translatedPosition = this._coordFrameUtil.WorldToHiFi(currentHifiAudioAPIData.position);
+                }
 
                 // Position data is sent in millimeters integers to reduce JSON size.
                 if (changedComponents.x) {
@@ -1018,9 +1038,10 @@ export class HiFiMixerSession {
 
             // Some orientation components have changed, let's fill in the payload
             if (changedComponents.changed) {
-                // The mixer expects Quaternion components in its space and to be mulitiplied by 1000.
-                let translatedOrientation = HiFiAxisUtilities.translateOrientationQuat3DToMixerSpace(ourHiFiAxisConfiguration, currentHifiAudioAPIData.orientationQuat);
+                // Note: orientation remains unchanged between HiFi- and World-frame
+                let translatedOrientation = currentHifiAudioAPIData.orientationQuat;
 
+                // The mixer expects Quaternion to be mulitiplied by 1000.
                 if (changedComponents.w) {
                     dataForMixer["W"] = translatedOrientation.w * 1000;
                 }

@@ -32,6 +32,188 @@ export class Point3D {
         this.y = y;
         this.z = z;
     }
+
+    /**
+     * Returns the vector dot product between two Point3Ds.
+     */
+    static dot(a: Point3D, b: Point3D): number {
+        return a.x * b.x + a.y * b.y + a.z * b.z;
+    }
+
+    /**
+     * Returns the vector cross product between two Point3Ds.
+     */
+    static cross(a: Point3D, b: Point3D): Point3D {
+        return new Point3D({x: a.y*b.z - a.z*b.y, y: a.z*b.x - a.x*b.z, z: a.x*b.y - a.y*b.x});
+    }
+
+    /**
+      * Negates this Point3D.
+      */
+    negate() {
+        this.x = -this.x;
+        this.y = -this.y;
+        this.z = -this.z;
+    }
+}
+
+class Matrix3 {
+    a: Point3D;
+    b: Point3D;
+    c: Point3D;
+
+    /**
+     * The values in the Matrix3 are stored in three Point3D rows:
+     *
+     * |  <- a -> |
+     * |  <- b -> |
+     * |  <- c -> |
+     *
+     */
+    //constructor(a: Point3D(1, 0, 0), b: Point3D(0, 1, 0), c: Point3D(0, 0, 1)) {
+    constructor(a: Point3D, b: Point3D, c: Point3D) {
+        this.a = a;
+        this.b = b;
+        this.c = c;
+    }
+
+    /** 
+     * Operate from the **left** on a columnar Point3D on the **right**.
+     * Performs an afine transformation on the Point3D and
+     * returns the transformed Point3D in the destination coordinate system.
+     */
+    transform(point: Point3D): Point3D {
+        let p = new Point3D();
+        p.x = Point3D.dot(this.a, point);
+        p.y = Point3D.dot(this.b, point);
+        p.z = Point3D.dot(this.c, point);
+        return p;
+    }
+
+    /**
+     * Flip the Matrix3 about the diagonal axis.
+     *
+     * | ax  ay  az |       | ax  bx  cx |
+     * | bx  by  bz |  -->  | ay  by  cy |
+     * | cx  cy  cz |       | az  bz  cz |
+     *
+     */
+    transpose() {
+        var temp = this.a.y;
+        this.a.y = this.b.x;
+        this.b.x = temp;
+        temp = this.a.z;
+        this.a.z = this.c.x;
+        this.c.x = temp;
+        temp = this.b.z;
+        this.b.z = this.c.y;
+        this.c.y = temp;
+    }
+
+    /**
+     * Multiply the two matrices: f * g
+     * Returns a new Matrix3 that represents their product.
+     */
+    static multiply(f: Matrix3, g: Matrix3): Matrix3 {
+        let a =  new Point3D({
+            x: f.a.x * g.a.x + f.a.y * g.b.x + f.a.z * g.c.x,
+            y: f.a.x * g.a.y + f.a.y * g.b.y + f.a.z * g.c.y,
+            z: f.a.x * g.a.z + f.a.y * g.b.z + f.a.z * g.c.z});
+        let b = new Point3D({
+            x: f.b.x * g.a.x + f.b.y * g.b.x + f.b.z * g.c.x,
+            y: f.b.x * g.a.y + f.b.y * g.b.y + f.b.z * g.c.y,
+            z: f.b.x * g.a.z + f.b.y * g.b.z + f.b.z * g.c.z});
+        let c = new Point3D({
+            x: f.c.x * g.a.x + f.c.y * g.b.x + f.c.z * g.c.x,
+            y: f.c.x * g.a.y + f.c.y * g.b.y + f.c.z * g.c.y,
+            z: f.c.x * g.a.z + f.c.y * g.b.z + f.c.z * g.c.z});
+
+        return new Matrix3(a, b, c);
+    }
+}
+
+/**
+ * HiFi Spatial Audio uses a right-handed Cartesian coordinate system
+ * with FORWARD pointing along negative Z-axis and UP along positive Y-axis.
+ *
+ * If the World uses a different coordinate system then it will be necessary
+ * to convert World-frame Position into the HiFi-frame.
+ * HiFiCoordinateFrameUtil is a helper class for this scenario.
+ *
+ * To build a HiFiCoordinateFrameUtil instance you must present three arguments:
+ * (1) The normalized FORWARD axis in the World-frame
+ * (2) The normalized UP axis in the World-frame
+ * (3) Whether it is a RIGHT- or LEFT-handed coordinate system
+ *
+ * Note: there is no need to transform Orientation into the HiFi-frame:
+ * its value remains unchanged between the two systems.
+ *
+ */
+export class HiFiCoordinateFrameUtil {
+    _worldToHifi: Matrix3;
+    _hifiToWorld: Matrix3;
+
+    /**
+     * Construct a HiFiCoordinateFrameUtil to easily transform into and out of the coordinate frame
+     * used for HiFi Spatial Audio calculations.
+     *
+     * @param forward - the World-frame FORWARD direction.
+     * @param up - the World-frame Up direction.
+     * @param isLeft - true if World-frame is a left-handed coordinate frame, else false (the default)
+     *
+     * How to know if your coordinate frame is left-handed?
+     * If Z = vector_cross_product(X, Y) as per the right-hand rule
+     * (from your physics or 3D geometry class)
+     * then it is right-handed, else it must be left-handed.
+     */
+    constructor(forward: Point3D, up: Point3D, isLeft = false) {
+        // We assemble a Matrix3: worldToCanonical which transforms World-frame Point3Ds
+        // to a hypothentical canonical-frame (e.g. fwd=x-axis, up=y-axis, right=z-axis).
+        // It is just the matrix of the three cardinal directions as rows:
+        //
+        // | <-forward-> |
+        // | <-  up   -> |
+        // | <- right -> |
+        //
+        let right = Point3D.cross(forward, up);
+        if (isLeft) {
+            // Note: for left-handed systems we reflect 'right' to actually be 'left'
+            right.negate();
+        }
+        let worldToCanonical = new Matrix3(forward, up, right);
+
+        // Similarly we create another Matrix3: canonicalToHifi
+        // using HiFi's directions (forward, up, and right)
+        // but this time we transpose it to get the inverse.
+        let canonicalToHifi = new Matrix3(
+            new Point3D({x:0, y:0, z:-1}),
+            new Point3D({x:0, y:1, z:0}),
+            new Point3D({x:1, y:0, z:0}));
+        canonicalToHifi.transpose();
+
+        // The final Matrix is: canonicalToHifi * worldToCanonical 
+        this._worldToHifi = Matrix3.multiply(canonicalToHifi, worldToCanonical);
+
+        // For convenience we cache the transposed matrix for transforming in the other direction
+        this._hifiToWorld = new Matrix3(this._worldToHifi.a, this._worldToHifi.b, this._worldToHifi.c);
+        this._hifiToWorld.transpose();
+    }
+
+    /**
+     * @param position - Position in World-frame
+     * @returns Position in HiFi-frame.
+     */
+    WorldToHiFi(position: Point3D): Point3D {
+        return this._worldToHifi.transform(position);
+    }
+
+    /**
+     * @param position - Position in HiFi-frame
+     * @returns Position in World-frame.
+     */
+    HiFiToWorld(position: Point3D): Point3D {
+        return this._hifiToWorld.transform(position);
+    }
 }
 
 /**
