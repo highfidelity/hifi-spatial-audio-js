@@ -12,8 +12,7 @@ import { HiFiConstants } from "../constants/HiFiConstants";
 import { WebRTCSessionParams, CustomSTUNandTURNConfig } from "../libravi/RaviSession";
 import { HiFiLogger } from "../utilities/HiFiLogger";
 import { HiFiUtilities } from "../utilities/HiFiUtilities";
-import { HiFiAudioAPIData, ReceivedHiFiAudioAPIData, Point3D, OrientationQuat3D, OrientationEuler3D, OrientationEuler3DOrder, eulerToQuaternion, eulerFromQuaternion, OtherUserGainMap } from "./HiFiAudioAPIData";
-import { HiFiCoordinateFrameUtil } from "../utilities/HiFiCoordinateFrameUtil";
+import { HiFiAudioAPIData, ReceivedHiFiAudioAPIData, Point3D, HiFiCoordinateFrameUtil, OrientationQuat3D, OrientationEuler3D, OrientationEuler3DOrder, eulerToQuaternion, eulerFromQuaternion, OtherUserGainMap } from "./HiFiAudioAPIData";
 import { HiFiHandedness, WorldFrameConfiguration } from "./HiFiAxisConfiguration";
 import { HiFiMixerSession, SetOtherUserGainForThisConnectionResponse, SetOtherUserGainsForThisConnectionResponse, OnMuteChangedCallback } from "./HiFiMixerSession";
 import { AvailableUserDataSubscriptionComponents, UserDataSubscription } from "./HiFiUserDataSubscription";
@@ -249,6 +248,23 @@ export class HiFiCommunicator {
     // These store a reference to the `resolve()` and `reject()` methods until they need to be called.
     private _resolveOpen: Function;
     private _rejectOpen: Function;
+
+    /**
+     * If the World coordinate system is NOT compatible with the HiFi coordindate frame used by the mixer              
+     * then configure a HiFiCoordinateFrameUtil to transform to and from HiFi-frame.
+     *
+     * The World-frame is compatible iff:  
+     * (1) It is right-handed
+     * (2) It uses the Y-axis (positive or negative, doesn't matter) for the UP direction.
+     *           
+     * For all other cases create a {@link WorldFrameConfiguration} and pass it to the HiFiCommunicator constructor.
+     */
+    private _coordFrameUtil?: HiFiCoordinateFrameUtil;
+
+    /**
+      * Specifies the perferred version of Euler angles for customers who prefer to burden themselves with such things instead of using proper Quaternions.
+      */
+    private _eulerOrder?: OrientationEuler3DOrder;
 
     /**
      * If the World coordinate system is NOT compatible with the HiFi coordindate frame used by the mixer              
