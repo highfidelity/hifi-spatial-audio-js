@@ -70,7 +70,6 @@ class Matrix3 {
      * |  <- c -> |
      *
      */
-    //constructor(a: Point3D(1, 0, 0), b: Point3D(0, 1, 0), c: Point3D(0, 0, 1)) {
     constructor(a: Point3D, b: Point3D, c: Point3D) {
         this.a = a;
         this.b = b;
@@ -147,7 +146,6 @@ class Matrix3 {
  *
  * Note: there is no need to transform Orientation into the HiFi-frame:
  * its value remains unchanged between the two systems.
- *
  */
 export class HiFiCoordinateFrameUtil {
     _worldToHifi: Matrix3;
