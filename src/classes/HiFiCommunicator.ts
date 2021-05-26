@@ -394,13 +394,17 @@ export class HiFiCommunicator {
     }
 
     /**
-     * Use this function to set whether or not the user's input audio `MediaStream` should be "muted". 
-     * A muted stream will have the `enabled` property of each of its `MediaStreamTrack`s set to `false`
-     * (and an unmuted stream -- the default -- will have the `enabled` property set to `true`). Be
-     * aware that if you are using the same `MediaStream` object in other ways, it will be affected by
+     * Use this function to set whether input audio stream will have the `enabled` property of each of its `MediaStreamTrack`s set to `false`
+     * (and an unmuted stream -- the default -- will have the `enabled` property set to `true`). This will silence the input,
+     * but has specific consequences:
+     *   - If you are using the same `MediaStream` object in other ways, it will be affected by
      * calling this method. So, if you would like to mute/unmute the input audio stream separately for the
      * High Fidelity audio vs. some other use of it, it is recommended to clone the audio stream separately
      * for each use.
+     *   - The effect is immediate and could result in a click or other audio artifact if there is steady sound at
+     * the moment the input is muted.
+     *
+     * An alterative is to set the user's {@link volumeThreshold} to 0, which smoothly gates off the user's input.
      * @returns `true` if the stream was successfully muted/unmuted, `false` if it was not. (The user should
      * assume that if this returns `false`, no change was made to the mute (track enabled) state of the stream.)
      */

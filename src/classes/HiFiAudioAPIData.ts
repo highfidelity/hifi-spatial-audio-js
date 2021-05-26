@@ -396,7 +396,7 @@ export class HiFiAudioAPIData {
     /**
      * A volume level below this value is considered background noise and will be smoothly gated off.
      * The floating point value is specified in dBFS (decibels relative to full scale) with values between -96 dB (indicating no gating)
-     * and 0 dB. It is in the same decibel units as the VolumeDecibels component of UserDataSubscription.
+     * and 0 dB (effectively muting the input from this user). It is in the same decibel units as the VolumeDecibels component of UserDataSubscription.
      */
     volumeThreshold: number;
     /**
