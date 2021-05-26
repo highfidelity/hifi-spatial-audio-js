@@ -593,8 +593,6 @@ export class RaviCommandController {
       return;
     }
 
-    RaviUtils.log("_continueProcessingListeningCommand: " + commandMessage, "RaviCommandController");
-
     // Let's try to find the matching listener(s) for the commandMessage received:
     var foundCommandInstance = this._commandQueueMap.get(commandMessage.command);
     if (foundCommandInstance) {
