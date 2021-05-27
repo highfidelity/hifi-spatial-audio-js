@@ -244,7 +244,13 @@ export class HiFiCommunicator {
         let signalingHostURLSafe;
 
         try {
-            signalingHostURLSafe = new URL(signalingHostURL).hostname;
+            let url = new URL(signalingHostURL);
+            signalingHostURLSafe = url.hostname;
+            if (signalingPort == null && url.port !== "") {
+                // sometimes the signalingPort is specified in the signalHostURL in which case
+                // we extract the port number rather than fallback to default
+                signalingPort = Number(url.port);
+            }
         } catch(e) {
             // If signalingHostURL is not defined, we assign the default URL
             signalingHostURLSafe = signalingHostURL ? signalingHostURL : HiFiConstants.DEFAULT_PROD_HIGH_FIDELITY_ENDPOINT;
