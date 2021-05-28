@@ -501,7 +501,7 @@ export class HiFiMixerSession {
                         newUserData.position = userDataCache.position;
                     } else {
                         // convert the received position from HiFi- to World-frame
-                        newUserData.position = this._coordFrameUtil.HiFiToWorld(userDataCache.position);
+                        newUserData.position = this._coordFrameUtil.HiFiPositionToWorld(userDataCache.position);
                     }
                     serverSentNewUserData = true;
                 }
@@ -539,8 +539,15 @@ export class HiFiMixerSession {
                 // We received a new orientation and updated the cache entry.
                 // Need to add the new orientation value in the newUserData
                 if (serverSentNewOrientation) {
-                    // Note: orientation remains unchanged between HiFi- and World-frame
-                    newUserData.orientationQuat = userDataCache.orientationQuat;
+                    if (this._coordFrameUtil == null) {
+                        newUserData.orientationQuat = new OrientationQuat3D({
+                            w: userDataCache.orientationQuat.w,
+                            x: userDataCache.orientationQuat.x,
+                            y: userDataCache.orientationQuat.y,
+                            z: userDataCache.orientationQuat.z});
+                    } else {
+                        newUserData.orientationQuat = this._coordFrameUtil.HiFiOrientationToWorld(userDataCache.orientationQuat);
+                    }
                     serverSentNewUserData = true;
                 }
 
@@ -1128,7 +1135,7 @@ export class HiFiMixerSession {
                 let translatedPosition = currentHifiAudioAPIData.position;
                 if (this._coordFrameUtil != null) {
                     // convert the received position from HiFi- to World-frame
-                    translatedPosition = this._coordFrameUtil.WorldToHiFi(currentHifiAudioAPIData.position);
+                    translatedPosition = this._coordFrameUtil.WorldPositionToHiFi(translatedPosition);
                 }
 
                 // Position data is sent in millimeters integers to reduce JSON size.
@@ -1178,8 +1185,10 @@ export class HiFiMixerSession {
 
             // Some orientation components have changed, let's fill in the payload
             if (changedComponents.changed) {
-                // Note: orientation remains unchanged between HiFi- and World-frame
                 let translatedOrientation = currentHifiAudioAPIData.orientationQuat;
+                if (this._coordFrameUtil != null) {
+                    translatedOrientation = this._coordFrameUtil.WorldOrientationToHiFi(translatedOrientation);
+                }
 
                 // The mixer expects Quaternion to be mulitiplied by 1000.
                 if (changedComponents.w) {

@@ -71,9 +71,9 @@ class Matrix3 {
      *
      */
     constructor(a: Point3D, b: Point3D, c: Point3D) {
-        this.a = a;
-        this.b = b;
-        this.c = c;
+        this.a = new Point3D({x: a.x, y: a.y, z: a.z});
+        this.b = new Point3D({x: b.x, y: b.y, z: b.z});
+        this.c = new Point3D({x: c.x, y: c.y, z: c.z});
     }
 
     /** 
@@ -129,6 +129,61 @@ class Matrix3 {
 
         return new Matrix3(a, b, c);
     }
+
+    static FromQuaternion(q: OrientationQuat3D): Matrix3 {
+        // from https://www.euclideanspace.com/maths/geometry/rotations/conversions/quaternionToMatrix/hamourus.htm
+        let sqw = q.w * q.w; 
+        let sqx = q.x * q.x; 
+        let sqy = q.y * q.y; 
+        let sqz = q.z * q.z; 
+
+        // rotation matrix is scaled by quaternion length squared
+        // so we can avoid a sqrt operation by multiplying each matrix element by inverse square length
+        let invs = 1 / (sqx + sqy + sqz + sqw); 
+ 
+        let a = new Point3D();
+        let b = new Point3D();
+        let c = new Point3D();
+        a.x = ( sqx - sqy - sqz + sqw) * invs; 
+        b.y = (-sqx + sqy - sqz + sqw) * invs; 
+        c.z = (-sqx - sqy + sqz + sqw) * invs; 
+ 
+        let tmp1 = q.x * q.y; 
+        let tmp2 = q.z * q.w; 
+        b.x = 2.0 * (tmp1 + tmp2) * invs; 
+        a.y = 2.0 * (tmp1 - tmp2) * invs; 
+ 
+        tmp1 = q.x * q.z; 
+        tmp2 = q.y * q.w; 
+        c.x = 2.0 * (tmp1 - tmp2) * invs; 
+        a.z = 2.0 * (tmp1 + tmp2) * invs; 
+
+        tmp1 = q.y * q.z; 
+        tmp2 = q.x * q.w; 
+        c.y = 2.0 * (tmp1 + tmp2) * invs; 
+        b.z = 2.0 * (tmp1 - tmp2) * invs; 
+
+        return new Matrix3(a, b, c);
+    }
+
+    static ToQuaternion(m: Matrix3): OrientationQuat3D {
+        // from https://www.euclideanspace.com/maths/geometry/rotations/conversions/matrixToQuaternion/
+        let q = new OrientationQuat3D();
+        q.w = Math.sqrt(Math.max(0, 1 + m.a.x + m.b.y + m.c.z )) / 2;
+        q.x = Math.sqrt(Math.max(0, 1 + m.a.x - m.b.y - m.c.z )) / 2;
+        q.y = Math.sqrt(Math.max(0, 1 - m.a.x + m.b.y - m.c.z )) / 2;
+        q.z = Math.sqrt(Math.max(0, 1 - m.a.x - m.b.y + m.c.z )) / 2;
+        if (m.c.y - m.b.z < 0) {
+            q.x *= -1;
+        }
+        if (m.a.z - m.c.x < 0) {
+            q.y *= -1;
+        }
+        if (m.b.x - m.a.y < 0) {
+            q.z *= -1;
+        }
+        return q;
+    }
 }
 
 /**
@@ -143,9 +198,6 @@ class Matrix3 {
  * (1) The normalized FORWARD axis in the World-frame
  * (2) The normalized UP axis in the World-frame
  * (3) Whether it is a RIGHT- or LEFT-handed coordinate system
- *
- * Note: there is no need to transform Orientation into the HiFi-frame:
- * its value remains unchanged between the two systems.
  */
 export class HiFiCoordinateFrameUtil {
     _worldToHifi: Matrix3;
@@ -201,7 +253,7 @@ export class HiFiCoordinateFrameUtil {
      * @param position - Position in World-frame
      * @returns Position in HiFi-frame.
      */
-    WorldToHiFi(position: Point3D): Point3D {
+    WorldPositionToHiFi(position: Point3D): Point3D {
         return this._worldToHifi.transform(position);
     }
 
@@ -209,8 +261,41 @@ export class HiFiCoordinateFrameUtil {
      * @param position - Position in HiFi-frame
      * @returns Position in World-frame.
      */
-    HiFiToWorld(position: Point3D): Point3D {
+    HiFiPositionToWorld(position: Point3D): Point3D {
         return this._hifiToWorld.transform(position);
+    }
+
+    /**
+     * @param orientation - Orientation in World-frame
+     * @returns Orientation in HiFi-frame.
+     */
+    WorldOrientationToHiFi(orientation: OrientationQuat3D): OrientationQuat3D {
+        // The best way to understand this math is to remember:
+        // this matrix operates from the LEFT on a hypothetical columnar Point3D on the RIGHT
+        // this hypothetical Point3D is in the HiFi-frame and as the three matrices operate on it...
+        // (1) it gets transformed into the World-frame
+        // (2) the world-frame Orientation rotates it
+        // (3) it gets transformed back into the HiFi-frame
+        // The hypothetical result would be:
+        // the HiFi-frame Point3D has been rotated by whatever world-frame oriention equivalent in the HiFi-frame
+
+        // newOrientation = worldToHifi * orientation * hifiToWorld
+        let m = Matrix3.FromQuaternion(orientation);
+        m = Matrix3.multiply(m, this._hifiToWorld);
+        m = Matrix3.multiply(this._worldToHifi, m);
+        return Matrix3.ToQuaternion(m);
+    }
+
+    /**
+     * @param orientation - Orientation in HiFi-frame
+     * @returns Orientation in World-frame.
+     */
+    HiFiOrientationToWorld(orientation: OrientationQuat3D): OrientationQuat3D {
+        // similar to WorldOrientationToHiFi()...
+        let m = Matrix3.FromQuaternion(orientation);
+        m = Matrix3.multiply(m, this._worldToHifi);
+        m = Matrix3.multiply(this._hifiToWorld, m);
+        return Matrix3.ToQuaternion(m);
     }
 }
 
