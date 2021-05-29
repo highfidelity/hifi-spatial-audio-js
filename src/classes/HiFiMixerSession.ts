@@ -4,7 +4,8 @@
  * @packageDocumentation
  */
 
-import { HiFiAudioAPIData, HiFiCoordinateFrameUtil, OrientationQuat3D, Point3D, ReceivedHiFiAudioAPIData, OtherUserGainMap } from "./HiFiAudioAPIData";
+import { HiFiAudioAPIData, OrientationQuat3D, Point3D, ReceivedHiFiAudioAPIData, OtherUserGainMap } from "./HiFiAudioAPIData";
+import { HiFiCoordinateFrameUtil } from "../utilities/HiFiCoordinateFrameUtil"; 
 import { HiFiLogger } from "../utilities/HiFiLogger";
 import { HiFiConnectionStates, HiFiUserDataStreamingScopes } from "./HiFiCommunicator";
 
