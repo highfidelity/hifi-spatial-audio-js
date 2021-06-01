@@ -5,6 +5,9 @@
 
 import { HiFiUtilities } from "./HiFiUtilities";
 
+const MIN_QUAT_SQUARE_LENGTH = 1.0e-15;
+const MIN_AXIS_SQUARE_LENGTH = 1.0e-15;
+
 /**
  * A point in 3D space.
  */
@@ -92,7 +95,6 @@ export class Quaternion {
     static angleAxis(angle: number, axis: Vector3): Quaternion {
         let q = new Quaternion();
         let L2 = axis.length2();
-        const MIN_AXIS_SQUARE_LENGTH = 1.0e-15;
         if (L2 > MIN_AXIS_SQUARE_LENGTH) {
             let c = Math.cos(0.5 * angle);
             let s_over_L = Math.sin(0.5 * angle) / Math.sqrt(L2);
@@ -102,6 +104,35 @@ export class Quaternion {
             q.z = axis.z * s_over_L;
         }
         return q;
+    }
+
+    getAngle() {
+        let angle = 0.0;
+        let length2 = Quaternion.dot(this, this);
+        if (length2 > MIN_QUAT_SQUARE_LENGTH) {
+            // we use abs() to compute the positive angle
+            // (e.g. we chose the axis such that angle is positive)
+            angle = Math.abs(2.0 * Math.acos(this.w / Math.sqrt(length2)));
+        }
+        return angle;
+    }
+
+    getAxis() {
+        let axis = new Vector3();
+        let imaginaryLength2 = this.x * this.x + this.y * this.y + this.z * this.z;
+        if (imaginaryLength2 > MIN_AXIS_SQUARE_LENGTH) {
+            let imaginaryLength = Math.sqrt(imaginaryLength2);
+            axis.x = this.x / imaginaryLength;
+            axis.y = this.y / imaginaryLength;
+            axis.z = this.z / imaginaryLength;
+            let wholeLength = Math.sqrt(imaginaryLength + this.w * this.w);
+            let angle = 2.0 * Math.acos(this.w / wholeLength);
+            if (angle < 0.0) {
+                // we choose the axis that corresponds to positive angle
+                axis.negate();
+            }
+        }
+        return axis;
     }
 
     /**
