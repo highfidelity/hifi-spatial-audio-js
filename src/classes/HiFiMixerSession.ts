@@ -211,9 +211,6 @@ export class HiFiMixerSession {
      * The World-frame is compatible iff:
      * (1) It is right-handed
      * (2) It uses the Y-axis (positive or negative, doesn't matter) for the UP direction.
-     *
-     * For all other cases create a HiFiCoordinateFrameUtil like so:
-     *
      */
     _coordFrameUtil: HiFiCoordinateFrameUtil;
 
