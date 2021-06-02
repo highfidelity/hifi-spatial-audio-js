@@ -8,12 +8,8 @@ import { HiFiAudioAPIData, OrientationQuat3D, Point3D, ReceivedHiFiAudioAPIData,
 import { HiFiLogger } from "../utilities/HiFiLogger";
 import { HiFiConnectionStates, HiFiUserDataStreamingScopes } from "./HiFiCommunicator";
 
-// We use @ts-ignore here so TypeScript doesn't complain about importing these plain JS modules.
-// @ts-ignore
 import { RaviUtils } from "../libravi/RaviUtils";
-// @ts-ignore
-import { RaviSession, RaviSessionStates, WebRTCSessionParams } from "../libravi/RaviSession";
-// @ts-ignore
+import { RaviSession, RaviSessionStates, WebRTCSessionParams, CustomSTUNandTURNConfig } from "../libravi/RaviSession";
 import { RaviSignalingConnection, RaviSignalingStates } from "../libravi/RaviSignalingConnection";
 import { HiFiAxisUtilities, ourHiFiAxisConfiguration } from "./HiFiAxisConfiguration";
 const pako = require('pako');
@@ -504,7 +500,7 @@ export class HiFiMixerSession {
      * @param webRTCSessionParams - Parameters passed to the RAVI session when opening that session.
      * @returns A Promise that rejects with an error message string upon failure, or resolves with the response from `audionet.init` as a string.
      */
-    async connectToHiFiMixer({ webRTCSessionParams }: { webRTCSessionParams?: WebRTCSessionParams }): Promise<any> {
+    async connectToHiFiMixer({ webRTCSessionParams, customSTUNandTURNConfig }: { webRTCSessionParams?: WebRTCSessionParams, customSTUNandTURNConfig?: CustomSTUNandTURNConfig }): Promise<any> {
 
         if (this._currentHiFiConnectionState === HiFiConnectionStates.Connected && this.mixerInfo["connected"]) {
             let msg = `Already connected! If a reconnect is needed, please hang up and try again.`;
@@ -547,7 +543,7 @@ export class HiFiMixerSession {
         }
 
         try {
-            await this._raviSession.openRAVISession({ signalingConnection: this._raviSignalingConnection, params: webRTCSessionParams });
+            await this._raviSession.openRAVISession({ signalingConnection: this._raviSignalingConnection, params: webRTCSessionParams, customStunAndTurn: customSTUNandTURNConfig });
         } catch (errorOpeningRAVISession) {
             let errMsg = `Couldn't open RAVI session associated with \`${this.webRTCAddress.slice(0, this.webRTCAddress.indexOf("token="))}<token redacted>\`! Error:\n${errorOpeningRAVISession}`;
             if (mixerIsUnavailable) {
