@@ -21,7 +21,17 @@ import { AvailableUserDataSubscriptionComponents, UserDataSubscription } from ".
  * When the state of the connection to the High Fidelity Audio Server changes, the new state will be one of these values.
  */
 export enum HiFiConnectionStates {
+    /**
+     * The `HiFiConnectionState` will be `"Connecting"` when the system is in the process of trying to establish
+     * an initial connection.
+     */
+    Connecting = "Connecting",
     Connected = "Connected",
+    /**
+     * The `HiFiConnectionState` will be `"Reconnecting"` if the system is in the process of trying to
+     * automatically re-establish a pre-existing connection.
+     */
+    Reconnecting = "Reconnecting",
     Disconnected = "Disconnected",
     Failed = "Failed",
     /**
@@ -51,6 +61,58 @@ export enum HiFiUserDataStreamingScopes {
      * will be streamed from the Server to the Client.
      */
     All = "all"
+};
+
+export interface ConnectionRetryAndTimeoutConfig {
+  /**
+   * Whether or not to automatically retry initial connection attempts.
+   * When this is set to true, if the first attempt to connect to
+   * the High Fidelity servers fails, we will automatically retry the connection.
+   * While the connection is being attempted, the overall HiFiCommunicator state (as queried via
+   * `getConnectionState()`) will be "Connecting".
+   * After the desired amount of time has passed, if a connection has not been established, we will stop
+   * trying to reconnect and the connection state will change to 'Failed'.
+   * By default, connections are not retried. However, when we start a connection, we do always
+   * trigger a state change to HiFiConnectionStates.Connecting when we start the
+   * connection process, regardless of the setting of this value.
+   *
+   */
+  autoRetryInitialConnection?: boolean;
+  /**
+   * The total amount of time (in seconds) to keep retrying the initial
+   * connection before giving up completely. If `autoRetryInitialConnection`
+   * is set to `true`, this defaults to 60 seconds.
+   */
+  maxSecondsToSpendRetryingInitialConnection?: number;
+
+  /**
+   * Whether or not to automatically attempt to reconnect if an existing
+   * connection is disconnected. When this is set to true, we will attempt
+   * to reconnect if any disconnect from any cause occurs.
+   * By default, reconnections are not automatically attempted.
+   * NOTE: The retrying that happens when this is set to `true` does not currently take into account
+   * the reason WHY a connection was disconnected. This means that if this is
+   * set to true, a connection that is disconnected via a purposeful server-side
+   * action (e.g. a "kick") will be automatically reconnected. (However, connections
+   * that are explicitly closed from the client side via the `disconnectFromHiFiAudioAPIServer()`
+   * method will stay closed.)
+   */
+  autoRetryOnDisconnect?: boolean;
+  /**
+   * The total amount of time (in seconds) to keep trying to reconnect
+   * if an existing connection is disconnected. While the connection is
+   * being attempted, the state will be "Connecting". After this amount of time
+   * has passed, if a connection has not been established, we will stop
+   * trying to reconnect and set the connection state to 'Failed'.
+   * If `autoRetryOnDisconnect` is set to `true`, this defaults to 300 seconds (5 minutes).
+   */
+  maxSecondsToSpendRetryingOnDisconnect?: number;
+  /**
+   * The amount of time in milliseconds to wait before timing out an attempted
+   * connection. This is used for all connection attempts, including retries
+   * (if enabled). Defaults to 5000 milliseconds (5 seconds).
+   */
+  timeoutPerConnectionAttemptMS?: number;
 };
 
 /**
@@ -83,12 +145,26 @@ export class HiFiCommunicator {
      * See {@link HiFiCommunicator._onUsersDisconnected}.
      */
     onUsersDisconnected: Function;
+    /**
+     * This is a function that will get called when the "connection state" changes. It should be set
+     * when the HiFiCommunicator object is first constructed. (Note that if a connection state re-triggers --
+     * e.g. if a "Closed" connection is closed again -- this will not be called. It only gets called when the
+     * new state is different than the previous state.)
+     */
+    onConnectionStateChanged: Function;
+
+    /**
+     * Stores the current HiFi Connection State, which is an abstraction separate from the individual states
+     * of the WebRTC (RAVI Session) state and the RAVI Signaling State.
+     */
+    private _currentHiFiConnectionState: HiFiConnectionStates;
 
     // This contains data dealing with the mixer session, such as the RAVI session, WebRTC address, etc.
     private _mixerSession: HiFiMixerSession;
 
     private _webRTCSessionParams?: WebRTCSessionParams;
     private _customSTUNandTURNConfig?: CustomSTUNandTURNConfig;
+    private _connectionRetryAndTimeoutConfig : ConnectionRetryAndTimeoutConfig;
 
     /**
      * Constructor for the HiFiCommunicator object. Once you have created a HiFiCommunicator, you can use the
@@ -109,6 +185,8 @@ export class HiFiCommunicator {
      * for most operations. This is primarily useful for testing or for using a commercial TURN server provider for dealing with particularly challenging client networks/firewalls.
      * See {@link CustomSTUNandTURNConfig} for the format of this object (note that _all_ values must be provided when setting this).
      * @param onMuteChanged - A function that will be called when the mute state of the client has changed, for example when muted by an admin. See {@link OnMuteChangedCallback} for the information this function will receive.
+     * @param connectionRetryAndTimeoutConfig - Settings for configuring auto-reconnect behavior and the amount of time spent trying to connect before giving up.
+     * See {@link ConnectionRetryAndTimeoutConfig} for the format of this object. Values that are omitted from the passed object will be set to their defaults.
      */
     constructor({
         initialHiFiAudioAPIData = new HiFiAudioAPIData(),
@@ -119,7 +197,8 @@ export class HiFiCommunicator {
         hiFiAxisConfiguration,
         webrtcSessionParams,
         customSTUNandTURNConfig,
-        onMuteChanged
+        onMuteChanged,
+        connectionRetryAndTimeoutConfig
     }: {
         initialHiFiAudioAPIData?: HiFiAudioAPIData,
         onConnectionStateChanged?: Function,
@@ -130,6 +209,7 @@ export class HiFiCommunicator {
         webrtcSessionParams?: WebRTCSessionParams,
         customSTUNandTURNConfig?: CustomSTUNandTURNConfig,
         onMuteChanged?: OnMuteChangedCallback,
+        connectionRetryAndTimeoutConfig?: ConnectionRetryAndTimeoutConfig
     } = {}) {
         // If user passed in their own stun/turn config, make sure it matches our interface (ish).
         // (I do so wish that TypeScript could just do this for us based on the interface definition, but it seems that it can not.)
@@ -159,12 +239,19 @@ export class HiFiCommunicator {
         if (onUsersDisconnected) {
             this.onUsersDisconnected = onUsersDisconnected;
         }
+        if (onConnectionStateChanged) {
+            this.onConnectionStateChanged = onConnectionStateChanged;
+        }
+        this._connectionRetryAndTimeoutConfig = HiFiConstants.DEFAULT_CONNECTION_RETRY_AND_TIMEOUT;
+        if (connectionRetryAndTimeoutConfig) {
+            Object.assign(this._connectionRetryAndTimeoutConfig, connectionRetryAndTimeoutConfig);
+        }
 
         this._mixerSession = new HiFiMixerSession({
             "userDataStreamingScope": userDataStreamingScope,
             "onUserDataUpdated": (data: Array<ReceivedHiFiAudioAPIData>) => { this._handleUserDataUpdates(data); },
             "onUsersDisconnected": (data: Array<ReceivedHiFiAudioAPIData>) => { this._onUsersDisconnected(data); },
-            "onConnectionStateChanged": onConnectionStateChanged,
+            "onConnectionStateChanged": (state: HiFiConnectionStates) => { this._stateChangeCoordinator(state); },
             "onMuteChanged": onMuteChanged
         });
 
@@ -257,8 +344,8 @@ export class HiFiCommunicator {
             });
         }
 
-        if (this._mixerSession.getCurrentHiFiConnectionState() === HiFiConnectionStates.Connected) {
-            let msg = `Session is already connected! If you need to reset the connection, please disconnect fully using \`disconnectFromHiFiAudioAPIServer()\` and call this method again.`;
+        if ([HiFiConnectionStates.Connected, HiFiConnectionStates.Connecting, HiFiConnectionStates.Reconnecting].includes(this.getConnectionState()) {
+            let msg = `Session is already connected or is in the process of connecting! If you need to reset the connection, please disconnect fully using \`disconnectFromHiFiAudioAPIServer()\` and call this method again.`;
             return Promise.resolve({
                 success: true,
                 error: msg
@@ -282,6 +369,7 @@ export class HiFiCommunicator {
         }
 
         signalingPort = signalingPort ? signalingPort : HiFiConstants.DEFAULT_PROD_HIGH_FIDELITY_PORT;
+        let timeout = this._connectionRetryAndTimeoutConfig.timeoutPerConnectionAttemptMS;
 
         try {
             let webRTCSignalingAddress = `wss://${signalingHostURLSafe}:${signalingPort}/?token=`;
@@ -289,7 +377,7 @@ export class HiFiCommunicator {
 
             HiFiLogger.log(`Using WebRTC Signaling Address:\n${webRTCSignalingAddress}<token redacted>`);
 
-            mixerConnectionResponse = await this._mixerSession.connectToHiFiMixer({ webRTCSessionParams: this._webRTCSessionParams, customSTUNandTURNConfig: this._customSTUNandTURNConfig });
+            mixerConnectionResponse = await this._mixerSession.connectToHiFiMixer({ webRTCSessionParams: this._webRTCSessionParams, customSTUNandTURNConfig: this._customSTUNandTURNConfig, timeout: timeout });
         } catch (errorConnectingToMixer) {
             let errMsg = `Error when connecting to mixer!\n${errorConnectingToMixer}`;
             return Promise.reject({
@@ -303,6 +391,78 @@ export class HiFiCommunicator {
             success: true,
             audionetInitResponse: mixerConnectionResponse.audionetInitResponse
         });
+    }
+
+    /**
+     * This method manages things like auto-retries, when to call (and not to call) the customer-supplied
+     * onConnectionStateChanged function, and keeps track of the current "overarching meta-state" of the
+     * communicator as a whole (which might be different from the state of the mixerSession, due to retries
+     * and failures and the like). This method is passed into the MixerSession to serve as its state change handler.
+     * @param state
+     */
+    private _stateChangeCoordinator(state: HiFiConnectionStates): void {
+        /**
+         TODO: This (and various other functions, including setting of timeouts and the
+         main connection method) need to do the following:
+
+         A) When _first_ attempting a connection, the main connection method should set
+            this._currentHiFiConnectionState = HiFiConnectionStates.Connecting
+            before doing anything else.
+
+         B) When handling a state change, this method (and/or methods it calls) should do the following:
+
+            i)    IF the state change got triggered via an explicit call to disconnectFromHiFiAudioAPIServer()
+                  THEN handle the new state as implemented below
+                  (note: this behavior might be most easily implemented through the use of
+                  an explicit, transient, DISCONNECTING state.)
+
+            ii) IF this._currentHiFiConnectionState is currently CONNECTING:
+
+               1. IF the new state is DISCONNECTED, FAILED, or UNAVAILABLE
+                  AND IF autoRetryInitialConnection is true
+                  AND IF maxSecondsToSpendRetryingInitialConnection has not yet elapsed
+                  THEN ensure that this._currentHiFiConnectionState stays at CONNECTING
+                  ELSE handle the new state as implemented below
+
+               2. ELSE IF the new state is CONNECTED
+                  THEN handle the new state as implemented below
+                  AND kill the maxSecondsToSpendRetryingInitialConnection timeout if it's set
+
+               3. ELSE IF the new state is other (CONNECTING or RECONNECTING)
+                  AND IF the new state is not the same as this._currentHiFiConnectionState
+                  THEN handle the new state as implemented below
+
+            ii) IF this._currentHiFiConnectionState is currently CONNECTED or RECONNECTING:
+
+               1. IF the new state is DISCONNECTED, FAILED, or UNAVAILABLE
+                  AND IF autoRetryOnDisconnect is true
+                  AND IF maxSecondsToSpendRetryingOnDisconnect has not yet elapsed
+                  THEN set this._currentHiFiConnectionState to RECONNECTING
+                  AND try to reconnect
+                  ELSE handle the new state as implemented below
+
+               2. ELSE IF the new state is CONNECTED
+                  THEN handle the new state as implemented below
+                  AND kill the maxSecondsToSpendRetryingOnDisconnect timeout if it's set
+
+               4. ELSE IF the new state is other (CONNECTING or RECONNECTING)
+                  AND IF the new state is not the same as this._currentHiFiConnectionState
+                  THEN handle the new state as implemented below
+
+         */
+        if (this._currentHiFiConnectionState !== state) {
+            // TODO: If this._currentHiFiConnectionState is "UNAVAILABLE", subsequent changes to "FAILED" or "DISCONNECTED"
+            // should probably not trigger a change (they don't in the current implementation), because "UNAVAIALBLE" is
+            // itself a failure status (for "velvet rope"). However, if the change from "UNAVAILABLE" goes to something else (e.g. "CONNECTING")
+            // then the change _should_ be triggered. Need to think through that a little bit more, and also re-evaluate how that behavior has
+            // changed since the websocket signaling changes were implemented (the UNAVAILABLE state gets communicated the same way, which
+            // is what made its original handling logic so very complicated before RaviSession was updated with the new short-circuit approach).
+            // It's probably easier now (i.e. I think the RaviSession may just stay at UNAVAILABLE, in which case this would all be moot).
+            this._currentHiFiConnectionState = state;
+            if (this.onConnectionStateChanged) {
+                this.onConnectionStateChanged(this._currentHiFiConnectionState);
+            }
+        }
     }
 
     /**
@@ -392,11 +552,7 @@ export class HiFiCommunicator {
      * is still in the process of initializing its underlying HiFiMixerSession).
      */
     getConnectionState(): HiFiConnectionStates {
-        if (this._mixerSession) {
-            return this._mixerSession.getCurrentHiFiConnectionState();
-        } else {
-            return null;
-        }
+        return this._currentHiFiConnectionState;
     }
 
     /**
