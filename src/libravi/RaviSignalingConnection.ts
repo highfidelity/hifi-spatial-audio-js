@@ -198,7 +198,7 @@ export class RaviSignalingConnection {
       signalingConnection._rejectOpen = reject;
       // Start the "opening" process
       RaviUtils.log("Opening signaling connection to " + URL, "RaviSignalingController");
-      var event = {"state":RaviSignalingStates.CONNECTING};
+      let event = {"state":RaviSignalingStates.CONNECTING};
       this._handleStateChange(event, RaviSignalingStates.CONNECTING); 
 
       // And call the implementation's open method
@@ -232,7 +232,7 @@ export class RaviSignalingConnection {
       signalingConnection._rejectClose = reject;
       // Start the "closing" process
       RaviUtils.log("Closing signaling connection", "RaviSignalingController");
-      var event = {"state":RaviSignalingStates.CLOSING};
+      let event = {"state":RaviSignalingStates.CLOSING};
       this._handleStateChange(event, RaviSignalingStates.CLOSING); 
 
       // And call the implementation's open method
@@ -245,7 +245,7 @@ export class RaviSignalingConnection {
   /**
    * @private
    */
-  _handleStateChange(event: any, state: RaviSignalingStates) {
+  _handleStateChange(event: any = {}, state: RaviSignalingStates) {
     // Always try to fulfill any open promises, even if the state hasn't changed
     this._fulfillPromises(event, state);
 
@@ -269,7 +269,7 @@ export class RaviSignalingConnection {
    * this will appropriately fulfill outstanding promises that are pending
    * in either the open or close method (or both).
    */
-  _fulfillPromises(event: any, state: RaviSignalingStates) {
+  _fulfillPromises(event: any = {}, state: RaviSignalingStates) {
     let errorMessage = event.reason || event.message || state;
     RaviUtils.log("_fulfillPromises: Handling state " + state, "RaviSignalingConnection");
     switch(state) {
@@ -385,7 +385,7 @@ class RaviSignalingWebSocketImplementation {
 
     // If we already have an open websocket, make sure the signaling connection knows about it, and return immediately
     if (this._webSocket && this._webSocket.readyState === crossPlatformWebSocket.OPEN) {
-        signalingConnection._handleStateChange(event, RaviSignalingStates.OPEN);
+        signalingConnection._handleStateChange({}, RaviSignalingStates.OPEN);
         return;
     }
 
@@ -431,7 +431,7 @@ class RaviSignalingWebSocketImplementation {
     var signalingConnection = this._raviSignalingConnection;
     // If we're already closed, make sure the signaling connection knows about it and return immediately
     if (! this._webSocket || this._webSocket.readyState === crossPlatformWebSocket.CLOSED) {
-        signalingConnection._handleStateChange(event, RaviSignalingStates.CLOSED);
+        signalingConnection._handleStateChange({}, RaviSignalingStates.CLOSED);
         return;
     }
     this._webSocket.close();

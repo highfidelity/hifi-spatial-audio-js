@@ -314,7 +314,7 @@ export class RaviSession {
    * this will appropriately fulfill outstanding promises that are pending
    * in either the open or close method (or both).
    */
-  _fulfillPromises(event: any, state: RaviSessionStates) {
+  _fulfillPromises(event: any = {}, state: RaviSessionStates) {
     let errorMessage = event.reason || event.message || state;
     switch(state) {
       case RaviSessionStates.CONNECTED:
@@ -416,8 +416,7 @@ export class RaviSession {
    * Generic handler 
    * @private
    */
-  _handleStateChange(event: any, state: RaviSessionStates) {
-    if (!event) event = {};
+  _handleStateChange(event: any = {}, state: RaviSessionStates) {
     event["state"] = state;
 
     // Always try to fulfill any open promises, even if the state hasn't changed
