@@ -344,7 +344,7 @@ export class HiFiCommunicator {
             });
         }
 
-        if ([HiFiConnectionStates.Connected, HiFiConnectionStates.Connecting, HiFiConnectionStates.Reconnecting].includes(this.getConnectionState()) {
+        if ([HiFiConnectionStates.Connected, HiFiConnectionStates.Connecting, HiFiConnectionStates.Reconnecting].includes(this.getConnectionState())) {
             let msg = `Session is already connected or is in the process of connecting! If you need to reset the connection, please disconnect fully using \`disconnectFromHiFiAudioAPIServer()\` and call this method again.`;
             return Promise.resolve({
                 success: true,
