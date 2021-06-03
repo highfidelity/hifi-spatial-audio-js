@@ -20,6 +20,40 @@ export interface WebRTCSessionParams {
    * of potentially higher round-trip audio latency on poor connections.
    */
   audioMaxJitterBufferDuration?: number;
+}
+
+/**
+ * Allows a user to override the default (or server-provided)
+ * STUN and TURN configuration that is offered by the client. Note that if a custom stun and turn configuration is
+ * used, all of its values must be provided!
+ * (Setting these values does not have any effect on what the server offers for its stun and turn configuration;
+ * however, the servers are generally expected to be configured so as to be easily reachable without the need for TURN
+ * or through the use of the standard TURN servers.)
+ */
+export interface CustomSTUNandTURNConfig {
+  /**
+   * A list of STUN server URLs to use. This should be a list of strings, each of which is in the
+   * format "stun:x.y.z" or "stun:x.y.z:port". For instance:
+   *
+   * [ "stun:foo.bar.com:19302", "stun:bar.baz.com" ]
+   */
+   stunUrls: string[];
+   /**
+    * A list of TURN server URLs to use. This should be a list of strings, each of which is in the
+    * format "turn:x.y.z" or "turn:x.y.z:port". For instance:
+    *
+    * [ "turn:foo.bar.com:3478", "turn:bar.baz.com" ]
+    *
+    */
+   turnUrls: string[];
+   /**
+    * A TURN username to use when connecting to the specified TURN server(s).
+    */
+   turnUsername: string;
+   /**
+    * A TURN credential (password) to use when connecting to the specified TURN server(s).
+    */
+   turnCredential: string;
 };
 
 /**
@@ -209,7 +243,7 @@ export class RaviSession {
    *            
    * @returns {Promise}
    */
-  openRAVISession({signalingConnection, timeout = 5000, params = null}: { signalingConnection: RaviSignalingConnection, timeout?: number, params?: WebRTCSessionParams}) {
+  openRAVISession({signalingConnection, timeout = 5000, params = null, customStunAndTurn = null}: { signalingConnection: RaviSignalingConnection, timeout?: number, params?: WebRTCSessionParams, customStunAndTurn?: CustomSTUNandTURNConfig}) {
 
     if (this._state === RaviSessionStates.CONNECTED || this._state === RaviSessionStates.COMPLETED) {
         // Ref. iceconnectionstates at https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/iceConnectionState
@@ -239,7 +273,7 @@ export class RaviSession {
       // Start the "opening" process
       RaviUtils.log("Opening RAVI session", "RaviSession");
       this._state = RaviSessionStates.NEW;
-      raviSession._raviImplementation._open(params);
+      raviSession._raviImplementation._open(params, customStunAndTurn);
     });
   }
   
@@ -664,6 +698,7 @@ class RaviWebRTCImplementation {
   _raviAudioSenders: any;
   _raviVideoSenders: any;
   _signalingConnection: RaviSignalingConnection;
+  _customStunAndTurn: CustomSTUNandTURNConfig;
   
   // Need to keep track of the input streams in case they get set
   // before the actual RTC connection is available.
@@ -888,8 +923,9 @@ class RaviWebRTCImplementation {
    * This method is called by the owning RaviSession. 
    * @protected
    */
-  _open(params: any) {
+  _open(params: WebRTCSessionParams, customStunAndTurn: CustomSTUNandTURNConfig) {
     RaviUtils.log("Attempting to open connection...", "RaviWebRTCImplementation");
+    this._customStunAndTurn = customStunAndTurn;
     if (this._rtcConnection
         && (this._rtcConnection.connectionState == 'connecting'
             || this._rtcConnection.connectionState == 'connected'))
@@ -1107,8 +1143,24 @@ class RaviWebRTCImplementation {
     if (signal.sdp) {
       RaviUtils.log("Received sdp type=" + signal.type, "RaviWebRTCImplementation");
 
+      // use user-specified TURN config if found
+      if (sessionImplementation._customStunAndTurn) {
+        const CUSTOM_TURN_CONFIG = {
+          'urls': sessionImplementation._customStunAndTurn.turnUrls,
+          'username': sessionImplementation._customStunAndTurn.turnUsername,
+          'credential': sessionImplementation._customStunAndTurn.turnCredential
+        };
+        const CUSTOM_STUN_CONFIG = {
+          'urls': sessionImplementation._customStunAndTurn.stunUrls
+        };
+        peerConnectionConfig = {
+          'iceServers': [
+            CUSTOM_STUN_CONFIG,
+            CUSTOM_TURN_CONFIG
+          ]
+        };
       // grab the TURN config if found
-      if (signal.turn && signal.turn.urls && signal.turn.username && signal.turn.credential) {
+      } else if (signal.turn && signal.turn.urls && signal.turn.username && signal.turn.credential) {
         // We appear to need to humor TypeScript by setting this to a constant the
         // same way we do for the default
         const DYNAMIC_TURN_CONFIG = {

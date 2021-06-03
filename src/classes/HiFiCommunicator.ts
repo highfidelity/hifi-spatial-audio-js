@@ -9,7 +9,7 @@
 declare var HIFI_API_VERSION: string;
 
 import { HiFiConstants } from "../constants/HiFiConstants";
-import { WebRTCSessionParams } from "../libravi/RaviSession";
+import { WebRTCSessionParams, CustomSTUNandTURNConfig } from "../libravi/RaviSession";
 import { HiFiLogger } from "../utilities/HiFiLogger";
 import { HiFiUtilities } from "../utilities/HiFiUtilities";
 import { HiFiAudioAPIData, ReceivedHiFiAudioAPIData, Point3D, OrientationQuat3D, OrientationEuler3D, OrientationEuler3DOrder, eulerToQuaternion, eulerFromQuaternion, OtherUserGainMap } from "./HiFiAudioAPIData";
@@ -88,6 +88,7 @@ export class HiFiCommunicator {
     private _mixerSession: HiFiMixerSession;
 
     private _webRTCSessionParams?: WebRTCSessionParams;
+    private _customSTUNandTURNConfig?: CustomSTUNandTURNConfig;
 
     /**
      * Constructor for the HiFiCommunicator object. Once you have created a HiFiCommunicator, you can use the
@@ -103,6 +104,10 @@ export class HiFiCommunicator {
      * @param hiFiAxisConfiguration - Cannot be set later. The 3D axis configuration. See {@link ourHiFiAxisConfiguration} for defaults.
      * @param webrtcSessionParams - Cannot be set later. Extra parameters used for configuring the underlying WebRTC connection to the API servers.
      * These settings are not frequently used; they are primarily for specific jitter buffer configurations.
+     * @param customSTUNandTURNConfig - Cannot be set later. This object can be used if specific STUN and TURN server information needs to be
+     * provided for negotiating the underlying WebRTC connection. By default, High Fidelity's TURN server will be used, which should suffice
+     * for most operations. This is primarily useful for testing or for using a commercial TURN server provider for dealing with particularly challenging client networks/firewalls.
+     * See {@link CustomSTUNandTURNConfig} for the format of this object (note that _all_ values must be provided when setting this).
      * @param onMuteChanged - A function that will be called when the mute state of the client has changed, for example when muted by an admin. See {@link OnMuteChangedCallback} for the information this function will receive.
      */
     constructor({
@@ -113,6 +118,7 @@ export class HiFiCommunicator {
         userDataStreamingScope = HiFiUserDataStreamingScopes.All,
         hiFiAxisConfiguration,
         webrtcSessionParams,
+        customSTUNandTURNConfig,
         onMuteChanged
     }: {
         initialHiFiAudioAPIData?: HiFiAudioAPIData,
@@ -122,8 +128,27 @@ export class HiFiCommunicator {
         userDataStreamingScope?: HiFiUserDataStreamingScopes,
         hiFiAxisConfiguration?: HiFiAxisConfiguration,
         webrtcSessionParams?: WebRTCSessionParams,
+        customSTUNandTURNConfig?: CustomSTUNandTURNConfig,
         onMuteChanged?: OnMuteChangedCallback,
     } = {}) {
+        // If user passed in their own stun/turn config, make sure it matches our interface (ish).
+        // (I do so wish that TypeScript could just do this for us based on the interface definition, but it seems that it can not.)
+        if (customSTUNandTURNConfig) {
+            if (!customSTUNandTURNConfig.hasOwnProperty("stunUrls") || !Array.isArray(customSTUNandTURNConfig.stunUrls) || customSTUNandTURNConfig.stunUrls.length == 0 ) {
+                throw new Error(`\`customSTUNandTURNConfig.stunUrls\` must be specified and must be a list containing at least one STUN server.`);
+            }
+            if (!customSTUNandTURNConfig.hasOwnProperty("turnUrls") || !Array.isArray(customSTUNandTURNConfig.turnUrls) || customSTUNandTURNConfig.turnUrls.length == 0 ) {
+                throw new Error(`\`customSTUNandTURNConfig.turnUrls\` must be specified and must be a list containing at least one TURN server.`);
+            }
+            if (!customSTUNandTURNConfig.hasOwnProperty("turnUsername")) {
+                throw new Error(`\`customSTUNandTURNConfig.turnUsername\` must be specified.`);
+            }
+            if (!customSTUNandTURNConfig.hasOwnProperty("turnCredential")) {
+                throw new Error(`\`customSTUNandTURNConfig.turnCredential\` must be specified.`);
+            }
+        }
+        this._customSTUNandTURNConfig = customSTUNandTURNConfig;
+
         // Make minimum 10ms
         if (transmitRateLimitTimeoutMS < HiFiConstants.MIN_TRANSMIT_RATE_LIMIT_TIMEOUT_MS) {
             HiFiLogger.warn(`\`transmitRateLimitTimeoutMS\` must be >= ${HiFiConstants.MIN_TRANSMIT_RATE_LIMIT_TIMEOUT_MS}ms! Setting to ${HiFiConstants.MIN_TRANSMIT_RATE_LIMIT_TIMEOUT_MS}ms...`);
@@ -264,7 +289,7 @@ export class HiFiCommunicator {
 
             HiFiLogger.log(`Using WebRTC Signaling Address:\n${webRTCSignalingAddress}<token redacted>`);
 
-            mixerConnectionResponse = await this._mixerSession.connectToHiFiMixer({ webRTCSessionParams: this._webRTCSessionParams });
+            mixerConnectionResponse = await this._mixerSession.connectToHiFiMixer({ webRTCSessionParams: this._webRTCSessionParams, customSTUNandTURNConfig: this._customSTUNandTURNConfig });
         } catch (errorConnectingToMixer) {
             let errMsg = `Error when connecting to mixer!\n${errorConnectingToMixer}`;
             return Promise.reject({
