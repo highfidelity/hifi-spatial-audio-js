@@ -324,10 +324,6 @@ export class HiFiCommunicator {
      * Please reference our {@link https://www.highfidelity.com/api/guides/misc/getAJWT|"Get a JWT" guide} for additional context.
      * 4. Pass the created JWT to `connectToHiFiAudioAPIServer()`.
      * 
-     * As of 2021-01-21, we've added code in this function which, in the browser context, searches for a `token` URL query parameter and, if a JWT
-     * isn't supplied as an argument to this function, uses the value of that `token` URL query parameter as the JWT.
-     * We should remove that later, because we almost certainly don't want this to stay in the API code, but it's _very_ convenient for sample apps for right now.
-     *
      * @param signalingHostURL An URL that will be used to create a valid WebRTC signaling address at High Fidelity. The passed `signalingHostURL` parameter should not contain the protocol
      * or port - e.g. `server.highfidelity.com` - and it will be used to construct a signaling address of the form: `wss://${signalingHostURL}:${signalingPort}/?token=`
      * If the developer does not pass a `signalingHostURL` parameter, a default URL will be used instead. See: {@link DEFAULT_PROD_HIGH_FIDELITY_ENDPOINT}
@@ -356,7 +352,6 @@ export class HiFiCommunicator {
             });
         }
 
-        let mixerConnectionResponse;
         let signalingHostURLSafe;
 
         try {
@@ -373,14 +368,28 @@ export class HiFiCommunicator {
         }
 
         signalingPort = signalingPort ? signalingPort : HiFiConstants.DEFAULT_PROD_HIGH_FIDELITY_PORT;
-        let timeout = this._connectionRetryAndTimeoutConfig.timeoutPerConnectionAttemptMS;
+        let webRTCSignalingAddress = `wss://${signalingHostURLSafe}:${signalingPort}/?token=`;
+        this._mixerSession.webRTCAddress = `${webRTCSignalingAddress}${hifiAuthJWT}`;
+        HiFiLogger.log(`Using WebRTC Signaling Address:\n${webRTCSignalingAddress}<token redacted>`);
 
+        return this._connectToHiFiMixer();
+    }
+
+    /**
+     * Make connection based on all of the information that we've gathered so far.
+     * This should only be called by or after connectToHiFiAudioAPIServer(), because it
+     * relies on connectToHiFiAudioAPIServer() having set up this._mixerSession appropriately.
+     */
+    private async _connectToHiFiMixer(): Promise<any> {
+        if (!this._mixerSession || !this._mixerSession.webRTCAddress) {
+            return Promise.reject({
+                success: false,
+                error: "_connectToHiFiMixer() must be called after connectToHiFiAudioAPIServer()"
+            });
+        }
+        let mixerConnectionResponse;
         try {
-            let webRTCSignalingAddress = `wss://${signalingHostURLSafe}:${signalingPort}/?token=`;
-            this._mixerSession.webRTCAddress = `${webRTCSignalingAddress}${hifiAuthJWT}`;
-
-            HiFiLogger.log(`Using WebRTC Signaling Address:\n${webRTCSignalingAddress}<token redacted>`);
-
+            let timeout = this._connectionRetryAndTimeoutConfig.timeoutPerConnectionAttemptMS;
             mixerConnectionResponse = await this._mixerSession.connectToHiFiMixer({ webRTCSessionParams: this._webRTCSessionParams, customSTUNandTURNConfig: this._customSTUNandTURNConfig, timeout: timeout });
         } catch (errorConnectingToMixer) {
             let errMsg = `Error when connecting to mixer!\n${errorConnectingToMixer}`;
