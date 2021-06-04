@@ -10,7 +10,7 @@
  */
 export enum AvailableUserDataSubscriptionComponents {
     Position = "Position",
-    OrientationQuat = "Orientation (Quaternion)",
+    Orientation = "Orientation (Quaternion)",
     VolumeDecibels = "Volume (Decibels)",
     IsStereo = "IsStereo"
 }
