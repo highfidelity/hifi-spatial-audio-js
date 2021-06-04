@@ -260,8 +260,9 @@ export class RaviSession {
 
     // Set a timeout in case the session gets hung up somewhere
     this._openingTimeout = setTimeout(() => {
-        RaviUtils.log("RaviSession.open timed out after " + timeout + " ms", "RaviSession");
-        raviSession._fulfillPromises({}, RaviSessionStates.FAILED);
+        let errorMessage = "RaviSession.open timed out after " + timeout + " ms";
+        RaviUtils.log(errorMessage, "RaviSession");
+        raviSession._fulfillPromises({ message: errorMessage }, RaviSessionStates.FAILED);
         // Close the session to clean up objects. We've already rejected the promise above.
         raviSession.closeRAVISession();
     }, timeout);
