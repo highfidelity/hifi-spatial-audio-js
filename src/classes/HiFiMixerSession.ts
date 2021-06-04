@@ -4,7 +4,7 @@
  * @packageDocumentation
  */
 
-import { HiFiAudioAPIData, OrientationQuat3D, Point3D, ReceivedHiFiAudioAPIData, OtherUserGainMap } from "./HiFiAudioAPIData";
+import { HiFiAudioAPIData, Quaternion, Point3D, ReceivedHiFiAudioAPIData, OtherUserGainMap } from "./HiFiAudioAPIData";
 import { HiFiCoordinateFrameUtil } from "../utilities/HiFiCoordinateFrameUtil"; 
 import { HiFiLogger } from "../utilities/HiFiLogger";
 import { HiFiConnectionStates, HiFiUserDataStreamingScopes, HiFiConnectionAttemptResult } from "./HiFiCommunicator";
@@ -510,44 +510,44 @@ export class HiFiMixerSession {
                 // `ReceivedHiFiAudioAPIData.orientation.*`
                 let serverSentNewOrientation = false;
                 if (typeof (peerDataFromMixer.W) === "number") {
-                    if (!userDataCache.orientationQuat) {
-                        userDataCache.orientationQuat = new OrientationQuat3D();
+                    if (!userDataCache.orientation) {
+                        userDataCache.orientation = new Quaternion();
                     }
-                    userDataCache.orientationQuat.w = peerDataFromMixer.W / 1000;
+                    userDataCache.orientation.w = peerDataFromMixer.W / 1000;
                     serverSentNewOrientation = true;
                 }
                 if (typeof (peerDataFromMixer.X) === "number") {
-                    if (!userDataCache.orientationQuat) {
-                        userDataCache.orientationQuat = new OrientationQuat3D();
+                    if (!userDataCache.orientation) {
+                        userDataCache.orientation = new Quaternion();
                     }
-                    userDataCache.orientationQuat.x = peerDataFromMixer.X / 1000;
+                    userDataCache.orientation.x = peerDataFromMixer.X / 1000;
                     serverSentNewOrientation = true;
                 }
                 if (typeof (peerDataFromMixer.Y) === "number") {
-                    if (!userDataCache.orientationQuat) {
-                        userDataCache.orientationQuat = new OrientationQuat3D();
+                    if (!userDataCache.orientation) {
+                        userDataCache.orientation = new Quaternion();
                     }
-                    userDataCache.orientationQuat.y = peerDataFromMixer.Y / 1000;
+                    userDataCache.orientation.y = peerDataFromMixer.Y / 1000;
                     serverSentNewOrientation = true;
                 }
                 if (typeof (peerDataFromMixer.Z) === "number") {
-                    if (!userDataCache.orientationQuat) {
-                        userDataCache.orientationQuat = new OrientationQuat3D();
+                    if (!userDataCache.orientation) {
+                        userDataCache.orientation = new Quaternion();
                     }
-                    userDataCache.orientationQuat.z = peerDataFromMixer.Z / 1000;
+                    userDataCache.orientation.z = peerDataFromMixer.Z / 1000;
                     serverSentNewOrientation = true;
                 }
                 // We received a new orientation and updated the cache entry.
                 // Need to add the new orientation value in the newUserData
                 if (serverSentNewOrientation) {
                     if (this._coordFrameUtil == null) {
-                        newUserData.orientationQuat = new OrientationQuat3D({
-                            w: userDataCache.orientationQuat.w,
-                            x: userDataCache.orientationQuat.x,
-                            y: userDataCache.orientationQuat.y,
-                            z: userDataCache.orientationQuat.z});
+                        newUserData.orientation = new Quaternion({
+                            w: userDataCache.orientation.w,
+                            x: userDataCache.orientation.x,
+                            y: userDataCache.orientation.y,
+                            z: userDataCache.orientation.z});
                     } else {
-                        newUserData.orientationQuat = this._coordFrameUtil.HiFiOrientationToWorld(userDataCache.orientationQuat);
+                        newUserData.orientation = this._coordFrameUtil.HiFiOrientationToWorld(userDataCache.orientation);
                     }
                     serverSentNewUserData = true;
                 }
@@ -1153,26 +1153,26 @@ export class HiFiMixerSession {
         }
 
         // if orientation is specified with valid components, let's consider adding orientation payload
-        if (currentHifiAudioAPIData.orientationQuat && (typeof (currentHifiAudioAPIData.orientationQuat.w) === "number")
-            && (typeof (currentHifiAudioAPIData.orientationQuat.x) === "number")
-            && (typeof (currentHifiAudioAPIData.orientationQuat.y) === "number")
-            && (typeof (currentHifiAudioAPIData.orientationQuat.z) === "number")) {
+        if (currentHifiAudioAPIData.orientation && (typeof (currentHifiAudioAPIData.orientation.w) === "number")
+            && (typeof (currentHifiAudioAPIData.orientation.x) === "number")
+            && (typeof (currentHifiAudioAPIData.orientation.y) === "number")
+            && (typeof (currentHifiAudioAPIData.orientation.z) === "number")) {
             // Detect the orientation components which have really changed compared to the previous state known from the server
             let changedComponents: { w: boolean, x: boolean, y: boolean, z: boolean, changed: boolean } = { w: false, x: false, y: false, z: false, changed: false };
-            if (previousHifiAudioAPIData && previousHifiAudioAPIData.orientationQuat) {
-                if (currentHifiAudioAPIData.orientationQuat.w !== previousHifiAudioAPIData.orientationQuat.w) {
+            if (previousHifiAudioAPIData && previousHifiAudioAPIData.orientation) {
+                if (currentHifiAudioAPIData.orientation.w !== previousHifiAudioAPIData.orientation.w) {
                     changedComponents.w = true;
                     changedComponents.changed = true;
                 }
-                if (currentHifiAudioAPIData.orientationQuat.x !== previousHifiAudioAPIData.orientationQuat.x) {
+                if (currentHifiAudioAPIData.orientation.x !== previousHifiAudioAPIData.orientation.x) {
                     changedComponents.x = true;
                     changedComponents.changed = true;
                 }
-                if (currentHifiAudioAPIData.orientationQuat.y !== previousHifiAudioAPIData.orientationQuat.y) {
+                if (currentHifiAudioAPIData.orientation.y !== previousHifiAudioAPIData.orientation.y) {
                     changedComponents.y = true;
                     changedComponents.changed = true;
                 }
-                if (currentHifiAudioAPIData.orientationQuat.z !== previousHifiAudioAPIData.orientationQuat.z) {
+                if (currentHifiAudioAPIData.orientation.z !== previousHifiAudioAPIData.orientation.z) {
                     changedComponents.z = true;
                     changedComponents.changed = true;
                 }
@@ -1186,7 +1186,7 @@ export class HiFiMixerSession {
 
             // Some orientation components have changed, let's fill in the payload
             if (changedComponents.changed) {
-                let translatedOrientation = currentHifiAudioAPIData.orientationQuat;
+                let translatedOrientation = currentHifiAudioAPIData.orientation;
                 if (this._coordFrameUtil != null) {
                     translatedOrientation = this._coordFrameUtil.WorldOrientationToHiFi(translatedOrientation);
                 }

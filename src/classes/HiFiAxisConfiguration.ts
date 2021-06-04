@@ -4,7 +4,7 @@
  */
 
 import { HiFiLogger } from "../utilities/HiFiLogger";
-import { OrientationQuat3D, Point3D } from "./HiFiAudioAPIData";
+import { Point3D } from "./HiFiAudioAPIData";
 
 export enum HiFiHandedness {
     RightHand = "Right Hand",

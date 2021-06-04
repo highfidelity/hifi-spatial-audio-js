@@ -3,9 +3,9 @@
  * @packageDocumentation
  */
 
-import { Vector3 as Point3D, Quaternion as OrientationQuat3D } from "../utilities/HiFiMath";
+import { Vector3 as Point3D, Quaternion } from "../utilities/HiFiMath";
 
-export { Point3D, OrientationQuat3D };
+export { Point3D, Quaternion };
 
 /**
  * Instantiations of this class define a map between hashed visit IDs and the gains of other users.
@@ -33,13 +33,13 @@ export class HiFiAudioAPIData {
      */
     position: Point3D;
     /**
-     * If you don't supply an `orientationQuat` when constructing instantiations of this class, `orientationQuat` will be `null`.
+     * If you don't supply an `orientation` when constructing instantiations of this class, `orientation` will be `null`.
      * 
-     * ✔ The client sends `orientationQuat` data to the server when `_transmitHiFiAudioAPIDataToServer()` is called.
+     * ✔ The client sends `orientation` data to the server when `_transmitHiFiAudioAPIDataToServer()` is called.
      * 
-     * ✔ The server sends `orientationQuat` data to all clients connected to a server during "peer updates".
+     * ✔ The server sends `orientation` data to all clients connected to a server during "peer updates".
      */
-    orientationQuat: OrientationQuat3D;
+    orientation: Quaternion;
     /**
      * A volume level below this value is considered background noise and will be smoothly gated off.
      * The floating point value is specified in dBFS (decibels relative to full scale) with values between -96 dB (indicating no gating)
@@ -111,9 +111,9 @@ export class HiFiAudioAPIData {
     /** @internal */
     _otherUserGainQueue: OtherUserGainMap;
     
-    constructor({ position = null, orientationQuat = null, volumeThreshold = null, hiFiGain = null, userAttenuation = null, userRolloff = null }: { position?: Point3D, orientationQuat?: OrientationQuat3D, volumeThreshold?: number, hiFiGain?: number, userAttenuation?: number, userRolloff?: number } = {}) {
+    constructor({ position = null, orientation = null, volumeThreshold = null, hiFiGain = null, userAttenuation = null, userRolloff = null }: { position?: Point3D, orientation?: Quaternion, volumeThreshold?: number, hiFiGain?: number, userAttenuation?: number, userRolloff?: number } = {}) {
         this.position = position;
-        this.orientationQuat = orientationQuat;
+        this.orientation = orientation;
         this.volumeThreshold = volumeThreshold;
         this.hiFiGain = hiFiGain;
         this.userAttenuation = userAttenuation;
@@ -161,7 +161,7 @@ export class ReceivedHiFiAudioAPIData extends HiFiAudioAPIData {
      */
     isStereo: boolean;
     
-    constructor(params: { providedUserID?: string, hashedVisitID?: string, volumeDecibels?: number, position?: Point3D, orientationQuat?: OrientationQuat3D, isStereo?: boolean } = {}) {
+    constructor(params: { providedUserID?: string, hashedVisitID?: string, volumeDecibels?: number, position?: Point3D, orientation?: Quaternion, isStereo?: boolean } = {}) {
         super(params);
         this.providedUserID = params.providedUserID;
         this.hashedVisitID = params.hashedVisitID;
