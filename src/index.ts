@@ -19,7 +19,7 @@ export { apiVersion };
 // Some people don't want to type `HiFi` every time they want to use our Client Library,
 // so we also offer shorter synonyms for every Library entry point.
 // Scroll down to check out those shorter synonyms.
-export { HiFiAudioAPIData, ReceivedHiFiAudioAPIData, OrientationEuler3D, OrientationQuat3D, Point3D, eulerToQuaternion, eulerFromQuaternion} from "./classes/HiFiAudioAPIData";
+export { HiFiAudioAPIData, ReceivedHiFiAudioAPIData, OrientationQuat3D, Point3D } from "./classes/HiFiAudioAPIData";
 export { HiFiCommunicator, HiFiConnectionStates, HiFiUserDataStreamingScopes } from "./classes/HiFiCommunicator";
 export { WebRTCSessionParams } from "./libravi/RaviSession";
 export { AvailableUserDataSubscriptionComponents, UserDataSubscription } from "./classes/HiFiUserDataSubscription";

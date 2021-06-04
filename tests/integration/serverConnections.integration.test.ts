@@ -1,7 +1,7 @@
 const fetch = require('node-fetch');
 const stacks = require('../secrets/auth.json').stacks;
 
-import { OrientationEuler3D, OrientationQuat3D, Point3D } from "../../src/classes/HiFiAudioAPIData";
+import { Point3D } from "../../src/classes/HiFiAudioAPIData";
 import { HiFiCommunicator } from "../../src/classes/HiFiCommunicator";
 import { UserDataSubscription, AvailableUserDataSubscriptionComponents } from "../../src/classes/HiFiUserDataSubscription";
 import { TestUser } from "../testUtilities/TestUser";
@@ -387,7 +387,6 @@ describe('Mixer connections', () => {
             let userDataSubscription = new UserDataSubscription({
                 "components": [
                     AvailableUserDataSubscriptionComponents.Position,
-                    AvailableUserDataSubscriptionComponents.OrientationEuler,
                     AvailableUserDataSubscriptionComponents.OrientationQuat,
                     AvailableUserDataSubscriptionComponents.VolumeDecibels],
                 "callback": onUserDataReceived
@@ -407,7 +406,6 @@ describe('Mixer connections', () => {
             expect(indexOfMyData).toBeGreaterThan(-1);
             expect(usersDataArray[indexOfMyData].position).toBeNull();
             expect(usersDataArray[indexOfMyData].orientationQuat).toBeNull();
-            expect(usersDataArray[indexOfMyData].orientationEuler).toBeNull();
             expect(usersDataArray[indexOfMyData].volumeDecibels).toBeDefined();
         });
 
@@ -430,16 +428,6 @@ describe('Mixer connections', () => {
             expect(orientationQ.x).toBe(1);
             expect(orientationQ.y).toBe(1);
             expect(orientationQ.z).toBe(-1);
-
-            hifiCommunicator.updateUserDataAndTransmit({
-                orientationEuler: { pitchDegrees: 45, yawDegrees: 45, rollDegrees: 45 },
-            });
-
-            await sleep(2000);
-            let orientationE = new OrientationEuler3D(usersDataArray[indexOfMyData].orientationEuler);
-            expect(orientationE.pitchDegrees).toBeCloseTo(45);
-            expect(orientationE.yawDegrees).toBeCloseTo(45);
-            expect(orientationE.rollDegrees).toBeCloseTo(45);
         });
 
         test(`Can receive data about peers (Position, Orientation, Volume)`, async () => {
@@ -465,7 +453,6 @@ describe('Mixer connections', () => {
             expect(indexOfPeerData).toBeGreaterThan(-1);
             expect(usersDataArray[indexOfPeerData].position).toBeNull();
             expect(usersDataArray[indexOfPeerData].orientationQuat).toBeNull();
-            expect(usersDataArray[indexOfPeerData].orientationEuler).toBeNull();
             expect(usersDataArray[indexOfPeerData].volumeDecibels).toBeDefined();
         });
     });
