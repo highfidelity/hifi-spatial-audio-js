@@ -22,6 +22,10 @@ import { AvailableUserDataSubscriptionComponents, UserDataSubscription } from ".
  */
 export enum HiFiConnectionStates {
     /**
+     * The `HiFiConnectionState` will be `"New"` for a brand new HiFiCommunicator that hasn't yet tried to connect
+     */
+    New = "New",
+    /**
      * The `HiFiConnectionState` will be `"Connecting"` when the system is in the process of trying to establish
      * an initial connection.
      */
@@ -157,7 +161,7 @@ export class HiFiCommunicator {
      * Stores the current HiFi Connection State, which is an abstraction separate from the individual states
      * of the WebRTC (RAVI Session) state and the RAVI Signaling State.
      */
-    private _currentHiFiConnectionState: HiFiConnectionStates;
+    private _currentHiFiConnectionState: HiFiConnectionStates = HiFiConnectionStates.New;
 
     // This contains data dealing with the mixer session, such as the RAVI session, WebRTC address, etc.
     private _mixerSession: HiFiMixerSession;
