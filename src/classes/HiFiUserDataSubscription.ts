@@ -10,7 +10,6 @@
  */
 export enum AvailableUserDataSubscriptionComponents {
     Position = "Position",
-    OrientationEuler = "Orientation (Euler)",
     OrientationQuat = "Orientation (Quaternion)",
     VolumeDecibels = "Volume (Decibels)",
     IsStereo = "IsStereo"
@@ -27,7 +26,7 @@ export class UserDataSubscription {
      */
     providedUserID: string;
     /**
-     * The User Data components to which we want to subscribe, such as Position, OrientationEuler, or VolumeDecibels.
+     * The User Data components to which we want to subscribe, such as Position, Orientation, or VolumeDecibels.
      */
     components: Array<AvailableUserDataSubscriptionComponents>;
     /**

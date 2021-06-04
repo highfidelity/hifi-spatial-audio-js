@@ -4,10 +4,8 @@
  */
 
 import { Vector3 as Point3D, Quaternion as OrientationQuat3D } from "../utilities/HiFiMath";
-import { OrientationEuler3D, OrientationEuler3DOrder, eulerToQuaternion, eulerFromQuaternion } from "../utilities/HiFiMath";
 
 export { Point3D, OrientationQuat3D };
-export { OrientationEuler3D, OrientationEuler3DOrder, eulerToQuaternion, eulerFromQuaternion } from "../utilities/HiFiMath";
 
 /**
  * Instantiations of this class define a map between hashed visit IDs and the gains of other users.
@@ -42,15 +40,6 @@ export class HiFiAudioAPIData {
      * ✔ The server sends `orientationQuat` data to all clients connected to a server during "peer updates".
      */
     orientationQuat: OrientationQuat3D;
-    /**
-     * For convenience, a Euler representation of the orientation is supported.
-     * This is an alternative way to specify the `orientationQuat` field in the `HiFiAudioAPIData` that is sent to or received from the server.
-     * 
-     *  ✔ When using euler representation to update the client orientation, the equivalent Quaternion is evaluated in `_updateUserData()`
-     * 
-     *  ✔ When requesting orientation Euler from server updates, the Euler representation is evaluated in `_handleUserDataUpdates()`
-     */
-    orientationEuler: OrientationEuler3D;
     /**
      * A volume level below this value is considered background noise and will be smoothly gated off.
      * The floating point value is specified in dBFS (decibels relative to full scale) with values between -96 dB (indicating no gating)
@@ -122,10 +111,9 @@ export class HiFiAudioAPIData {
     /** @internal */
     _otherUserGainQueue: OtherUserGainMap;
     
-    constructor({ position = null, orientationQuat = null, orientationEuler = null, volumeThreshold = null, hiFiGain = null, userAttenuation = null, userRolloff = null }: { position?: Point3D, orientationQuat?: OrientationQuat3D, orientationEuler?: OrientationEuler3D, volumeThreshold?: number, hiFiGain?: number, userAttenuation?: number, userRolloff?: number } = {}) {
+    constructor({ position = null, orientationQuat = null, volumeThreshold = null, hiFiGain = null, userAttenuation = null, userRolloff = null }: { position?: Point3D, orientationQuat?: OrientationQuat3D, volumeThreshold?: number, hiFiGain?: number, userAttenuation?: number, userRolloff?: number } = {}) {
         this.position = position;
         this.orientationQuat = orientationQuat;
-        this.orientationEuler = orientationEuler;
         this.volumeThreshold = volumeThreshold;
         this.hiFiGain = hiFiGain;
         this.userAttenuation = userAttenuation;

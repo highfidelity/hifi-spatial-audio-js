@@ -12,7 +12,7 @@ import { HiFiConstants } from "../constants/HiFiConstants";
 import { WebRTCSessionParams, CustomSTUNandTURNConfig } from "../libravi/RaviSession";
 import { HiFiLogger } from "../utilities/HiFiLogger";
 import { HiFiUtilities } from "../utilities/HiFiUtilities";
-import { HiFiAudioAPIData, ReceivedHiFiAudioAPIData, Point3D, OrientationQuat3D, OrientationEuler3D, OrientationEuler3DOrder, eulerToQuaternion, eulerFromQuaternion, OtherUserGainMap } from "./HiFiAudioAPIData";
+import { HiFiAudioAPIData, ReceivedHiFiAudioAPIData, Point3D, OrientationQuat3D, OtherUserGainMap } from "./HiFiAudioAPIData";
 import { HiFiCoordinateFrameUtil } from "../utilities/HiFiCoordinateFrameUtil";
 import { HiFiHandedness, WorldFrameConfiguration } from "./HiFiAxisConfiguration";
 import { HiFiMixerSession, SetOtherUserGainForThisConnectionResponse, SetOtherUserGainsForThisConnectionResponse, OnMuteChangedCallback } from "./HiFiMixerSession";
@@ -104,28 +104,6 @@ export class HiFiCommunicator {
     private _coordFrameUtil?: HiFiCoordinateFrameUtil;
 
     /**
-      * Specifies the perferred version of Euler angles for customers who prefer to burden themselves with such things instead of using proper Quaternions.
-      */
-    private _eulerOrder?: OrientationEuler3DOrder;
-
-    /**
-     * If the World coordinate system is NOT compatible with the HiFi coordindate frame used by the mixer              
-     * then configure a HiFiCoordinateFrameUtil to transform to and from HiFi-frame.
-     *
-     * The World-frame is compatible iff:  
-     * (1) It is right-handed
-     * (2) It uses the Y-axis (positive or negative, doesn't matter) for the UP direction.
-     *           
-     * For all other cases create a {@link WorldFrameConfiguration} and pass it to the HiFiCommunicator constructor.
-     */
-    private _coordFrameUtil?: HiFiCoordinateFrameUtil;
-
-    /**
-      * Specifies the perferred version of Euler angles for customers who prefer to burden themselves with such things instead of using proper Quaternions.
-      */
-    private _eulerOrder?: OrientationEuler3DOrder;
-
-    /**
      * Constructor for the HiFiCommunicator object. Once you have created a HiFiCommunicator, you can use the
      * {@link setInputAudioMediaStream} method to assign an input audio stream to the connection, and
      * once the connection has been established, use the {@link getOutputAudioMediaStream} method to
@@ -144,7 +122,6 @@ export class HiFiCommunicator {
      * for most operations. This is primarily useful for testing or for using a commercial TURN server provider for dealing with particularly challenging client networks/firewalls.
      * See {@link CustomSTUNandTURNConfig} for the format of this object (note that _all_ values must be provided when setting this).
      * @param onMuteChanged - A function that will be called when the mute state of the client has changed, for example when muted by an admin. See {@link OnMuteChangedCallback} for the information this function will receive.
-     * @param eulerOrder - Option for those who prefer to use Euler angles instead of Quaternions for Orientation.
      */
     constructor({
         initialHiFiAudioAPIData = new HiFiAudioAPIData(),
@@ -155,8 +132,7 @@ export class HiFiCommunicator {
         worldFrameConfig,
         webrtcSessionParams,
         customSTUNandTURNConfig,
-        onMuteChanged,
-        eulerOrder
+        onMuteChanged
     }: {
         initialHiFiAudioAPIData?: HiFiAudioAPIData,
         onConnectionStateChanged?: Function,
@@ -166,8 +142,7 @@ export class HiFiCommunicator {
         worldFrameConfig?: WorldFrameConfiguration,
         webrtcSessionParams?: WebRTCSessionParams,
         customSTUNandTURNConfig?: CustomSTUNandTURNConfig,
-        onMuteChanged?: OnMuteChangedCallback,
-        eulerOrder?: OrientationEuler3DOrder
+        onMuteChanged?: OnMuteChangedCallback
     } = {}) {
         // If user passed in their own stun/turn config, make sure it matches our interface (ish).
         // (I do so wish that TypeScript could just do this for us based on the interface definition, but it seems that it can not.)
@@ -208,11 +183,6 @@ export class HiFiCommunicator {
             } else {
                 HiFiLogger.error(`There is an error with the passed \`WorldFrameConfiguration\`, so it was not used. There are more error details in the logs above.`);
             }
-        }
-
-        this._eulerOrder = OrientationEuler3DOrder.YawPitchRoll;
-        if (eulerOrder) {
-            this._eulerOrder = eulerOrder;
         }
 
         this._mixerSession = new HiFiMixerSession({
@@ -546,17 +516,9 @@ export class HiFiCommunicator {
      * the user data on the High Fidelity Audio API server. There are no good reasons for a client to call this function
      * and _not_ update the server User Data, and thus this function is `private`.
      * 
-     * You can update user orientation by passing Quaternion or Euler orientation representations to this function
-     * The quaternion representation is preferred.
-     * If both representation are provided, the euler representation is ignored.
-     * If only the euler representation is provided, it is then converted immediately to the equivalent quaternion representation.
-     * The eulerOrder used for the conversion is the provided by the 'ourAxisConfiguration.eulerOrder'.
-     * Euler representation is not used internally anymore in the Hifi API.
-     * 
      * @param __namedParameters
      * @param position - The new position of the user.
      * @param orientationQuat - The new orientationQuat of the user.
-     * @param orientationEuler - The new orientationEuler of the user.
      * @param volumeThreshold - The new volumeThreshold of the user.
      * @param hiFiGain - This value affects how loud User A will sound to User B at a given distance in 3D space.
      * This value also affects the distance at which User A can be heard in 3D space.
@@ -567,7 +529,7 @@ export class HiFiCommunicator {
      * @param userRolloff - This value affects the frequency rolloff for a given user.
      * The new rolloff value for the user.
      */
-    private _updateUserData({ position, orientationQuat, orientationEuler, volumeThreshold, hiFiGain, userAttenuation, userRolloff }: { position?: Point3D, orientationEuler?: OrientationEuler3D, orientationQuat?: OrientationQuat3D, volumeThreshold?: number, hiFiGain?: number, userAttenuation?: number, userRolloff?: number } = {}): void {
+    private _updateUserData({ position, orientationQuat, volumeThreshold, hiFiGain, userAttenuation, userRolloff }: { position?: Point3D, orientationQuat?: OrientationQuat3D, volumeThreshold?: number, hiFiGain?: number, userAttenuation?: number, userRolloff?: number } = {}): void {
         if (position) {
             if (!this._currentHiFiAudioAPIData.position) {
                 this._currentHiFiAudioAPIData.position = new Point3D();
@@ -587,10 +549,6 @@ export class HiFiCommunicator {
             this._currentHiFiAudioAPIData.orientationQuat.x = orientationQuat.x ?? this._currentHiFiAudioAPIData.orientationQuat.x;
             this._currentHiFiAudioAPIData.orientationQuat.y = orientationQuat.y ?? this._currentHiFiAudioAPIData.orientationQuat.y;
             this._currentHiFiAudioAPIData.orientationQuat.z = orientationQuat.z ?? this._currentHiFiAudioAPIData.orientationQuat.z;
-        } else if (orientationEuler) {
-            // if orientation is provided as an euler format, then do the conversion immediately
-            let checkedEuler = new OrientationEuler3D(orientationEuler);
-            this._currentHiFiAudioAPIData.orientationQuat = eulerToQuaternion(checkedEuler, this._eulerOrder);
         }
 
         if (typeof (volumeThreshold) === "number") {
@@ -821,13 +779,6 @@ export class HiFiCommunicator {
                         case AvailableUserDataSubscriptionComponents.OrientationQuat:
                             if (currentDataFromServer.orientationQuat) {
                                 newCallbackData.orientationQuat = currentDataFromServer.orientationQuat;
-                                shouldPushNewCallbackData = true;
-                            }
-                            break;
-                        case AvailableUserDataSubscriptionComponents.OrientationEuler:
-                            // Generate the euler version of orientation if quat version available
-                            if (currentDataFromServer.orientationQuat) {
-                                newCallbackData.orientationEuler = eulerFromQuaternion(currentDataFromServer.orientationQuat, this._eulerOrder);
                                 shouldPushNewCallbackData = true;
                             }
                             break;
