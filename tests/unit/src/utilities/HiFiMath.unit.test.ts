@@ -131,11 +131,11 @@ describe("Quaternion", () => {
         expect(Math.abs(1.0 - Math.sqrt(Quaternion.dot(q, q))) < ALMOST_ZERO).toBe(true);
     });
 
-    test("angleAxis", () => {
+    test("fromAngleAxis", () => {
         let angle = Math.PI/4.0;
         let axis = new Vector3({x: 1.0, y: -2.1, z: 3.2});
 
-        let q = Quaternion.angleAxis(angle, axis);
+        let q = Quaternion.fromAngleAxis(angle, axis);
 
         // q should be normalized since it represents a rotation
         expect(Math.abs(1.0 - Math.sqrt(Quaternion.dot(q, q))) < ALMOST_ZERO).toBe(true);
@@ -149,7 +149,7 @@ describe("Quaternion", () => {
         // when angle is negative, the extracted info will invert
         // to keep the extracted angle positive
         angle *= -1.0;
-        q = Quaternion.angleAxis(angle, axis);
+        q = Quaternion.fromAngleAxis(angle, axis);
         expect(Math.abs(q.getAngle() + angle) < ALMOST_ZERO).toBe(true);
         let negatedNormalizedAxis = Vector3.scale(-1.0, normalizedAxis);
         expect(Vector3.distance(negatedNormalizedAxis, q.getAxis()) < ALMOST_ZERO).toBe(true);
@@ -159,7 +159,7 @@ describe("Quaternion", () => {
         // make a Quaternion rotation for pi/2 radians about x-axis
         let angle = 0.5 * Math.PI;
         let axis = new Vector3({x: 1.0, y: 0.0, z: 0.0});
-        let q = Quaternion.angleAxis(angle, axis);
+        let q = Quaternion.fromAngleAxis(angle, axis);
 
         // make a rotation maxtrix for pi/2 radians about x-axis
         let a = new Vector3({x: 1.0, y: 0.0, z: 0.0});
@@ -201,7 +201,7 @@ describe("Quaternion", () => {
         // make a Quaternion rotation for pi/2 radians about y-axis
         let angle = 0.5 * Math.PI;
         let axis = new Vector3({x: 0.0, y: 1.0, z: 0.0});
-        let q = Quaternion.angleAxis(angle, axis);
+        let q = Quaternion.fromAngleAxis(angle, axis);
 
         // make a rotation maxtrix for pi/2 radians about y-axis
         let a = new Vector3({x: 0.0, y: 0.0, z: 1.0});
@@ -243,7 +243,7 @@ describe("Quaternion", () => {
         // make a Quaternion rotation for pi/2 radians about z-axis
         let angle = 0.5 * Math.PI;
         let axis = new Vector3({x: 0.0, y: 0.0, z: 1.0});
-        let q = Quaternion.angleAxis(angle, axis);
+        let q = Quaternion.fromAngleAxis(angle, axis);
 
         // make a rotation maxtrix for pi/2 radians about z-axis
         let a = new Vector3({x: 0.0, y: -1.0, z: 0.0});
@@ -279,6 +279,63 @@ describe("Quaternion", () => {
         expect(Vector3.distance(m.transformVector(zAxis), zAxis) < ALMOST_ZERO).toBe(true);
         expect(Vector3.distance(expected_q.rotateVector(zAxis), zAxis) < ALMOST_ZERO).toBe(true);
         expect(Vector3.distance(expected_m.transformVector(zAxis), zAxis) < ALMOST_ZERO).toBe(true);
+    });
+
+    test("multiply", () => {
+        let angle = 0.5 * Math.PI;
+        let xAxis = new Vector3({ x:1.0, y: 0.0, z: 0.0 });
+        let yAxis = new Vector3({ x:0.0, y: 1.0, z: 0.0 });
+        let zAxis = new Vector3({ x:0.0, y: 0.0, z: 1.0 });
+        let qx = Quaternion.fromAngleAxis(angle, xAxis);
+        let qy = Quaternion.fromAngleAxis(angle, yAxis);
+        let qz = Quaternion.fromAngleAxis(angle, zAxis);
+
+        // successive pi/2 rotations about xAxis, then yAxis, then zAxis
+        // is equivalent to one rotation of pi/2 about yAxis
+        let qzyx = Quaternion.multiply(qz, Quaternion.multiply(qy, qx));
+        // Note: to test equivalencey of two Quaternions we:
+        // dot them
+        // take the absolute value (because it will either be near 1.0 or -1.0)
+        // subract 1.0
+        // verify the absolute value of the residue is small
+        expect(Math.abs(1.0 - Math.abs(Quaternion.dot(qzyx, qy))) < ALMOST_ZERO).toBe(true);
+
+        // similary: qxzy = qz
+        let qxzy = Quaternion.multiply(qx, Quaternion.multiply(qz, qy));
+        expect(Math.abs(1.0 - Math.abs(Quaternion.dot(qxzy, qz))) < ALMOST_ZERO).toBe(true);
+
+        // similary: qyxz = qx
+        let qyxz = Quaternion.multiply(qy, Quaternion.multiply(qx, qz));
+        expect(Math.abs(1.0 - Math.abs(Quaternion.dot(qyxz, qx))) < ALMOST_ZERO).toBe(true);
+    });
+
+    test("euler", () => {
+        let yaw = 57.0;
+        let pitch = 41.0;
+        let roll = 23.0;
+        let q = Quaternion.fromEulerAngles({yaw: yaw, pitch: pitch, roll: roll});
+        let angles = q.getEulerAngles();
+        expect(Math.abs(yaw - angles.yaw) < ALMOST_ZERO).toBe(true);
+        expect(Math.abs(pitch - angles.pitch) < ALMOST_ZERO).toBe(true);
+        expect(Math.abs(roll - angles.roll) < ALMOST_ZERO).toBe(true);
+    });
+
+    test("azimuth", ()=> {
+        let yaw = 57.0;
+        let pitch = 41.0;
+        let roll = 23.0;
+        let q = Quaternion.fromEulerAngles({yaw: yaw, pitch: pitch, roll: roll});
+        let azimuth = q.getAzimuth();
+        expect(Math.abs(Math.abs(yaw - azimuth)) < ALMOST_ZERO).toBe(true);
+    });
+
+    test("elevation", () => {
+        let yaw = 57.0;
+        let pitch = 41.0;
+        let roll = 23.0;
+        let q = Quaternion.fromEulerAngles({yaw: yaw, pitch: pitch, roll: roll});
+        let elevation = q.getElevation();
+        expect(Math.abs(Math.abs(elevation - pitch)) < ALMOST_ZERO).toBe(true);
     });
 });
 
