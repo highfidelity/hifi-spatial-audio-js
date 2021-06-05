@@ -5,8 +5,9 @@
 
 import { HiFiUtilities } from "./HiFiUtilities";
 
-const MIN_QUAT_SQUARE_LENGTH = 1.0e-15;
-const MIN_AXIS_SQUARE_LENGTH = 1.0e-15;
+const MIN_NORMALIZABLE_SQUARE_LENGTH = 1.0e-15;
+const RADIANS_TO_DEGREES = 180.0 / Math.PI;
+const DEGREES_TO_RADIANS = Math.PI / 180.0;
 
 /**
  * A point in 3D space.
@@ -92,10 +93,10 @@ export class Quaternion {
      * @param axis - axis of rotation (does not need to be unitary)
      * @returns Quaternion representing a rotation of angle about axis.
      */
-    static angleAxis(angle: number, axis: Vector3): Quaternion {
+    static fromAngleAxis(angle: number, axis: Vector3): Quaternion {
         let q = new Quaternion();
         let L2 = axis.length2();
-        if (L2 > MIN_AXIS_SQUARE_LENGTH) {
+        if (L2 > MIN_NORMALIZABLE_SQUARE_LENGTH) {
             let c = Math.cos(0.5 * angle);
             let s_over_L = Math.sin(0.5 * angle) / Math.sqrt(L2);
             q.w = c;
@@ -106,10 +107,13 @@ export class Quaternion {
         return q;
     }
 
+    /**
+     * @returns Angle of rotation in radians
+     */
     getAngle() {
         let angle = 0.0;
         let length2 = Quaternion.dot(this, this);
-        if (length2 > MIN_QUAT_SQUARE_LENGTH) {
+        if (length2 > MIN_NORMALIZABLE_SQUARE_LENGTH) {
             // we use abs() to compute the positive angle
             // (e.g. we chose the axis such that angle is positive)
             angle = Math.abs(2.0 * Math.acos(this.w / Math.sqrt(length2)));
@@ -117,10 +121,13 @@ export class Quaternion {
         return angle;
     }
 
+    /**
+     * @returns normalized axis of shortest positive rotation
+     */
     getAxis() {
         let axis = new Vector3();
         let imaginaryLength2 = this.x * this.x + this.y * this.y + this.z * this.z;
-        if (imaginaryLength2 > MIN_AXIS_SQUARE_LENGTH) {
+        if (imaginaryLength2 > MIN_NORMALIZABLE_SQUARE_LENGTH) {
             let imaginaryLength = Math.sqrt(imaginaryLength2);
             axis.x = this.x / imaginaryLength;
             axis.y = this.y / imaginaryLength;
@@ -136,6 +143,131 @@ export class Quaternion {
     }
 
     /**
+     * @returns Euler angle decomposition object: {yaw:, pitch:, roll:}
+     * where:
+     *   yaw = degrees rotation about 'up' axis
+     *   pitch = degrees rotation about yawed 'right' axis
+     *   roll = degrees rotation about yawed and pitched 'forward' axis
+     */
+    getEulerAngles() {
+        let forward = new Vector3({x: 0.0, y: 0.0, z: -1.0});
+        let rotatedForward = this.rotateVector(forward);
+
+        let yaw = 0.0;
+        let projectedLengthSquared = rotatedForward.x * rotatedForward.x + rotatedForward.z * rotatedForward.z;
+        let right = new Vector3({x: 1.0, y: 0.0, z: 0.0});
+        if (projectedLengthSquared > MIN_NORMALIZABLE_SQUARE_LENGTH) {
+            // rotatedForward has a non-zero component in the horizontal plane
+            // and we use that projection to compute the angle
+            yaw = Math.acos(Vector3.dot(forward, rotatedForward) / Math.sqrt(projectedLengthSquared)); 
+            if (Vector3.dot(rotatedForward, right) > 0.0) {
+                yaw *= -1;
+            }
+        } else {
+            // rotatedForward points along vertical axis and has no projection on the horizontal plane
+            // however the "rotatedRight" axis effectively lies on the horizontal plane
+            // and we can extract the azimuthal angle from its projection there
+            let rotatedRight = this.rotateVector(right);
+            projectedLengthSquared = rotatedRight.x * rotatedRight.x + rotatedRight.z * rotatedRight.z;
+            yaw = Math.acos(Vector3.dot(rotatedRight, right) / Math.sqrt(projectedLengthSquared)); 
+            if (Vector3.dot(rotatedRight, forward) < 0.0) {
+                yaw *= -1;
+            }
+        }
+
+        let pitch = Math.asin(rotatedForward.y);
+
+        // For "roll": rotatedUp direction lives on a plane spanned by two unit vectors: yawedRight and pitchedUp
+        // We can compute "roll" using trigonometry once we decompose rotatedUp onto that plane
+        let up = new Vector3({ x: 0.0, y: 1.0, z: 0.0 });
+        let rotatedUp = this.rotateVector(up);
+        let yawedRight = new Vector3({ x: Math.cos(yaw), y: 0.0, z: -Math.sin(yaw) });
+        let pitchedUp = Vector3.cross(yawedRight, rotatedForward); // note, this is already unitary
+        let roll = Math.atan2( Vector3.dot(rotatedUp, yawedRight), Vector3.dot(rotatedUp, pitchedUp));
+
+        // convert all angles to degrees
+        yaw *= RADIANS_TO_DEGREES;
+        pitch *= RADIANS_TO_DEGREES;
+        roll *= RADIANS_TO_DEGREES;
+
+        return {"yaw": yaw, "pitch": pitch, "roll": roll};
+    }
+
+    /**
+     * @returns Azimuthal angle of rotation in degrees, also known as the "yaw about 'up'"
+     */
+    getAzimuth() {
+        let forward = new Vector3({x: 0.0, y: 0.0, z: -1.0});
+        let rotatedForward = this.rotateVector(forward);
+        let azimuth = 0.0;
+        let projectedLengthSquared = rotatedForward.x * rotatedForward.x + rotatedForward.z * rotatedForward.z;
+        let right = new Vector3({x: 1.0, y: 0.0, z: 0.0});
+        if (projectedLengthSquared > MIN_NORMALIZABLE_SQUARE_LENGTH) {
+            // rotatedForward has a non-zero component in the horizontal plane
+            // and we use that projection to compute the angle
+            azimuth = Math.acos(Vector3.dot(forward, rotatedForward) / Math.sqrt(projectedLengthSquared)); 
+            if (Vector3.dot(rotatedForward, right) > 0.0) {
+                azimuth *= -1;
+            }
+        } else {
+            // rotatedForward points along vertical axis and has no projection on the horizontal plane
+            // however the "rotatedRight" axis effectively lies on the horizontal plane
+            // and we can extract the azimuthal angle from its projection there
+            let rotatedRight = this.rotateVector(right);
+            projectedLengthSquared = rotatedRight.x * rotatedRight.x + rotatedRight.z * rotatedRight.z;
+            azimuth = Math.acos(Vector3.dot(rotatedRight, right) / Math.sqrt(projectedLengthSquared)); 
+            if (Vector3.dot(rotatedRight, forward) < 0.0) {
+                azimuth *= -1;
+            }
+        }
+        // finally, convert from radians to degrees
+        return azimuth * RADIANS_TO_DEGREES;
+    }
+
+    /**
+     * @returns Elevation angle of rotation in degrees, also known as the "pitch from horizontal plane"
+     */ 
+    getElevation() {
+        let forward = new Vector3({x: 0.0, y: 0.0, z: -1.0});
+        let rotatedForward = this.rotateVector(forward);
+        return RADIANS_TO_DEGREES * Math.asin(rotatedForward.y);
+    }
+
+    /**
+     * @returns Quaternion representing a rotation of yaw, pitch, roll about successive local axes: up, right, forward
+     * @param yaw - angle in degrees rotation about local-up
+     * @param pitch - angle in degrees rotation about local-right
+     * @param roll - angle in degrees rotation about local-forward
+     */
+    static fromEulerAngles({yaw = 0, pitch = 0, roll= 0 }: { yaw?: number, pitch?: number, roll?: number } = {}) {
+        let upAxis = new Vector3({ x: 0.0, y: 1.0, z: 0.0 });
+        let rightAxis = new Vector3({ x: 1.0, y: 0.0, z: 0.0 });
+        let forwardAxis = new Vector3({ x: 0.0, y: 0.0, z: -1.0 });
+
+        let qYaw = Quaternion.fromAngleAxis(yaw * DEGREES_TO_RADIANS, upAxis);
+        let pitchAxis = qYaw.rotateVector(rightAxis);
+        let qPitch = Quaternion.fromAngleAxis(pitch * DEGREES_TO_RADIANS, pitchAxis);
+        let rollAxis = qPitch.rotateVector(qYaw.rotateVector(forwardAxis));
+        let qRoll = Quaternion.fromAngleAxis(roll * DEGREES_TO_RADIANS, rollAxis);
+
+        return Quaternion.multiply(qRoll, Quaternion.multiply(qPitch, qYaw));
+    }
+
+    /**
+     * @returns Yaw angle of rotation in degrees, also known as the "azimuth"
+     */
+    getYaw() {
+        return this.getAzimuth();
+    }
+
+    /**
+     * @returns Pitch angle of rotation in degrees, also known as the "elevation"
+     */
+    getPitch() {
+        return this.getElevation();
+    }
+
+    /**
      * @returns the dot product of two Quaternions
      */
     static dot(p: Quaternion, q: Quaternion): number {
@@ -147,7 +279,6 @@ export class Quaternion {
      */
     normalize() {
         let L2 = this.w * this.w + this.x * this.x + this.y * this.y + this.z * this.z;
-        const MIN_NORMALIZABLE_SQUARE_LENGTH = 1.0e-15;
         if (L2 > MIN_NORMALIZABLE_SQUARE_LENGTH) {
             let inv_L = 1.0 / Math.sqrt(L2);
             this.w *= inv_L
@@ -162,6 +293,20 @@ export class Quaternion {
      */
     rotateVector(v: Vector3): Vector3 {
         return Matrix3.fromQuaternion(this).transformVector(v);
+    }
+
+    /**
+     * @returns Product of two quaternions: a * b
+     * @param a - quaternion on the left
+     * @param b - quaternion on the right
+     */
+    static multiply(a: Quaternion, b: Quaternion): Quaternion {
+        return new Quaternion({
+            w: a.w * b.w - a.x * b.x - a.y * b.y - a.z * b.z,
+            x: a.w * b.x + a.x * b.w + a.y * b.z - a.z * b.y,
+            y: a.w * b.y + a.y * b.w + a.z * b.x - a.x * b.z,
+            z: a.w * b.z + a.z * b.w + a.x * b.y - a.y * b.x
+        });
     }
 }
 
