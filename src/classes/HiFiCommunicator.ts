@@ -398,7 +398,17 @@ export class HiFiCommunicator {
         this._mixerSession.webRTCAddress = `${webRTCSignalingAddress}${hifiAuthJWT}`;
         HiFiLogger.log(`Using WebRTC Signaling Address:\n${webRTCSignalingAddress}<token redacted>`);
 
-        return this._connectToHiFiMixer();
+        return this._initialConnectionToMixer();
+    }
+
+    /**
+     * 
+     */
+    private async _initialConnectionToMixer(): Promise<any> {
+        // TODO: 
+        // When making the initial connection, the connection method's promise shouldn't
+        // resolve or reject until all retries have been attempted.
+        // This method should avoid resolving until any reconnects have completed.
     }
 
     /**
@@ -608,6 +618,7 @@ export class HiFiCommunicator {
                         this._connectToHiFiMixer();
                     }, 5000);
                     return;
+                    console.error("Would attempt a reconnect here");
                 }
 
                 let retryTimeout = 0;
@@ -652,9 +663,12 @@ export class HiFiCommunicator {
                     // the state change handler. It's appropriate for it to be kicked off
                     // asynchronously and for execution to continue, in this situation.
                     // TODO: Make this retry immediately instead of waiting
+                    /*
                     setTimeout(() => {
                         this._connectToHiFiMixer();
                     }, 5000);
+                    */
+                    console.error("Would attempt a reconnect here");
                 }
 
                 // If we are attempting a new reconnect, the logic before this will have changed (or left) the newState to 
