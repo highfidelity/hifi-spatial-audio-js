@@ -860,6 +860,10 @@ export class HiFiMixerSession {
                     HiFiLogger.log(`Error encountered while trying to close the connection. Error:\n${errorClosing}`);
                 }
                 break;
+            case RaviSignalingStates.ERROR:
+                // TODO: A signaling state error when the session is already up should only be considered a failure
+                // if it also results in a session disconnect.
+                this._onConnectionStateChange(HiFiConnectionStates.Failed);
         }
     }
 
@@ -874,6 +878,7 @@ export class HiFiMixerSession {
                 this._mixerPeerKeyToStateCacheDict = {};
                 this._onConnectionStateChange(HiFiConnectionStates.Connected);
                 break;
+            case RaviSessionStates.DISCONNECTED: // "disconnected" should hypothetically transient for libravi, but it never seems to resolve to "error", so I'm trapping it here anyway
             case RaviSessionStates.CLOSED:
                 this._onConnectionStateChange(HiFiConnectionStates.Disconnected);
                 try {
