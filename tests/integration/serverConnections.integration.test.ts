@@ -53,6 +53,9 @@ describe('Mixer connections', () => {
     } else if (stackname === "api-pro-east.highfidelity.com" || stackname === "api-pro-latest-east.highfidelity.com") {
         stackData = stacks.east;
         console.log("_______________USING EAST AUTH FILE_______________________");
+    } else if (stackname === "api-pro-eu.highfidelity.com" || stackname === "api-pro-latest-eu.highfidelity.com") {
+        stackData = stacks['api-pro-eu.highfidelity.com'];
+        console.log("_______________USING EU AUTH FILE_______________________");
     } else if (stackname === "api.highfidelity.com" || stackname === "api-hobby-latest.highfidelity.com") {
         stackData = stacks.hobby;
         console.log("_______________USING HOBBY AUTH FILE_______________________");
@@ -141,7 +144,7 @@ describe('Mixer connections', () => {
             }
 
             await expect(hifiCommunicator.connectToHiFiAudioAPIServer(nonadminUnsigned, stackURL))
-                .rejects.toMatchObject({ error: expect.stringMatching(/Unexpected server response: 501/) });
+                .rejects.toMatchObject({ error: expect.stringMatching(/signature verification failed/) });
 
             // confirm user is not connected
             let usersListMessage = await fetch(`${stackURL}/api/v1/spaces/${space1id}/users?token=${admin}`);
@@ -158,7 +161,7 @@ describe('Mixer connections', () => {
         // TEST THIS NEXT to ensure admin is not already connected
         test(`CANNOT connect to a space using a timed token after the token expires`, async () => {
             await expect(hifiCommunicator.connectToHiFiAudioAPIServer(nonadminExpired, stackURL))
-                .rejects.toMatchObject({ error: expect.stringMatching(/Unexpected server response: 501/) });
+                .rejects.toMatchObject({ error: expect.stringMatching(/signature verification failed/) });
 
             // confirm user is not connected
             let usersListMessage = await fetch(`${stackURL}/api/v1/spaces/${space1id}/users?token=${admin}`);
@@ -174,13 +177,13 @@ describe('Mixer connections', () => {
 
         test(`CANNOT connect to a space on staging that doesn’t exist (i.e. token contains an invalid space ID)`, async () => {
             await expect(hifiCommunicator.connectToHiFiAudioAPIServer(nonadminNonexistentSpaceID, stackURL))
-                .rejects.toMatchObject({ error: expect.stringMatching(/Unexpected server response: 501/) });
+                .rejects.toMatchObject({ error: expect.stringMatching(/token decode failed/) });
         });
 
         test(`CANNOT connect to a space BY NAME when multiple spaces with the same name exist in the same app`, async () => {
             await expect(hifiCommunicator.connectToHiFiAudioAPIServer(nonadminDupSpaceName, stackURL))
                 .rejects.toMatchObject({
-                    error: expect.stringMatching(/Unexpected server response: 501/)
+                    error: expect.stringMatching(/possibly more than one space has the given name/)
                 });
         });
     });

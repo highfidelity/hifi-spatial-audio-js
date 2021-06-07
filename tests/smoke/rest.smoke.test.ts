@@ -1,5 +1,7 @@
 const fetch = require('node-fetch');
 const stacks = require('../secrets/auth.json').stacks;
+const { MediaStream } = require('wrtc');
+const RTCAudioSourceSineWave = require('../testUtilities/rtcAudioSourceSineWave');
 
 import { tokenTypes, generateJWT, generateUUID, sleep, ZoneData, AttenuationData, setStackData } from '../testUtilities/testUtils';
 import { TestUser } from '../testUtilities/TestUser';
@@ -23,12 +25,15 @@ describe('HiFi API REST Calls', () => {
     } else if (stackname === "api-pro-east.highfidelity.com" || stackname === "api-pro-latest-east.highfidelity.com") {
         stackData = stacks.east;
         console.log("_______________USING EAST AUTH FILE_______________________");
+    } else if (stackname === "api-pro-eu.highfidelity.com" || stackname === "api-pro-latest-eu.highfidelity.com") {
+        stackData = stacks['api-pro-eu.highfidelity.com'];
+        console.log("_______________USING EU AUTH FILE_______________________");
     } else if (stackname === "api.highfidelity.com" || stackname === "api-hobby-latest.highfidelity.com") {
         stackData = stacks.hobby;
         console.log("_______________USING HOBBY AUTH FILE_______________________");
     } else {
         stackData = stacks[stackname];
-        console.log(`_______________USING ${ stackname } AUTH FILE_______________________`);
+        console.log(`_______________USING ${stackname} AUTH FILE_______________________`);
     }
     setStackData(stackData);
 
@@ -435,6 +440,241 @@ describe('HiFi API REST Calls', () => {
         });
     });
 
+    describe('Muting users', () => {
+        const numberTestUsers = 4;
+        let testUsers: Array<any> = [];
+        let spaceID: string;
+        let adminToken: string;
+        let nonAdminToken: string;
+
+        beforeAll(async () => {
+            jest.setTimeout(30000); // these tests need longer to complete
+            try {
+                let returnMessage = await fetch(`${stackURL}/api/v1/spaces/create?token=${adminTokenNoSpace}`);
+                let returnMessageJSON: any = {};
+                returnMessageJSON = await returnMessage.json();
+                spaceID = returnMessageJSON['space-id'];
+                adminToken = await generateJWT(tokenTypes.ADMIN_ID_APP1, spaceID);
+                nonAdminToken = await generateJWT(tokenTypes.NONADMIN_ID_APP1, spaceID);
+            } catch (e) {
+                console.error("Failed to create a space before tests for muting.");
+            }
+        });
+
+        afterAll(async () => {
+            jest.setTimeout(5000); // restore to default
+            await fetch(`${stackURL}/api/v1/spaces/${spaceID}?token=${adminToken}`, {
+                method: 'DELETE'
+            });
+        });
+
+        beforeEach(async () => {
+            testUsers = [];
+            for (let i = 0; i < numberTestUsers; i++) {
+                let tokenData = tokenTypes.NONADMIN_ID_APP1;
+                tokenData['user_id'] = generateUUID();
+                testUsers.push(new TestUser(tokenData['user_id']));
+                let token = await generateJWT(tokenData, spaceID);
+                await testUsers[i].communicator.connectToHiFiAudioAPIServer(token, stackURL);
+                expect(testUsers[i].connectionState).toBe(HiFiConnectionStates.Connected);
+
+                let source = new RTCAudioSourceSineWave({ frequency: 330 });
+                let track = source.createTrack();
+                let inputAudioMediaStream = new MediaStream([track]);
+                testUsers[i].communicator.setInputAudioMediaStream(inputAudioMediaStream);
+            }
+        });
+
+        afterEach(async () => {
+            // disconnect communicators to avoid using too many mixers
+            for (let i = 0; i < numberTestUsers; i++) {
+                await testUsers[i].communicator.disconnectFromHiFiAudioAPIServer();
+                expect(testUsers[i].connectionState).toBe(HiFiConnectionStates.Disconnected);
+            }
+        });
+
+        describe('Admin CAN mute/unmute users', () => {
+            test(`Mute one user`, async () => {
+                // All users are unmuted
+                for (let i = 0; i < numberTestUsers; i++) {
+                    expect(testUsers[i].muteState).toBe("UNMUTED");
+                }
+
+                // Admin mutes one user
+                let returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/users/${testUsers[0].name}?token=${adminToken}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ mute: true })
+                });
+                let responseJSON: any = {};
+                responseJSON = await returnMessage.json();
+                expect(responseJSON.status).toBe("ok");
+
+                await sleep(2000);
+                // User is muted, other users are not muted
+                for (let i = 0; i < numberTestUsers; i++) {
+                    if (i === 0) expect(testUsers[i].muteState).toBe("MUTED_FIXED");
+                    else expect(testUsers[i].muteState).toBe("UNMUTED");
+                }
+
+                // Muted user tries to unmute
+                returnMessage = await testUsers[0].communicator.setInputAudioMuted(false);
+                expect(returnMessage).toBe(false);
+
+                // User is still muted and fixed, other users are not muted
+                for (let i = 0; i < numberTestUsers; i++) {
+                    if (i === 0) expect(testUsers[i].muteState).toBe("MUTED_FIXED");
+                    else expect(testUsers[i].muteState).toBe("UNMUTED");
+                }
+
+                // Admin unmutes muted user
+                returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/users/${testUsers[0].name}?token=${adminToken}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ mute: false })
+                });
+                responseJSON = await returnMessage.json();
+                expect(responseJSON.status).toBe("ok");
+
+                await sleep(2000);
+                // User is still muted, but not fixed, other users are not muted
+                for (let i = 0; i < numberTestUsers; i++) {
+                    if (i === 0) expect(testUsers[i].muteState).toBe("MUTED_NOT_FIXED");
+                    else expect(testUsers[i].muteState).toBe("UNMUTED");
+                }
+
+                // Muted user tries to unmute
+                returnMessage = await testUsers[0].communicator.setInputAudioMuted(false);
+                expect(returnMessage).toBe(true);
+
+                // All users are unmuted
+                for (let i = 0; i < numberTestUsers; i++) {
+                    expect(testUsers[i].muteState).toBe("UNMUTED");
+                }
+            });
+
+            test(`Mute all users`, async () => {
+                // All users are unmuted
+                for (let i = 0; i < numberTestUsers; i++) {
+                    expect(testUsers[i].muteState).toBe("UNMUTED");
+                }
+
+                // Admin mutes all users
+                let returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/users?token=${adminToken}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ mute: true })
+                });
+                let responseJSON: any = {};
+                responseJSON = await returnMessage.json();
+                expect(responseJSON.status).toBe("ok");
+
+                await sleep(2000);
+                // All users are muted, fixed
+                for (let i = 0; i < numberTestUsers; i++) {
+                    expect(testUsers[i].muteState).toBe("MUTED_FIXED");
+                }
+
+                // Users try to unmute
+                for (let i = 0; i < numberTestUsers; i++) {
+                    returnMessage = await testUsers[0].communicator.setInputAudioMuted(false);
+                    expect(returnMessage).toBe(false);
+                }
+
+                // Users are still muted and fixed
+                for (let i = 0; i < numberTestUsers; i++) {
+                    expect(testUsers[i].muteState).toBe("MUTED_FIXED");
+                }
+
+                // Admin unmutes all users
+                returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/users?token=${adminToken}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ mute: false })
+                });
+                responseJSON = await returnMessage.json();
+                expect(responseJSON.status).toBe("ok");
+
+                await sleep(2000);
+                // Users are still muted, but not fixed
+                for (let i = 0; i < numberTestUsers; i++) {
+                    expect(testUsers[i].muteState).toBe("MUTED_NOT_FIXED");
+                }
+
+                // Users try to unmute
+                for (let i = 0; i < numberTestUsers; i++) {
+                    returnMessage = await testUsers[i].communicator.setInputAudioMuted(false);
+                    expect(returnMessage).toBe(true);
+                }
+
+                // All users are unmuted
+                for (let i = 0; i < numberTestUsers; i++) {
+                    expect(testUsers[i].muteState).toBe("UNMUTED");
+                }
+            });
+        });
+
+        describe('Nonadmin CANNOT mute/unmute users', () => {
+            test(`Mute one user`, async () => {
+                // All users are unmuted
+                for (let i = 0; i < numberTestUsers; i++) {
+                    expect(testUsers[i].muteState).toBe("UNMUTED");
+                }
+
+                // Nonadmin tries to mute one user
+                let returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/users/${testUsers[0].name}?token=${nonAdminToken}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ mute: true })
+                });
+                let responseJSON: any = {};
+                responseJSON = await returnMessage.json();
+                expect(responseJSON.status).toBe("Unauthorized");
+
+                await sleep(2000);
+                // All users are unmuted
+                for (let i = 0; i < numberTestUsers; i++) {
+                    expect(testUsers[i].muteState).toBe("UNMUTED");
+                }
+            });
+
+            test(`Mute all users`, async () => {
+                // All users are unmuted
+                for (let i = 0; i < numberTestUsers; i++) {
+                    expect(testUsers[i].muteState).toBe("UNMUTED");
+                }
+
+                // Nonadmin tries to mute all users
+                let returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/users/${testUsers[0].name}?token=${nonAdminToken}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ mute: true })
+                });
+                let responseJSON: any = {};
+                responseJSON = await returnMessage.json();
+                expect(responseJSON.status).toBe("Unauthorized");
+
+                await sleep(2000);
+                // All users are unmuted
+                for (let i = 0; i < numberTestUsers; i++) {
+                    expect(testUsers[i].muteState).toBe("UNMUTED");
+                }
+            });
+        });
+    });
+
     describe('Wrong admin tokens', () => {
         describe(`CANNOT read/alter App A by using a valid admin token for App B`, () => {
             let spaceID: string;
@@ -569,7 +809,7 @@ describe('HiFi API REST Calls', () => {
                 zone1Data['id'] = responseJSON[1].id;
                 zone2Data['id'] = responseJSON[0].id;
             }
-            expect(responseJSON.map((a: { id: any; }) => a.id).sort()).toEqual([zone1Data, zone2Data].map(a => a.id).sort());
+            expect(responseJSON.map((a: { id: number; }) => a.id).sort()).toEqual([zone1Data, zone2Data].map(a => a.id).sort());
 
             // Create one zone via space `settings/zones/create` POST request
             returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zones?token=${adminToken}`, {
@@ -594,7 +834,7 @@ describe('HiFi API REST Calls', () => {
             // Get the list of zones and make sure it is accurate
             returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zones?token=${adminToken}`);
             responseJSON = await returnMessage.json();
-            expect(responseJSON.map((a: { id: any; }) => a.id).sort()).toEqual([zone1Data, zone2Data, zone3Data, zone4Data].map(a => a.id).sort());
+            expect(responseJSON.map((a: { id: number; }) => a.id).sort()).toEqual([zone1Data, zone2Data, zone3Data, zone4Data].map(a => a.id).sort());
 
 
             // Get a zone's settings via GET request
@@ -655,25 +895,29 @@ describe('HiFi API REST Calls', () => {
             let attenuation3Data: AttenuationData;
             let attenuation4Data: AttenuationData;
             attenuation1Data = {
-                "attenuation": 0.5,
+                "attenuation": null,
+                "frequency-rolloff": null,
                 "listener-zone-id": zone1Data.id,
                 "source-zone-id": zone2Data.id,
                 "za-offset": -5
             };
             attenuation2Data = {
-                "attenuation": 0.5,
+                "attenuation": null,
+                "frequency-rolloff": null,
                 "listener-zone-id": zone1Data.id,
                 "source-zone-id": zone2Data.id,
                 "za-offset": -5
             };
             attenuation3Data = {
                 "attenuation": 0.5,
+                "frequency-rolloff": 12,
                 "listener-zone-id": zone1Data.id,
                 "source-zone-id": zone3Data.id,
                 "za-offset": -5
             };
             attenuation4Data = {
                 "attenuation": 0.5,
+                "frequency-rolloff": 12,
                 "listener-zone-id": zone1Data.id,
                 "source-zone-id": zone4Data.id,
                 "za-offset": -5
@@ -692,7 +936,7 @@ describe('HiFi API REST Calls', () => {
             expect(responseJSON[1]['id']).toBeDefined();
             attenuation1Data['id'] = responseJSON[0]['id'];
             attenuation2Data['id'] = responseJSON[1]['id'];
-            expect(responseJSON.map((a: { id: any; }) => a.id).sort()).toEqual([attenuation1Data, attenuation2Data].map(a => a.id).sort());
+            expect(responseJSON.map((a: { id: number; }) => a.id).sort()).toEqual([attenuation1Data, attenuation2Data].map(a => a.id).sort());
 
             // Create one attenuation via space `settings/attenuations/create` POST request
             returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zone_attenuations?token=${adminToken}`, {
@@ -708,7 +952,7 @@ describe('HiFi API REST Calls', () => {
             expect(responseJSON).toEqual([attenuation3Data]);
 
             // Create one attenuation via space settings/attenuations/create GET request
-            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zone_attenuations/create?token=${adminToken}&attenuation=${attenuation4Data["attenuation"]}&source-zone-id=${attenuation4Data["source-zone-id"]}&listener-zone-id=${attenuation4Data["listener-zone-id"]}&za-offset=${attenuation4Data["za-offset"]}`);
+            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zone_attenuations/create?token=${adminToken}&attenuation=${attenuation4Data["attenuation"]}&frequency-rolloff=${attenuation4Data["frequency-rolloff"]}&source-zone-id=${attenuation4Data["source-zone-id"]}&listener-zone-id=${attenuation4Data["listener-zone-id"]}&za-offset=${attenuation4Data["za-offset"]}`);
             responseJSON = await returnMessage.json();
             expect(responseJSON['id']).toBeDefined();
             attenuation4Data['id'] = responseJSON['id'];
@@ -717,7 +961,7 @@ describe('HiFi API REST Calls', () => {
             // Get the list of attenuations and make sure it is accurate
             returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zone_attenuations?token=${adminToken}`);
             responseJSON = await returnMessage.json();
-            expect(responseJSON.map((a: { id: any; }) => a.id).sort()).toEqual([attenuation1Data, attenuation2Data, attenuation3Data, attenuation4Data].map(a => a.id).sort());
+            expect(responseJSON.map((a: { id: number; }) => a.id).sort()).toEqual([attenuation1Data, attenuation2Data, attenuation3Data, attenuation4Data].map(a => a.id).sort());
 
             // Get a zone attenuation's settings via GET request
             returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zone_attenuations/${attenuation1Data.id}?token=${adminToken}`);
@@ -726,11 +970,12 @@ describe('HiFi API REST Calls', () => {
 
             // Change a zone attenuation's settings via GET request
             attenuation1Data['attenuation'] = -6;
+            attenuation1Data['frequency-rolloff'] = 2;
             attenuation1Data['listener-zone-id'] = zone2Data.id;
             attenuation1Data['source-zone-id'] = zone3Data.id;
             attenuation1Data['za-offset'] = 20;
 
-            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zone_attenuations/${attenuation1Data.id}?token=${adminToken}&attenuation=${attenuation1Data["attenuation"]}&listener-zone-id=${attenuation1Data["listener-zone-id"]}&source-zone-id=${attenuation1Data["source-zone-id"]}&za-offset=${attenuation1Data["za-offset"]}`);
+            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zone_attenuations/${attenuation1Data.id}?token=${adminToken}&attenuation=${attenuation1Data["attenuation"]}&frequency-rolloff=${attenuation1Data["frequency-rolloff"]}&listener-zone-id=${attenuation1Data["listener-zone-id"]}&source-zone-id=${attenuation1Data["source-zone-id"]}&za-offset=${attenuation1Data["za-offset"]}`);
             responseJSON = await returnMessage.json();
             expect(responseJSON).toEqual(attenuation1Data);
 
@@ -749,6 +994,7 @@ describe('HiFi API REST Calls', () => {
             let attenuationID = attenuation1Data.id;
             attenuation1Data = {
                 "attenuation": 0.8,
+                "frequency-rolloff": 2,
                 "listener-zone-id": zone3Data.id,
                 "source-zone-id": zone4Data.id,
                 "za-offset": -7
@@ -931,12 +1177,14 @@ describe('HiFi API REST Calls', () => {
             let attenuation2Data: AttenuationData;
             attenuation1Data = {
                 "attenuation": 0.5,
+                "frequency-rolloff": 12,
                 "listener-zone-id": zone1Data.id,
                 "source-zone-id": zone2Data.id,
                 "za-offset": -5
             };
             attenuation2Data = {
                 "attenuation": 0.5,
+                "frequency-rolloff": 12,
                 "listener-zone-id": zone2Data.id,
                 "source-zone-id": zone1Data.id,
                 "za-offset": -5
@@ -963,7 +1211,7 @@ describe('HiFi API REST Calls', () => {
             expect(responseJSON.errors.description).toBe(`token isn't an admin token`);
 
             // Try to create one attenuation via space settings/attenuations/create GET request
-            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zone_attenuations/create?token=${nonAdminToken}&attenuation=${attenuation1Data["attenuation"]}&source-zone-id=${attenuation2Data["source-zone-id"]}&listener-zone-id=${attenuation2Data["listener-zone-id"]}&za-offset=${attenuation1Data["za-offset"]}`);
+            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zone_attenuations/create?token=${nonAdminToken}&attenuation=${attenuation1Data["attenuation"]}&frequency-rolloff=${attenuation1Data["frequency-rolloff"]}&source-zone-id=${attenuation2Data["source-zone-id"]}&listener-zone-id=${attenuation2Data["listener-zone-id"]}&za-offset=${attenuation1Data["za-offset"]}`);
             responseJSON = await returnMessage.json();
             expect(responseJSON.errors.description).toBe(`token isn't an admin token`);
 
@@ -998,7 +1246,7 @@ describe('HiFi API REST Calls', () => {
             attenuation1Data['source-zone-id'] = zone3Data.id;
             attenuation1Data['za-offset'] = 20;
 
-            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zone_attenuations/${attenuation1Data.id}?token=${nonAdminToken}&attenuation=${attenuation1Data["attenuation"]}&listener-zone-id=${attenuation1Data["listener-zone-id"]}&source-zone-id=${attenuation1Data["source-zone-id"]}&za-offset=${attenuation1Data["za-offset"]}`);
+            returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/zone_attenuations/${attenuation1Data.id}?token=${nonAdminToken}&attenuation=${attenuation1Data["attenuation"]}&frequency-rolloff=${attenuation1Data["frequency-rolloff"]}&listener-zone-id=${attenuation1Data["listener-zone-id"]}&source-zone-id=${attenuation1Data["source-zone-id"]}&za-offset=${attenuation1Data["za-offset"]}`);
             responseJSON = await returnMessage.json();
             expect(responseJSON.errors.description).toBe(`token isn't an admin token`);
 
@@ -1017,6 +1265,7 @@ describe('HiFi API REST Calls', () => {
             let attenuationID = attenuation1Data.id;
             attenuation1Data = {
                 "attenuation": 0.8,
+                "frequency-rolloff": 2,
                 "listener-zone-id": zone3Data.id,
                 "source-zone-id": zone4Data.id,
                 "za-offset": -7

@@ -6,10 +6,7 @@ import { RaviUtils } from "./RaviUtils";
  *
  * "UNAVAILABLE" is a custom state that gets set
  * if the server is in a "running, but not currently
- * accepting incoming connections" state. Note however
- * that this is a transient state -- a connection that's
- * entered this state will usually then proceed to "ERROR" and
- * then to "CLOSED". Handle appropriately!
+ * accepting incoming connections" state.
  * 
  * @readonly
  * @enum {string}
@@ -34,11 +31,6 @@ export enum RaviSignalingStates {
  *
  */
 export class RaviSignalingConnection {
-  _stateChangeHandlers: Set<Function>;
-  _messageHandlers: Set<Function>;
-  _state: RaviSignalingStates;
-  _signalingImplementation: RaviSignalingWebSocketImplementation;
-  
   /**
    * "Class" variables to be aware of:
    *
@@ -48,7 +40,17 @@ export class RaviSignalingConnection {
    * this._signalingImplementation   // The implementation of signaling to use
    *
    * this._state                 // The current state of this connection
+   *
+   * _resolveOpen, _rejectOpen, _resolveClose, and _rejectClose: Used for resolving the Promises
+   *     made by the open and close functions, which get handled outside of those functions themselves
    */
+  _stateChangeHandlers: Set<Function>;
+  _messageHandlers: Set<Function>;
+  _state: RaviSignalingStates;
+  _signalingImplementation: RaviSignalingWebSocketImplementation;
+
+  _resolveOpen: Function; _rejectOpen: Function;
+  _resolveClose: Function; _rejectClose: Function;
   
   /**
    * Create a new RaviSignalingConnection
@@ -122,7 +124,7 @@ export class RaviSignalingConnection {
    */
   removeStateChangeHandler(changeHandler: Function) {
     try {
-      this._stateChangeHandlers.delete(changeHandler);
+      const retval = this._stateChangeHandlers.delete(changeHandler);
       return true;
     } catch (err) {
       RaviUtils.err("Error removing a state change handler: " +
@@ -180,40 +182,25 @@ export class RaviSignalingConnection {
 
   /**
    * Open a signaling connection to a particular URL. Returns a Promise
-   * that will resolve with the state once the RaviSignalingConnection is connected.
+   * that will resolve once the RaviSignalingConnection is connected.
    *
    * @param {string} URL The URL of the signaling server's endpoint (e.g. 'wss://foo.bar.baz:8889')
    * @returns {Promise}
    */
   openRAVISignalingConnection(URL: string) {
     var signalingConnection = this;
+    if (this._state === RaviSignalingStates.OPEN) return Promise.resolve(
+        "There is already an open WebSocket connection. To reconnect, first close the existing WebSocket and then attempt to open again."
+    );
 
     return new Promise((resolve, reject) => {
+      signalingConnection._resolveOpen = resolve;
+      signalingConnection._rejectOpen = reject;
+      // Start the "opening" process
       RaviUtils.log("Opening signaling connection to " + URL, "RaviSignalingController");
-      // Add a state change handler that will resolve the
-      // promise when the connection is open
-      const stateHandler = function(event: any) {
-        var state = "";
-        if (event && event.state) state = event.state;
-
-        if (state === RaviSignalingStates.CONNECTING) {
-          RaviUtils.log("Connecting...", "RaviSignalingController")
-        } else if (state === RaviSignalingStates.OPEN) {
-          // Remove this as a state change handler
-          signalingConnection.removeStateChangeHandler(stateHandler);
-          // and resolve the Promise
-          resolve(state);
-        } else {
-          // Remove this as a state change handler
-          signalingConnection.removeStateChangeHandler(stateHandler);
-          // and reject the Promise
-          reject(event.error || new Error(event.message || state));
-        }
-      }
-      signalingConnection.addStateChangeHandler(stateHandler);
-      // And then alert about the "opening" process
-      var event = {"state":RaviSignalingStates.CONNECTING};
+      let event = {"state":RaviSignalingStates.CONNECTING};
       this._handleStateChange(event, RaviSignalingStates.CONNECTING); 
+
       // And call the implementation's open method
       this._signalingImplementation._open(URL);
     });
@@ -230,40 +217,25 @@ export class RaviSignalingConnection {
   
   /**
    * Close the signaling connection. Returns a Promise
-   * that will resolve with the closed state once the RaviSignalingConnection is closed.
+   * that will resolve once the RaviSignalingConnection is closed.
    *
    * @returns {Promise}
    */
   closeRAVISignalingConnection() {
     var signalingConnection = this;
+    if (this._state === RaviSignalingStates.CLOSED) return Promise.resolve(
+        "Signaling connection is already closed."
+    );
 
     return new Promise((resolve, reject) => {
-      RaviUtils.log("Closing signaling connection", "RaviSignalingConnection");
-      // Add a state change handler that will resolve the
-      // promise when the connection is closed
-      const stateHandler = function(event: any) {
-        var state = "";
-        if (event && event.state) state = event.state;
-
-        if (state === RaviSignalingStates.CLOSING) {
-          RaviUtils.log("Closing...", "RaviSignalingConnection");
-        } else if (state === RaviSignalingStates.CLOSED) {
-          // Remove this as a state change handler
-          signalingConnection.removeStateChangeHandler(stateHandler);
-          // and resolve the Promise
-          resolve(state);
-        } else {
-          // Remove this as a state change handler
-          signalingConnection.removeStateChangeHandler(stateHandler);
-          // and reject the Promise
-          reject(Error(state));
-        }
-      }
-      signalingConnection.addStateChangeHandler(stateHandler);
-      // And then start the "closing" process
-      var event = {"state":RaviSignalingStates.CLOSING};
+      signalingConnection._resolveClose = resolve;
+      signalingConnection._rejectClose = reject;
+      // Start the "closing" process
+      RaviUtils.log("Closing signaling connection", "RaviSignalingController");
+      let event = {"state":RaviSignalingStates.CLOSING};
       this._handleStateChange(event, RaviSignalingStates.CLOSING); 
-      // And call the implementation's close method
+
+      // And call the implementation's open method
       this._signalingImplementation._close();
     });
   }
@@ -273,15 +245,54 @@ export class RaviSignalingConnection {
   /**
    * @private
    */
-  _handleStateChange(event: any, state: any) {
-    this._state = state;
-    event["state"] = state;
-    RaviUtils.log("_handleStateChange: " + RaviUtils.safelyPrintable(event), "RaviSignalingConnection");
-    this._stateChangeHandlers.forEach(function(handler) {
-      if (handler) {
-        handler(event); 
-      }
-    });
+  _handleStateChange(event: any = {}, state: RaviSignalingStates) {
+    // Always try to fulfill any open promises, even if the state hasn't changed
+    this._fulfillPromises(event, state);
+
+    // But only call handlers if the state did, in fact, change
+    if (state !== this._state) {
+        this._state = state;
+        event["state"] = state;
+        RaviUtils.log("_handleStateChange: " + RaviUtils.safelyPrintable(event), "RaviSignalingConnection");
+        this._stateChangeHandlers.forEach(function(handler) {
+          if (handler) {
+            handler(event);
+          }
+        });
+    }
+  }
+
+  /**
+   * @private
+   * Gets called whenever the state changes (and sometimes when it doesn't,
+   * but when we just want to make sure). Depending on the new (or current) state,
+   * this will appropriately fulfill outstanding promises that are pending
+   * in either the open or close method (or both).
+   */
+  _fulfillPromises(event: any = {}, state: RaviSignalingStates) {
+    let errorMessage = event.reason || event.message || state;
+    RaviUtils.log("_fulfillPromises: Handling state " + state, "RaviSignalingConnection");
+    switch(state) {
+      case RaviSignalingStates.OPEN:
+        if (this._resolveOpen) this._resolveOpen();
+        if (this._rejectClose) this._rejectClose(errorMessage);
+        break;
+      case RaviSignalingStates.CLOSED:
+        if (this._rejectOpen) this._rejectOpen(errorMessage);
+        if (this._resolveClose) this._resolveClose();
+        break;
+      case RaviSignalingStates.ERROR:
+        if (this._rejectOpen) this._rejectOpen(errorMessage);
+        if (this._rejectClose) this._rejectClose(errorMessage);
+        break;
+      case RaviSignalingStates.UNAVAILABLE:
+        if (this._rejectOpen) this._rejectOpen(errorMessage);
+        if (this._resolveClose) this._resolveClose();
+        break;
+      default:
+        // Do nothing for the "in progress" states, like "OPENING" or "CLOSING"
+        RaviUtils.log("_fulfillPromises: Skipping in-progress state " + state, "RaviSignalingConnection");
+    }
   }
   
   /**
@@ -297,7 +308,7 @@ export class RaviSignalingConnection {
     if (message.data) {
         try {
             let messageData = JSON.parse(message.data);
-            if (messageData.error && messageData.error == "service-unavailable") {
+            if (messageData.error && messageData.error === "service-unavailable") {
                 this._handleStateChange({}, RaviSignalingStates.UNAVAILABLE);
             }
         } catch(err) {
@@ -370,11 +381,11 @@ class RaviSignalingWebSocketImplementation {
    * @private
    */
   _open(socketAddress: string) {
+    var signalingConnection = this._raviSignalingConnection;
 
-    // If we already have an open websocket, just log and return
+    // If we already have an open websocket, make sure the signaling connection knows about it, and return immediately
     if (this._webSocket && this._webSocket.readyState === crossPlatformWebSocket.OPEN) {
-        RaviUtils.err("There is already an open WebSocket connection. To reconnect, first close the existing WebSocket and then attempt to open again.",
-                "RaviSignalingWebSocketImplementation");
+        signalingConnection._handleStateChange({}, RaviSignalingStates.OPEN);
         return;
     }
 
@@ -385,10 +396,18 @@ class RaviSignalingWebSocketImplementation {
     // stateChangeHandlers.
     // (We can't set these until we attempt to open the
     // WebSocket, because there's no other WebSocket constructor.)
-    var signalingConnection = this._raviSignalingConnection;
     this._webSocket.addEventListener('open', function(event: any) { signalingConnection._handleStateChange(event, RaviSignalingStates.OPEN); });
     this._webSocket.addEventListener('error', function(event: any) { signalingConnection._handleStateChange(event, RaviSignalingStates.ERROR); });
-    this._webSocket.addEventListener('close', function(event: any) { signalingConnection._handleStateChange(event, RaviSignalingStates.CLOSED); });
+    this._webSocket.addEventListener('close', function(event: any) { 
+        if (event && event.code && event.code > 4000) {
+            // This "close" event is really an error, because we're
+            // returning one of our custom error codes. Treat it as such.
+            RaviUtils.err("_handleStateChange: signaling error code " + event.code + ":  " + event.reason, "RaviSignalingConnection");
+            signalingConnection._handleStateChange(event, RaviSignalingStates.ERROR);
+        } else {
+            signalingConnection._handleStateChange(event, RaviSignalingStates.CLOSED);
+        }
+    });
 
     // Any additional messaging handling gets done by the main
     // RaviSignalingConnection's messageHandlers
@@ -409,10 +428,14 @@ class RaviSignalingWebSocketImplementation {
    * @private
    */
   _close() {
-    if (this._webSocket) {
-      this._webSocket.close();
-      this._webSocket = null;
+    var signalingConnection = this._raviSignalingConnection;
+    // If we're already closed, make sure the signaling connection knows about it and return immediately
+    if (! this._webSocket || this._webSocket.readyState === crossPlatformWebSocket.CLOSED) {
+        signalingConnection._handleStateChange({}, RaviSignalingStates.CLOSED);
+        return;
     }
+    this._webSocket.close();
+    this._webSocket = null;
   }
 }
 
