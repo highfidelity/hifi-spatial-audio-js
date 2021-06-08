@@ -2,6 +2,8 @@
 
 ## File structure for `tests` folder
     tests  
+    ├── health  
+    │   └── api.health.test.ts  
     ├── integration  
     │   └── serverConnections.integration.test.ts  
     ├── secrets  
@@ -35,24 +37,26 @@
 | east     | api-pro-east.highfidelity.com, api-pro-latest-east.highfidelity.com  |
 | hobby    | api.highfidelity.com, api-hobby-latest.highfidelity.com              |
 
+## Unit Tests
+
+Unit testing will test each part of the API to show that the individual functions are correct. These tests will not use real server connections and will mock any external pieces that a function relies on. These tests will run automatically via GHA before any code is merged and can be run manually from the console or from GHA workflow dispatch.
+
+## Integration Tests
+Integration testing will combine different modules in the API and test individual functions using actual server connections. These tests will run automatically via GHA before any code is merged and can be run manually from the console or from GHA workflow dispatch.
+
+## Smoke Tests
+
+Smoke testing will test multiple modules working together using real server connections by running a series of instructions in a typical usage scenario for the API. For example, one test might create a space within an app, edit its settings, and then delete the space. This should be run manually after a new deploy to ensure nothing is broken.
+
+## Health Tests
+Health tests are tests that should be run on an interval to catch any problems as soon as possible. These tests will use 1 of 6 preset spaces, depending on the time at which the script is run. This is to ensure we are using different mixers each time we run the test. Before running the test, you will need to add your app data to the auth file and create 6 spaces in that app, named '1', '2', ... '6'.
+
 ## Full Local Testing on 'staging-latest.highfidelity.com'
 
 To run all tests locally against 'staging-latest.highfidelity.com', type `jest test` into the console. All files in the `tests` directory and subdirectories ending in `.test.ts` will run.
 
-## Local Smoke Testing on 'staging-latest.highfidelity.com'
-
-Smoke testing will test multiple modules working together using real server connections by running a series of instructions in a typical usage scenario for the API. For example, one test might create a space within an app, edit its settings, and then delete the space. This should be run manually after a new deploy to ensure nothing is broken. To run only smoke tests, type `jest smoke` into the console. All files in the `tests/smoke` directory ending in `.test.ts` will run.
-
-## Local Unit Testing on 'staging-latest.highfidelity.com'
-
-Unit testing will test each part of the API to show that the individual functions are correct. These tests will not use real server connections and will mock any external pieces that a function relies on. These tests will run automatically via GHA before any code is merged and can be run manually from the console or from GHA workflow dispatch. To run only unit tests, type `jest unit` into the console. All files in the `tests/unit` directory and subdirectories ending in `.test.ts` will run.
-
-## Local Integration Testing on 'staging-latest.highfidelity.com'
-
-Integration testing will combine different modules in the API and test individual functions using actual server connections. These tests will run automatically via GHA before any code is merged and can be run manually from the console or from GHA workflow dispatch. To run only integration tests, type `jest integration` into the console. All files in the `tests/integration` directory ending in `.test.ts` will run.
-
 ## Testing against other stacks
-Make sure your stackname and apps IDs/secrets are included in the auth file and then run Jest via a node script named 'test'. The following example runs one specific test file against the main production (hobby) stack. You can confirm that the correct stack is being used by checking the logs. You may also run tests against other stacks via GHA workflows(see below).
+For testing against any stackother than 'staging', you will need to run 1 test at a time. Make sure your stackname and apps IDs/secrets are included in the auth file and then run Jest via a node script named 'test'. The following example runs the server connections test suite against the main production (hobby) stack. You can confirm that the correct stack is being used by checking the logs. You may also run tests against other stacks via GHA workflows(see below).
 
 ```
 npm run test serverConnections.integration.test.ts -- --stackname=api.highfidelity.com
