@@ -157,10 +157,10 @@ export class Diagnostics {
      */
     persist(reportString:string) {
         let existing = localStorage.getItem(this.label) || "";
-        // By construction existing is expected to be empty. It could have multiple lines if
+        // By construction existing is expected to be empty or one line. It could have multiple lines if
         // there is a bug, or if the application site limits the connect-src (or default-src)
         // in its Content-Security-Policy header without allowing this.url.
-        // In this case, we really ought to phone home through the mixer when connected.
+        // If it is more than a line, we are accumulating stuff and really ought to phone home through the mixer when connected.
         if (existing) existing += "\n";
         window.localStorage.setItem(this.label, existing + reportString);
     }
