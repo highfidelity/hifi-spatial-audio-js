@@ -472,7 +472,7 @@ export class RaviSession {
   * @internal
  * Constants used as the default filter for the stats collected in the RaviStatsWatcher
  */
-const STATS_WATCHER_FILTER = new Map([
+export const STATS_WATCHER_FILTER = new Map([
   ["remote-inbound-rtp", ["id", "type", "timestamp", "roundTripTime", "jitter"] ],
   ["inbound-rtp", ["id", "type", "timestamp", "jitterBufferDelay", "jitterBufferEmittedCount", "bytesReceived"]]
 ]);
