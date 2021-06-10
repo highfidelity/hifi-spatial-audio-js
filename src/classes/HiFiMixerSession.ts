@@ -897,6 +897,14 @@ export class HiFiMixerSession {
                 }
                 this._setCurrentHiFiConnectionState(HiFiConnectionStates.Failed);
                 break;
+            case RaviSessionStates.CLOSED:
+                // We don't want to override an "Unavailable" state. (This will hopefully
+                // be able to go away once changes from HIFI-629 are complete, but is safe to leave in for now.)
+                if (this._currentHiFiConnectionState === HiFiConnectionStates.Unavailable) {
+                    break;
+                }
+                this._setCurrentHiFiConnectionState(HiFiConnectionStates.Disconnected);
+                break;
         }
     }
 
