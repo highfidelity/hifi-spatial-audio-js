@@ -42,6 +42,8 @@ export class Diagnostics {
         this.checkPersisted();
         this.reset();
         this.fireListener = () => this.fire();
+        // An optimization to get caught up on data quicker in the case where network is lost and returns while tab is still up.
+        window.addEventListener('online', () => this.checkPersisted());
     }
     /** 
      * An instance is primed when entering the state we are interested in, until the report is fired.
@@ -57,10 +59,10 @@ export class Diagnostics {
     /**
      * Call this when we get into a state that we want to know more about, e.g., when leaving the thing that caused us to prime().
      */
-    fire() {
+    async fire() {
         if (!this.isPrimed()) return;
         const reportString = this.toString();
-        if (!this.report(reportString)) {
+        if (! await this.report(reportString)) {
             this.persist(reportString);
         }
         this.reset();
@@ -144,13 +146,22 @@ export class Diagnostics {
     }
     
     // Phoning home...
+    /**
+     * Return success, or a promise for success.
+     */
     report(reportString:string) {
         if (!navigator.onLine) return false;
         console.warn(reportString); // FIXME: remove after testing.
-        // FIXME: this will return true if the beacon is successfully queued, not sent.
-        // Ultimately, we may need a verification (e.g., next session) to see if the previous identifier was logged.
-        // We might also establish a handler for asynchronous failures. E.g., sending to bad url gives 405 in console.
-        return navigator.sendBeacon(this.url, reportString);
+        // This will return true if the beacon is successfully queued, not sent.
+        // Ultimately, we would need a verification (e.g., next session) to see if the previous identifier was logged.
+        // A failure gets logged to console in some browsers, but they don't actually emit an error event.
+        // return navigator.sendBeacon(this.url, reportString);
+        // Instead, let's POST exactly as sendBeacon would, and check success:
+        return fetch(this.url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain' },
+            body: reportString
+        }).then((response:Response) => response.ok, () => false);
     }
     /**
      * Add reportString to the set of data being saved for later reporting.
@@ -167,10 +178,10 @@ export class Diagnostics {
     /**
      * If there's anything persisted, try to report it. If successful, clear persistence.
      */
-    checkPersisted() {
+    async checkPersisted() {
         let existing = localStorage.getItem(this.label);
         if (!existing) return;
-        if (!this.report(existing)) return;
+        if (! await this.report(existing)) return;
         window.localStorage.removeItem(this.label);
     }
     // RTC stats...
