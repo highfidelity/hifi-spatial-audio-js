@@ -192,6 +192,8 @@ export class HiFiCommunicator {
     private _customSTUNandTURNConfig?: CustomSTUNandTURNConfig;
     private _connectionRetryAndTimeoutConfig: ConnectionRetryAndTimeoutConfig;
     private _retryTimerInProgress: any;
+    private _resolveOpen: Function;
+    private _rejectOpen: Function;
 
     /**
      * Constructor for the HiFiCommunicator object. Once you have created a HiFiCommunicator, you can use the
@@ -409,6 +411,19 @@ export class HiFiCommunicator {
         // When making the initial connection, the connection method's promise shouldn't
         // resolve or reject until all retries have been attempted.
         // This method should avoid resolving until any reconnects have completed.
+        let communicator = this;
+        return new Promise(async (resolve, reject) => {
+            communicator._resolveOpen = resolve;
+            communicator._rejectOpen = reject;
+
+            // If this fails, the reconnect logic will decide
+            // whether to keep trying or call this._rejectOpen
+            try {
+                await communicator._connectToHiFiMixer();
+            } catch (errorConnectingToMixer) {
+                HiFiLogger.error(errorConnectingToMixer);
+            }
+        });
     }
 
     /**
@@ -450,7 +465,10 @@ export class HiFiCommunicator {
     private _cancelRetriedConnectionAttempts(): void {
         HiFiLogger.warn("Cancelling retries of connections");
         clearTimeout(this._retryTimerInProgress);
+        if (this._rejectOpen) this._rejectOpen("Open attempt timed out");
+
         this._retryTimerInProgress = null;
+        this._currentHiFiConnectionState = HiFiConnectionStates.New;
         this._manageStateChange(HiFiConnectionStates.Failed);
         this._inputAudioMediaStream = undefined;
         this.onUsersDisconnected = undefined;
@@ -548,6 +566,7 @@ export class HiFiCommunicator {
                  */
                 // Cancel maxSecondsToSpendRetryingOnDisconnect and maxSecondsToSpendRetryingInitialConnection timeouts
                 clearTimeout(this._retryTimerInProgress);
+                if (this._resolveOpen) this._resolveOpen();
                 this._retryTimerInProgress = null;
                 break;
 
@@ -614,26 +633,28 @@ export class HiFiCommunicator {
                     // the state change handler. It's appropriate for it to be kicked off
                     // asynchronously and for execution to continue, in this situation.
                     // TODO: Make this retry immediately instead of waiting
+                    /*
                     setTimeout(() => {
                         this._connectToHiFiMixer();
                     }, 5000);
-                    return;
+                    */
                     console.error("Would attempt a reconnect here");
+                    return;
                 }
 
                 let retryTimeout = 0;
                 if (this._currentHiFiConnectionState === HiFiConnectionStates.Connecting &&
                             this._connectionRetryAndTimeoutConfig.autoRetryInitialConnection) {
                     // The user has started a connection attempt, it failed, and they want to retry
-                    retryTimeout = this._connectionRetryAndTimeoutConfig.maxSecondsToSpendRetryingInitialConnection;
+                    retryTimeout = 1000 * this._connectionRetryAndTimeoutConfig.maxSecondsToSpendRetryingInitialConnection;
                 } else if (this._currentHiFiConnectionState === HiFiConnectionStates.Connected &&
                             this._connectionRetryAndTimeoutConfig.autoRetryOnDisconnect) {
                     // The user had previously been connected, they got disconnected, and they want to retry
-                    retryTimeout = this._connectionRetryAndTimeoutConfig.maxSecondsToSpendRetryingOnDisconnect;
+                    retryTimeout = 1000 * this._connectionRetryAndTimeoutConfig.maxSecondsToSpendRetryingOnDisconnect;
                 } else if (this._currentHiFiConnectionState === HiFiConnectionStates.Reconnecting &&
                             this._connectionRetryAndTimeoutConfig.autoRetryOnDisconnect) {
                     // The user had previously been trying to reconnect, it failed, and they want to keep retrying
-                    retryTimeout = this._connectionRetryAndTimeoutConfig.maxSecondsToSpendRetryingOnDisconnect;
+                    retryTimeout = 1000 * this._connectionRetryAndTimeoutConfig.maxSecondsToSpendRetryingOnDisconnect;
                 } else {
                     // If the current state is anything else (e.g. if we're encountering an error during
                     // a normal disconnection attempt and so the state is "Disconnecting") or if the user
@@ -643,7 +664,7 @@ export class HiFiCommunicator {
 
                 // Timeout should be non-zero if we've made it this far, but just in case...
                 if (retryTimeout != 0) {
-                    HiFiLogger.warn("_manageStateChange: Attempting retry of connection");
+                    HiFiLogger.warn("_manageStateChange: Attempting retry of connection with timeout " + retryTimeout);
                     // Set up a timer that will cancel the retries after the specified amount of time
                     this._retryTimerInProgress = setTimeout(() => {
                         this._cancelRetriedConnectionAttempts();

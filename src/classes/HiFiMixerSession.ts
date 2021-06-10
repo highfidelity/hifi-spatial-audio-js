@@ -860,10 +860,6 @@ export class HiFiMixerSession {
                     HiFiLogger.log(`Error encountered while trying to close the connection. Error:\n${errorClosing}`);
                 }
                 break;
-            case RaviSignalingStates.ERROR:
-                // TODO: A signaling state error when the session is already up should only be considered a failure
-                // if it also results in a session disconnect.
-                this._onConnectionStateChange(HiFiConnectionStates.Failed);
         }
     }
 
