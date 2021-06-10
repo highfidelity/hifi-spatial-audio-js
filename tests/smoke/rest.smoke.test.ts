@@ -393,8 +393,13 @@ describe('HiFi API REST Calls', () => {
                 });
                 await sleep(30000);
                 for (let i = 0; i < numberTestUsers; i++) {
-                    if (i === 0) expect(testUsers[i].connectionState).toBe(HiFiConnectionStates.Failed);
-                    else expect(testUsers[i].connectionState).toBe(HiFiConnectionStates.Connected);
+                    if (i === 0) {
+                       expect(testUsers[i].connectionFailed).toBe(true);
+                       expect(testUsers[i].connectionState).toBe(HiFiConnectionStates.Disconnected);
+                    } else {
+                       expect(testUsers[i].connectionFailed).toBe(false);
+                       expect(testUsers[i].connectionState).toBe(HiFiConnectionStates.Connected);
+                    }
                 }
             });
 
@@ -404,7 +409,8 @@ describe('HiFi API REST Calls', () => {
                 });
                 await sleep(30000);
                 for (let i = 0; i < numberTestUsers; i++) {
-                    expect(testUsers[i].connectionState).toBe(HiFiConnectionStates.Failed);
+                    expect(testUsers[i].connectionFailed).toBe(true);
+                    expect(testUsers[i].connectionState).toBe(HiFiConnectionStates.Disconnected);
                 }
             });
         });
