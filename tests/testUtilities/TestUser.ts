@@ -5,11 +5,13 @@ export type MuteState = "MUTED_FIXED" | "MUTED_NOT_FIXED" | "UNMUTED";
 export class TestUser {
     name: string;
     connectionState: HiFiConnectionStates;
+    connectionFailed: boolean;
     muteState: MuteState;
     communicator: HiFiCommunicator;
 
     constructor(name: string) {
         this.name = name;
+        this.connectionFailed = false;
         this.connectionState = HiFiConnectionStates.Disconnected;
         this.muteState = "UNMUTED";
         this.communicator = new HiFiCommunicator({
@@ -20,6 +22,9 @@ export class TestUser {
 
     onConnectionStateChanged(connectionState: HiFiConnectionStates) {
         this.connectionState = connectionState;
+        if (connectionState === HiFiConnectionStates.Failed) {
+            this.connectionFailed = true;
+        }
     }
 
     onMuteChanged(data: any) {
