@@ -106,7 +106,7 @@ export class Diagnostics {
      * Answer a single (long) log line to report.
      */
     toString() {
-        return `${new Date().toISOString()} ${this.identifier}` +
+        return `${new Date().toISOString()} ${this.identifier}` + this.s('concurrency', this.session.concurrency) +
             this.connectionStats('browserStats') +
             this.connectionStats('mixerStats') +
             this.rtpStats() +

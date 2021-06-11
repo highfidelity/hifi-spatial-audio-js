@@ -136,8 +136,8 @@ export class HiFiMixerSession {
      * Since the server doesn't always send the "Provided User ID" in these peer updates, we have to keep track of the (presumably stable) key in `jsonData.peers`
      * associated with that "Provided User ID" in order to forward that "Provided User ID" to the Subscription handler and thus to the Library user.
      * 
-     * And since we are caching that one value, we are also caching the full state for all kwnon peers.
-     * This allows to optimize the received stream of changed data for a given peer from the server to just the necessary bits
+     * And since we are caching that one value, we are also caching the full state for all knwon peers.
+     * This allows us to optimize the received stream of changed data for a given peer from the server to just the necessary bits
      * and reconstruct the complete information with the knowledge of the cached state of thata peer.
      * One caveat, the position and orienationQuat fields cached for a peer are expressed in the 'MixerSpace', not transformed yet in the 'ClientUserSpace'.
      * 
@@ -155,6 +155,11 @@ export class HiFiMixerSession {
     private _lastSuccessfulInputAudioMutedValue: boolean;
 
     private onMuteChanged: OnMuteChangedCallback;
+
+    /**
+     * Only valid for users covered by a user data subscription. Remains constant at disconnect until the next connect.
+     */
+    public concurrency:number = 0;
 
     /**
      * The WebRTC Stats Observer callback
@@ -330,7 +335,7 @@ export class HiFiMixerSession {
             }
 
             // TODO: remove the entry from the peer state cache
-
+            this.concurrency -= allDeletedUserData.length;
             if (this.onUsersDisconnected && allDeletedUserData.length > 0) {
                 this.onUsersDisconnected(allDeletedUserData);
             }
@@ -345,7 +350,7 @@ export class HiFiMixerSession {
 
                 // See {@link this._mixerPeerKeyToStateCacheDict}.
                 let userDataCache: ReceivedHiFiAudioAPIData;
-                // If it is a knwon peer, we should have an entry for it in the cache dict
+                // If it is a known peer, we should have an entry for it in the cache dict
                 if (this._mixerPeerKeyToStateCacheDict[peerKeys[itr]]) {
                     userDataCache = this._mixerPeerKeyToStateCacheDict[peerKeys[itr]] as ReceivedHiFiAudioAPIData;
                 }
@@ -353,6 +358,7 @@ export class HiFiMixerSession {
                 else {
                     userDataCache = new ReceivedHiFiAudioAPIData();
                     this._mixerPeerKeyToStateCacheDict[peerKeys[itr]] = userDataCache;
+                    this.concurrency += 1;
                 }
 
                 // This is a new empty data that will collect the changes received from the server.
@@ -585,6 +591,7 @@ export class HiFiMixerSession {
 
         this._raviSignalingConnection.removeStateChangeHandler(tempUnavailableStateHandler);
 
+        this.concurrency = 0;
         this._raviSession.getCommandController().addBinaryHandler((data: any) => { this.handleRAVISessionBinaryData(data) }, true);
 
         return Promise.resolve(audionetInitResponse);
