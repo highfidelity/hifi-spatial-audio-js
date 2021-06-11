@@ -1,5 +1,3 @@
-const puppeteer = require('puppeteer');
-let browser: any;
 const fetch = require('node-fetch');
 const stacks = require('../secrets/auth.json').stacks;
 const { MediaStream } = require('wrtc');
@@ -40,11 +38,6 @@ describe('Audio', () => {
     setStackData(stackData);
 
     beforeAll(async () => {
-        browser = await puppeteer.launch({ args: ['--use-fake-ui-for-media-stream'] });
-        const page = await browser.newPage();
-        page.setContent('<!doctype html><html><body></body></html>');
-        global.window = page;
-        global.navigator = window.navigator;
         adminTokenNoSpace = await generateJWT(tokenTypes.ADMIN_ID_APP1);
     });
 
