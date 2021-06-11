@@ -3,9 +3,16 @@ import { RaviSession, STATS_WATCHER_FILTER } from "../libravi/RaviSession";
 
 const nonOperative = "non-operative";
 
+STATS_WATCHER_FILTER.set('remote-inbound-rtp',
+                         STATS_WATCHER_FILTER.get('remote-inbound-rtp').concat(['packetsLost', 'totalRoundTripTime']));
+STATS_WATCHER_FILTER.set('inbound-rtp',
+                         STATS_WATCHER_FILTER.get('inbound-rtp').concat(['packetsLost', 'packetsReceived', 'jitter']));
+STATS_WATCHER_FILTER.set('outbound-rtp', ['type', 'retransmittedPacketsSent', 'packetsSent']);
+
 STATS_WATCHER_FILTER.set('candidate-pair', ['writable', 'state', 'nominated', 'localCandidateId', 'remoteCandidateId']);
 STATS_WATCHER_FILTER.set('remote-candidate', ['id', 'address', 'ip', 'candidateType', 'protocol']);
 STATS_WATCHER_FILTER.set('local-candidate', ['id', 'address', 'ip', 'candidateType', 'protocol']);
+// "remote-inbound-rtp", []
 interface CandidateReport {
     ip?: string;
     address?: string;
@@ -13,8 +20,10 @@ interface CandidateReport {
     protocol?: string;
 }
 let nStatsClients = 0;
-let  browserStats: CandidateReport = {};
+let browserStats: CandidateReport = {};
 let remoteStats: CandidateReport = {};
+let reports:any;
+const useDebugPrefixes = true;
 
 /** 
  * @internal
@@ -83,6 +92,11 @@ export class Diagnostics {
         this.webSocket = this.rtc = {};
         // don't leave them hanging around. E.g., beforeunload can mess with the bfcache.
         this.fireOn.forEach(event => (document as any).removeEventListener(event, this.fireListener));
+        reports = {
+            'outbound-rtp': {},
+            'inbound-rtp': {},
+            'remote-inbound-rtp': {}
+        }
     }
     isPrimed() {
         return this.identifier !== nonOperative;
@@ -93,25 +107,26 @@ export class Diagnostics {
      */
     toString() {
         return `${new Date().toISOString()} ${this.identifier}` +
+            this.connectionStats('browserStats') +
+            this.connectionStats('mixerStats') +
+            this.rtpStats() +
+            this.rtcStates() +
+            this.s('APPSTATE', this.session.getCurrentHiFiConnectionState(), '\n') +
             this.s('RAVISTATE', this.ravi.getState()) +
-            this.stats('browserStats') +
-            this.stats('mixerStats') +
-            this.rtcInfo() +
-            this.s('APPSTATE', this.session.getCurrentHiFiConnectionState()) +
             this.s('ONLINE', navigator.onLine ? 'yes' : 'no') +
             this.s('XPLICITCLOSED', this.explicitApplicationClose ? 'yes' : 'no') +
             this.visibilityInfo() +
             this.connectionInfo() +
-            // TODO: totalPresent, rtc stats on dropped packets, etc
-        ` [${navigator.userAgent}]`;
+            (useDebugPrefixes ? '\n' : '') +
+            ` [${navigator.userAgent}]`;
     }
-    s(name:string, value:any) {
+    s(name:string, value:any, debugPrefix = '') {
         let separator = isNaN(value) ? '_' : ':';
-        return ` ${this.label}${name}${separator}${value}`;
+        return `${useDebugPrefixes ? debugPrefix : ''} ${this.label}${name}${separator}${value}`;
     }
     connectionInfo() {
         const info:any = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection || {};
-        return this.s('DEVICE', info.type) +
+        return this.s('DEVICE', info.type, '\n') +
             this.s('RATING', info.effectiveType) +
             this.s('DL', info.downlink) +
             this.s('RTT', info.rtt);
@@ -131,18 +146,42 @@ export class Diagnostics {
         this.webSocket = signaling._webSocket;
         this.rtc = raviRTC._rtcConnection;
     }
-    rtcInfo() {
-        return this.s('WebSocket', this.webSocket.readyState) +
-            this.s('RTC', this.rtc.connectionState) +
-            this.s('SIGNALING', this.rtc.signalingState) +
-            this.s('ICE', this.rtc.iceConnectionState) +
-            this.s('GATHERING', this.rtc.iceGatheringState);
+    rtcStates() {
+        // This bizarre pattern is to get as much info as possible, even from browsers such as Firefox that
+        // throw errors for some properties.
+        let collector:any = {},
+            safelyGet = (property:string, source:any = this.rtc) => {
+                try {
+                    collector[property] = source[property];
+                } catch (e) {
+                    collector[property] = e.name;
+                }
+            };
+        safelyGet('readyState', this.webSocket);
+        ['connectionState', 'signalingState', 'iceConnctionState','iceGatheringState'].forEach(p => safelyGet(p));
+        return this.s('WebSocket', collector.readyState, '\n') +
+            this.s('RTC', collector.connectionState) +
+            this.s('SIGNALING', collector.signalingState) +
+            this.s('ICE', collector.iceConnectionState) +
+            this.s('GATHERING', collector.iceGatheringState);
     }
-    stats(kind:string) {
+    connectionStats(kind:string) {
         let report = kind === 'browserStats' ?  browserStats : remoteStats;
-        return this.s(kind+'IP', report.ip || report.address) +
+        return this.s(kind+'IP', report.ip || report.address, '\n') +
             this.s(kind+'TYPE', report.candidateType) +
             this.s(kind+'PROTOCOL', report.protocol);
+    }
+    rtpStats() {
+        let s:string = '';
+        Object.keys(reports).forEach(reportName => {
+            let report = reports[reportName],
+                first = true;
+            Object.keys(report).forEach(propertyName => {
+                s += this.s(`${reportName}_${propertyName}`, report[propertyName], first ? '\n' : '');
+                first = false;
+            });
+        });
+        return s;
     }
     
     // Phoning home...
@@ -189,12 +228,28 @@ export class Diagnostics {
     // among all the diagnostics.
     static startStats(session:HiFiMixerSession) { // Results not defined if called with different session.
         if (nStatsClients++ > 0) return; // Someone primed before this call (and since the final reset).
-        session.startCollectingWebRTCStats((previous:any, next:any) => {
+        session.startCollectingWebRTCStats((next:any, previous:any) => {
             let selected = next.find((report:any) => report.writable || report.nominated),
                 localReport = next.find((report:any) => report.id === selected.localCandidateId),
                 remoteReport = next.find((report:any) => report.id === selected.remoteCandidateId);
             if (localReport)  browserStats = localReport;
             if (remoteReport) remoteStats = remoteReport;
+            function note(type:string, deltaProperties:Array<string>, absoluteProperties:Array<string> = []) {
+                function findReport(list:any) {
+                    return list.find((report:any) => {
+                        return report.type == type;
+                    });
+                }
+                let previousReport = findReport(previous),
+                    nextReport = findReport(next);
+                deltaProperties.forEach(property => reports[type][property] =
+                                        nextReport && (nextReport[property] - (previousReport ? previousReport[property] : 0)));
+                absoluteProperties.forEach(property => reports[type][property] =
+                                           nextReport && nextReport[property]);
+            }
+            note('outbound-rtp', ['retransmittedPacketsSent', 'packetsSent']);
+            note('inbound-rtp', ['packetsLost', 'packetsReceived'], ['jitter']);
+            note('remote-inbound-rtp', ['packetsLost'], ['roundTripTime', 'totalRoundTripTime', 'jitter']);
         });
     }
     static stopStats(session:HiFiMixerSession) {
