@@ -710,6 +710,7 @@ describe('HiFi API REST Calls', () => {
                 let returnMessageJSON: any = {};
                 returnMessageJSON = await returnMessage.json();
                 expect(returnMessageJSON.code).toBe(400);
+                expect(returnMessageJSON.errors).toMatchObject({ description: expect.stringMatching(/space\/app mismatch/) });
             });
         });
     });
