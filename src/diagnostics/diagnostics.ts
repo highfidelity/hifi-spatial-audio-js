@@ -12,7 +12,7 @@ STATS_WATCHER_FILTER.set('outbound-rtp', ['type', 'retransmittedPacketsSent', 'p
 STATS_WATCHER_FILTER.set('candidate-pair', ['writable', 'state', 'nominated', 'localCandidateId', 'remoteCandidateId']);
 STATS_WATCHER_FILTER.set('remote-candidate', ['id', 'address', 'ip', 'candidateType', 'protocol']);
 STATS_WATCHER_FILTER.set('local-candidate', ['id', 'address', 'ip', 'candidateType', 'protocol']);
-// "remote-inbound-rtp", []
+
 interface CandidateReport {
     ip?: string;
     address?: string;
@@ -43,7 +43,8 @@ export class Diagnostics {
     webSocket: any;
     rtc: any;
     fireOn: Array<string>;
-    fireListener?: Function;
+    fireListener: Function;
+    onlineListener: Function;
 
     constructor({url = "http://localhost:3000/disconnect-diagnostics", // FIXME: "https://highfidelity.com/disconnect-diagnostics",
                  label, session, ravi, fireOn = []}:{url?:string, label:string, session:HiFiMixerSession, ravi:RaviSession, fireOn?:Array<string>}) {
@@ -51,8 +52,7 @@ export class Diagnostics {
         this.checkPersisted();
         this.reset();
         this.fireListener = () => this.fire();
-        // An optimization to get caught up on data quicker in the case where network is lost and returns while tab is still up.
-        window.addEventListener('online', () => this.checkPersisted());
+        this.onlineListener = () => this.checkPersisted();
     }
     /** 
      * An instance is primed when entering the state we are interested in, until the report is fired.
@@ -106,11 +106,12 @@ export class Diagnostics {
      * Answer a single (long) log line to report.
      */
     toString() {
-        return `${new Date().toISOString()} ${this.identifier}` + this.s('concurrency', this.session.concurrency) +
+        return `${new Date().toISOString()} ${this.identifier}` +
             this.connectionStats('browserStats') +
             this.connectionStats('mixerStats') +
             this.rtpStats() +
             this.rtcStates() +
+            this.s('CONCURRENCY', this.session.concurrency, '\n') +
             this.s('APPSTATE', this.session.getCurrentHiFiConnectionState(), '\n') +
             this.s('RAVISTATE', this.ravi.getState()) +
             this.s('ONLINE', navigator.onLine ? 'yes' : 'no') +
@@ -213,11 +214,14 @@ export class Diagnostics {
         // If it is more than a line, we are accumulating stuff and really ought to phone home through the mixer when connected.
         if (existing) existing += "\n";
         window.localStorage.setItem(this.label, existing + reportString);
+        // An optimization to get caught up on data quicker in the case where network is lost and returns while tab is still up.
+        (window as any).addEventListener('online', this.onlineListener);
     }
     /**
      * If there's anything persisted, try to report it. If successful, clear persistence.
      */
     async checkPersisted() {
+        (window as any).removeEventListener('online', this.onlineListener);
         let existing = localStorage.getItem(this.label);
         if (!existing) return;
         if (! await this.report(existing)) return;
