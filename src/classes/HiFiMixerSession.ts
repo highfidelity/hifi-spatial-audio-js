@@ -228,7 +228,7 @@ export class HiFiMixerSession {
 
         this._resetMixerInfo();
         this._raviDiagnostics = new Diagnostics({label: 'ravi', session: this, ravi: this._raviSession});
-        this._hifiDiagnostics = new Diagnostics({label: 'hifi', session: this, ravi: this._raviSession,
+        this._hifiDiagnostics = new Diagnostics({label: 'app', session: this, ravi: this._raviSession,
                                                  // The first is the standard way to tell, but browser have bugs in which they don't fire.
                                                  // The second is enough for all known browser bugs, except for Safari desktop closing a visible tab.
                                                  fireOn: ['visibilitychange', 'pagehide', 'beforeunload']});
