@@ -709,8 +709,7 @@ describe('HiFi API REST Calls', () => {
                 let returnMessage = await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings/app-id/?token=${adminTokenApp2}`);
                 let returnMessageJSON: any = {};
                 returnMessageJSON = await returnMessage.json();
-                expect(returnMessageJSON.code).toBe(422);
-                expect(returnMessageJSON.errors).toMatchObject({ description: expect.stringMatching(/space\/app mismatch/) });
+                expect(returnMessageJSON.code).toBe(400);
             });
         });
     });
