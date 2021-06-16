@@ -522,7 +522,7 @@ class RaviWebRTCStatsWatcher {
    */
   stop() {
     if (this._interval) {
-      window.clearInterval(this._interval);
+      clearInterval(this._interval);
       this._interval = 0;
     }
   }
@@ -584,7 +584,7 @@ class RaviWebRTCStatsWatcher {
     // some observers, then make sure we run
     if (this._observers.size > 0) {
       if (!this._interval) {
-        window.setInterval(async (handler: any, timeout: any) => { 
+        setInterval(async (handler: any, timeout: any) => {
           const stats = await this._raviImplementation._getStats();
           
           let filteredStats:any = [];
@@ -621,7 +621,7 @@ class RaviWebRTCStatsWatcher {
     } else {
       // no observers, make sure we are stopped
       if (this._interval) {
-        window.clearInterval(this._interval);
+        clearInterval(this._interval);
         this._interval = 0;
       }
     }
