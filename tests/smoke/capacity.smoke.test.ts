@@ -48,11 +48,12 @@ describe('Audio', () => {
 
         // create the space
         beforeAll(async () => {
-            jest.setTimeout(180000);
+            jest.setTimeout(300000);
             groupID = generateUUID();
         });
 
         afterAll(async () => {
+            // await sleep(270000);
             await fetch(`${BOTS_API_URL}removeGroups`, {
                 method: 'DELETE',
                 headers: {
@@ -125,19 +126,17 @@ describe('Audio', () => {
                     visitIDHash = data.audionetInitResponse.visit_id_hash;
                 });
 
-            await sleep(30000);
+            await sleep(5000);
             expect(hifiCommunicator1.getConnectionState()).toBe("Connected");
             await fetch(`${BOTS_API_URL}listConnectionStates`)
                 .then((response: { json: () => any; }) => response.json())
                 .then(async (data: any) => {
                     let botslist = data.data.botsList;
-                    console.log(`${botslist[groupID].Connected} bots think they are connected.`);
                 });
             // space should be at max capacity now
             await fetch(`${stackURL}/api/v1/spaces/${spaceID}/users?token=${adminToken}`)
                 .then((response: { json: () => any; }) => response.json())
                 .then(async (data: any) => {
-                    console.log("__________CONNECTED USERS____________", data);
                     expect(data.length).toBe(20);
                 });
 
