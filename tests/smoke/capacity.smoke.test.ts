@@ -1,8 +1,11 @@
 const fetch = require('node-fetch');
 const stacks = require('../secrets/auth.json').stacks;
+import { HiFiCommunicator } from '../../src/classes/HiFiCommunicator';
 // import bots api
 
-import { tokenTypes, generateJWT, setStackData } from '../testUtilities/testUtils';
+import { tokenTypes, generateJWT, setStackData, sleep, generateUUID } from '../testUtilities/testUtils';
+
+const BOTS_API_URL = 'https://experiment-001.highfidelity.com/botsAPI/';
 
 let args = require('minimist')(process.argv.slice(2));
 let stackname = args.stackname || process.env.hostname || "api-staging-latest.highfidelity.com";
@@ -40,44 +43,108 @@ describe('Audio', () => {
     describe(`Capacity`, () => {
         let spaceID: string;
         let adminToken: string;
-
         let nonadminToken: string;
+        let groupID: string;
 
         // create the space
         beforeAll(async () => {
-            jest.setTimeout(10000);
-            try {
-                let returnMessage = await fetch(`${stackURL}/api/v1/spaces/create?token=${adminTokenNoSpace}`);
-                let returnMessageJSON: any = {};
-                returnMessageJSON = await returnMessage.json();
-                spaceID = returnMessageJSON['space-id']; // swap in your space ID to view bot testing
-                adminToken = await generateJWT(tokenTypes.ADMIN_ID_APP1, spaceID);
-                nonadminToken = await generateJWT(tokenTypes.NONADMIN_ID_APP1, spaceID); // swap in your token to view bot testing
-            } catch (err) {
-                console.error("Failed to create space before tests.");
-            }
-
-            // expect default max is 20
-
-            // add 19 users
+            jest.setTimeout(180000);
+            groupID = generateUUID();
         });
 
         afterAll(async () => {
+            await fetch(`${BOTS_API_URL}removeGroups`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ "groupIDs": [groupID] })
+            });
             await fetch(`${stackURL}/api/v1/spaces/${spaceID}?token=${adminToken}`, {
                 method: 'DELETE'
             });
         });
 
-        test(``, async () => {
-           // User should be able to connect while space is under max capacity
+        test(`Velvet rope`, async () => {
+            let visitIDHash: string;
+            try {
+                await fetch(`${stackURL}/api/v1/spaces/create?token=${adminTokenNoSpace}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        "client-limit": 20
+                    })
+                })
+                    .then((response: { json: () => any; }) => response.json())
+                    .then(async (data: any) => {
+                        spaceID = data['space-id'];
+                        adminToken = await generateJWT(tokenTypes.ADMIN_ID_APP1, spaceID);
+                        nonadminToken = await generateJWT(tokenTypes.NONADMIN_ID_APP1, spaceID);
+                    });
+            } catch (err) {
+                console.error("Failed to create space before tests.");
+            }
 
-           // User should not be able to connect once space is at max capacity
+            await fetch(`${stackURL}/api/v1/spaces/${spaceID}/settings?token=${adminToken}`)
+                .then((response: { json: () => any; }) => response.json())
+                .then(async (data: any) => {
+                    expect(data['client-limit']).toBe(20);
+                });
 
-           // Remove capcity limits
+            await fetch(`${BOTS_API_URL}addBots`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    "numBots": 19,
+                    "groupID": groupID,
+                    "properties": {
+                        "audio": [''],
+                        "stackName": [stackname],
+                        "jwt": [nonadminToken]
+                    }
+                })
+            })
 
-           // On a loop, add a bot and make sure all are connected. When any disconnect, that's the max load? 
-           // How will we add enough bots from 1 server? If we use multiple bots servers, the bot manager for 
-           // each server has no data on bots from other servers.
+            await sleep(5000);
+            await fetch(`${BOTS_API_URL}listConnectionStates`)
+                .then((response: { json: () => any; }) => response.json())
+                .then(async (data: any) => {
+                    let botslist = data.data.botsList;
+                    if (botslist[groupID].Connected !== 19) throw new Error(`Setup failed. Rerun this test. ${botslist[groupID].Connected} bots connected.`);
+                });
+
+            // User should be able to connect while space is under max capacity
+            let hifiCommunicator1 = new HiFiCommunicator();
+            await hifiCommunicator1.connectToHiFiAudioAPIServer(nonadminToken, stackURL)
+                .then(data => {
+                    expect(data.audionetInitResponse.success).toBe(true);
+                    visitIDHash = data.audionetInitResponse.visit_id_hash;
+                });
+
+            await sleep(30000);
+            expect(hifiCommunicator1.getConnectionState()).toBe("Connected");
+            await fetch(`${BOTS_API_URL}listConnectionStates`)
+                .then((response: { json: () => any; }) => response.json())
+                .then(async (data: any) => {
+                    let botslist = data.data.botsList;
+                    console.log(`${botslist[groupID].Connected} bots think they are connected.`);
+                });
+            // space should be at max capacity now
+            await fetch(`${stackURL}/api/v1/spaces/${spaceID}/users?token=${adminToken}`)
+                .then((response: { json: () => any; }) => response.json())
+                .then(async (data: any) => {
+                    console.log("__________CONNECTED USERS____________", data);
+                    expect(data.length).toBe(20);
+                });
+
+            // User should not be able to connect once space is at max capacity
+            let hifiCommunicator2 = new HiFiCommunicator();
+            await expect(hifiCommunicator2.connectToHiFiAudioAPIServer(nonadminToken, stackURL))
+                .rejects.toMatchObject({ error: expect.stringMatching("Error when connecting to mixer!\nHigh Fidelity server is at capacity; service is unavailable.") });
         });
     });
 });
