@@ -134,7 +134,7 @@ describe('Mixer connections', () => {
         });
 
         // TEST THIS FIRST to ensure nonadmin is not already connected
-        test(`CANNOT connect to Space A on staging with UNSIGNED token containing Space ID A when space does require signing`, async () => {
+        test(`CANNOT connect to Space A with UNSIGNED token containing Space ID A when space does require signing`, async () => {
             // set space to not allow unsigned tokens
             try {
                 await fetch(`${stackURL}/api/v1/spaces/${space1id}/settings?token=${admin}&ignore-token-signing=false`);
@@ -175,7 +175,7 @@ describe('Mixer connections', () => {
             expect(connectionConfirmed).toBeFalsy();
         });
 
-        test(`CANNOT connect to a space on staging that doesn’t exist (i.e. token contains an invalid space ID)`, async () => {
+        test(`CANNOT connect to a space that doesn’t exist (i.e. token contains an invalid space ID)`, async () => {
             await expect(hifiCommunicator.connectToHiFiAudioAPIServer(nonadminNonexistentSpaceID, stackURL))
                 .rejects.toMatchObject({ error: expect.stringMatching(/token decode failed/) });
         });
@@ -197,7 +197,7 @@ describe('Mixer connections', () => {
             await hifiCommunicator.disconnectFromHiFiAudioAPIServer();
         });
 
-        test(`CAN connect to Space A on staging with signed token containing Space ID A`, async () => {
+        test(`CAN connect to Space A with signed token containing Space ID A`, async () => {
             let visitIDHash: string;
             await hifiCommunicator.connectToHiFiAudioAPIServer(nonadmin, stackURL)
                 .then(data => {
@@ -217,7 +217,7 @@ describe('Mixer connections', () => {
             expect(connectionConfirmed).toBeTruthy();
         });
 
-        test(`CAN connect to Space A on staging with UNSIGNED token containing Space ID A when space does not require signing`, async () => {
+        test(`CAN connect to Space A with UNSIGNED token containing Space ID A when space does not require signing`, async () => {
             let visitIDHash: string;
             // set space to allow unsigned tokens
             try {
@@ -245,7 +245,7 @@ describe('Mixer connections', () => {
             expect(connectionConfirmed).toBeTruthy();
         });
 
-        test(`CAN connect to Space A on staging with signed token containing Space ID A when space does not require signing`, async () => {
+        test(`CAN connect to Space A with signed token containing Space ID A when space does not require signing`, async () => {
             let visitIDHash: string;
             // set space to not allow unsigned tokens
             try {
