@@ -136,7 +136,7 @@ export class HiFiMixerSession {
      * Since the server doesn't always send the "Provided User ID" in these peer updates, we have to keep track of the (presumably stable) key in `jsonData.peers`
      * associated with that "Provided User ID" in order to forward that "Provided User ID" to the Subscription handler and thus to the Library user.
      * 
-     * And since we are caching that one value, we are also caching the full state for all knwon peers.
+     * And since we are caching that one value, we are also caching the full state for all known peers.
      * This allows us to optimize the received stream of changed data for a given peer from the server to just the necessary bits
      * and reconstruct the complete information with the knowledge of the cached state of thata peer.
      * One caveat, the position and orienationQuat fields cached for a peer are expressed in the 'MixerSpace', not transformed yet in the 'ClientUserSpace'.
