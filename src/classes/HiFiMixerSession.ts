@@ -12,7 +12,7 @@ import { RaviUtils } from "../libravi/RaviUtils";
 import { RaviSession, RaviSessionStates, WebRTCSessionParams, CustomSTUNandTURNConfig } from "../libravi/RaviSession";
 import { RaviSignalingConnection, RaviSignalingStates } from "../libravi/RaviSignalingConnection";
 import { HiFiAxisUtilities, ourHiFiAxisConfiguration } from "./HiFiAxisConfiguration";
-const pako = require('pako');
+import pako from 'pako'
 
 const INIT_TIMEOUT_MS = 5000;
 const PERSONAL_VOLUME_ADJUST_TIMEOUT_MS = 5000;
