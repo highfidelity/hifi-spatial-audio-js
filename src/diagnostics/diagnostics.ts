@@ -122,7 +122,8 @@ export class Diagnostics {
      * Answer a single (long) log line to report.
      */
     toString() {
-        return `${new Date().toISOString()} ${this.identifier} applogReason_sessionEND` +
+        return `${new Date().toISOString()} ${this.identifier} ` +
+            this.s('logReason', 'sessionEND') +
             this.connectionStats('browserStats') +
             this.connectionStats('mixerStats') +
             this.rtpStats() +
