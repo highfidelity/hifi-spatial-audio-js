@@ -37,6 +37,7 @@
   "homepage": "https://highfidelity.com/",
   "devDependencies": {
     "@types/jest": "^26.0.20",
+    "@types/pako": "^1.0.1",
     "@types/puppeteer": "^5.4.3",
     "aws-sdk": "^2.831.0",
     "clean-webpack-plugin": "^3.0.0",
