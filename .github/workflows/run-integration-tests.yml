@@ -25,9 +25,9 @@ jobs:
         run: echo "The last push was made by a user named ${{ github.event.pusher.name }}."
 
       - name: Check for 'safe to test' label
-        if: contains(github.event.pull_request.labels.*.name, 'safe to test' || github.event_name != 'workflow_dispatch'
-        run: exit 1
         continue-on-error: false
+        if: ${{ !contains(github.event.pull_request.labels.*.name, 'safe to test') && "github.event_name != 'workflow_dispatch'" }}
+        run: exit 1
       
       - uses: actions/checkout@v2
         with:
