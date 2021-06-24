@@ -9,7 +9,7 @@ on:
         default: api-staging-latest.highfidelity.com
       
   pull_request_target:
-  types: [opened, synchronize, reopened, labeled, unlabeled]
+    types: [opened, synchronize, reopened, labeled, unlabeled]
     branches:
       - main
       - release
@@ -25,8 +25,7 @@ jobs:
         run: echo "The last push was made by a user named ${{ github.event.pusher.name }}."
 
       - name: Check for 'safe to test' label
-        if: "!contains(github.event.pull_request.labels.*.name, 'safe to test')" && github.event_name != 'workflow_dispatch'
-        run: exit 1
+        if: contains(github.event.pull_request.labels.*.name, 'safe to test' || github.event_name != 'workflow_dispatch'
       
       - uses: actions/checkout@v2
         with:
