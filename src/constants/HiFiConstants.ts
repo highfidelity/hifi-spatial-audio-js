@@ -32,9 +32,10 @@ export class HiFiConstants {
      */
     static DEFAULT_CONNECTION_RETRY_AND_TIMEOUT: ConnectionRetryAndTimeoutConfig = {
         autoRetryInitialConnection: false,
-        maxSecondsToSpendRetryingInitialConnection: 60,
+        maxSecondsToSpendRetryingInitialConnection: 10,
         autoRetryOnDisconnect: false,
         maxSecondsToSpendRetryingOnDisconnect: 300,
+        pauseBetweenRetriesMS: 500,
         timeoutPerConnectionAttemptMS: 5000
     };
 
