@@ -17,11 +17,15 @@ on:
 jobs:
   Run-Jest-Integration-Tests:
     runs-on: ubuntu-latest
-    if: github.event.pusher.name != 'hifibuild' && github.event.pusher.name != 'dependabot' && contains(github.event.pull_request.labels.*.name, 'safe to test')
+    if: github.event.pusher.name != 'hifibuild' && github.event.pusher.name != 'dependabot'
 
     steps:
       - name: View Commit Author
         run: echo "The last push was made by a user named ${{ github.event.pusher.name }}."
+
+      - name: Check for 'safe to test' label
+        if: "!contains(github.event.pull_request.labels.*.name, 'safe to test')"
+        run: exit 1
       
       - uses: actions/checkout@v2
         with:
