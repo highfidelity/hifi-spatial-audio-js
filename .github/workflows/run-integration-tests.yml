@@ -31,7 +31,7 @@ jobs:
       
       - uses: actions/checkout@v2
         with:
-          'refs/pull/${{ github.event.number }}/merge'
+          ref: 'refs/pull/${{ github.event.number }}/merge'
     
       - uses: actions/setup-node@v2
         with:
