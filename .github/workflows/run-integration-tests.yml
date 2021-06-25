@@ -32,7 +32,7 @@ jobs:
       - name: Configure Build Environment
         shell: bash
         id: buildenv
-        run: if [ ${{ github.event_name }} == "workflow_dispatch" ]; then echo ${{ GITHUB_SHA }} >> $GITHUB_ENV; else echo "CHECKOUT_REF='refs/pull/${{ github.event.number }}/merge'" >> $GITHUB_ENV;
+        run: if [ ${{ github.event_name }} == "workflow_dispatch" ]; then echo ${{ github.ref }} >> $GITHUB_ENV; else echo "CHECKOUT_REF='refs/pull/${{ github.event.number }}/merge'" >> $GITHUB_ENV;
       
       - uses: actions/checkout@v2
         with:
