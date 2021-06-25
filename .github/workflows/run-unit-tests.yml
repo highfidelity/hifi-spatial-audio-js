@@ -1,13 +1,7 @@
 name: Run-Jest-Unit-Tests
 
 on:
-  workflow_dispatch:
-    inputs:
-      stackname:
-        description: "Host name, i.e. 'api.highfidelity.com', `api-staging-latest.highfidelity.com`, or 'api-pro-east.highfidelity.com'"
-        required: true
-        default: api-staging-latest.highfidelity.com
-      
+  workflow_dispatch:      
   pull_request:
     branches:
       - main
