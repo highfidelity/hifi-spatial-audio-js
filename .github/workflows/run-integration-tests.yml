@@ -34,9 +34,9 @@ jobs:
         id: buildenv
         run: |
          if [ ${{ github.event_name }} == "workflow_dispatch" ]; then
-          echo "CHECKOUT_REF='${{ github.ref }}'" >> $GITHUB_ENV;
+          echo "CHECKOUT_REF=${{ github.ref }}" >> $GITHUB_ENV;
          else 
-          echo "CHECKOUT_REF='refs/pull/${{ github.event.number }}/merge'" >> $GITHUB_ENV;
+          echo "CHECKOUT_REF=refs/pull/${{ github.event.number }}/merge" >> $GITHUB_ENV;
          fi
       
       - uses: actions/checkout@master
