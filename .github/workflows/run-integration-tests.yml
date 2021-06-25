@@ -28,10 +28,19 @@ jobs:
         continue-on-error: false
         if: ${{ !contains(github.event.pull_request.labels.*.name, 'safe to test') && github.event_name != 'workflow_dispatch' }}
         run: exit 1
+        
+      - name: Configure Build Environment
+        shell: bash
+        id: buildenv
+        run: |
+          if [ ${{ github.event_name }} == "workflow_dispatch" ]; then
+            echo $GITHUB_SHA >> $GITHUB_ENV
+          else
+            echo "CHECKOUT_REF='refs/pull/${{ github.event.number }}/merge" >> $GITHUB_ENV
       
       - uses: actions/checkout@v2
         with:
-          ref: 'refs/pull/${{ github.event.number }}/merge'
+          ref: '${{ env.CHECKOUT_REF }}'
     
       - uses: actions/setup-node@v2
         with:
