@@ -521,7 +521,7 @@ export class HiFiCommunicator {
                 clearTimeout(this._retryTimerInProgress);
                 this._retryTimerInProgress = null;
                 this._failureNotificationPending = undefined; // No need to let them know if we failed earlier; everything's OK now!
-                // Finally, tell the user
+                // Finally, tell the user ("message" should be set to audionet.init by the mixer change handler)
                 this._updateStateAndCallUserStateChangeHandler(newState, message);
                 return;
 
@@ -563,7 +563,7 @@ export class HiFiCommunicator {
                                 this._currentHiFiConnectionState !== HiFiConnectionStates.Reconnecting) {
                         HiFiLogger.warn(`_manageConnection handling reconnection, but encountered unexpected state ${this._currentHiFiConnectionState}; will attempt to reconnect, but please contact High Fidelity and report this message`);
                         // Fix the state; "Reconnecting" seems the best option at this point.
-                        this._currentHiFiConnectionState = HiFiConnectionStates.Reconnecting;
+                        this._updateStateAndCallUserStateChangeHandler(HiFiConnectionStates.Reconnecting);
                     }
                     // Catch our breath (the "pauseBetweenRetriesMS" setting), and then retry again
                     setTimeout(() => {
@@ -622,7 +622,7 @@ export class HiFiCommunicator {
 
                     if (this._currentHiFiConnectionState === HiFiConnectionStates.Connected) {
                         // Set the state to "Reconnecting" if it's the first failure from a connected state.
-                        this._currentHiFiConnectionState = HiFiConnectionStates.Reconnecting;
+                        this._updateStateAndCallUserStateChangeHandler(HiFiConnectionStates.Reconnecting);
                         setTimeout(() => {
                                 this._manageConnection(HiFiConnectionStates.Reconnecting);
                         }, this._connectionRetryAndTimeoutConfig.pauseBetweenRetriesMS);
@@ -660,6 +660,8 @@ export class HiFiCommunicator {
      * This method will handle updating the _currentHiFiConnectionState and notifying
      * the user's callback (when we're ready for that to happen). This will also resolve
      * or reject the Promise made by the `connectToHiFiAudioAPIServer()` method.
+     * All updates to `this._currentHiFiConnectionState` should go through this method
+     * unless there's a really good reason (e.g. `_cancelRetriedConnectionAttempts`)
      */
     private _updateStateAndCallUserStateChangeHandler(newState: HiFiConnectionStates, message?: string): void {
         if (newState === HiFiConnectionStates.Connected) {
@@ -713,7 +715,8 @@ export class HiFiCommunicator {
         // messaged to the user once the `disconnectFromHiFiMixer` method
         // finishes up.
         if (! this._failureNotificationPending) this._failureNotificationPending = "Reconnection retry attempts unsuccessful"; 
-        this._currentHiFiConnectionState = HiFiConnectionStates.Failed;
+        this._updateStateAndCallUserStateChangeHandler(HiFiConnectionStates.Failed);
+        //this._currentHiFiConnectionState = HiFiConnectionStates.Failed;
         this._mixerSession.disconnectFromHiFiMixer();
     }
 
@@ -732,10 +735,6 @@ export class HiFiCommunicator {
         // This is an explicit, user-triggered disconnection attempt. Set the state appropriately.
         this._manageConnection(HiFiConnectionStates.Disconnecting);
 
-        this._inputAudioMediaStream = undefined;
-        this.onUsersDisconnected = undefined;
-        this._userDataSubscriptions = [];
-        this._currentHiFiAudioAPIData = undefined;
         this._lastTransmittedHiFiAudioAPIData = new HiFiAudioAPIData();
 
         return this._mixerSession.disconnectFromHiFiMixer();

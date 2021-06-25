@@ -226,8 +226,10 @@ export class HiFiMixerSession {
         RaviUtils.setDebug(false);
 
         this._raviSignalingConnection = new RaviSignalingConnection();
-
         this._raviSession = new RaviSession();
+        this._raviSession.getCommandController().addBinaryHandler((data: any) => {
+            this.handleRAVISessionBinaryData(data)
+        }, true);
 
         this.onConnectionStateChanged = onConnectionStateChanged;
 
@@ -322,14 +324,15 @@ export class HiFiMixerSession {
                         if (this._mixerPeerKeyToStateCacheDict[mixerPeerKey].providedUserID) {
                             deletedUserData.providedUserID = this._mixerPeerKeyToStateCacheDict[mixerPeerKey].providedUserID;
                         }
+                        // TODO: remove the entry from the peer state cache -- is this OK?
+                        //delete this._mixerPeerKeyToStateCacheDict[mixerPeerKey];
                         break;
                     }
                 }
 
                 allDeletedUserData.push(deletedUserData);
-            }
 
-            // TODO: remove the entry from the peer state cache
+            }
 
             if (this.onUsersDisconnected && allDeletedUserData.length > 0) {
                 this.onUsersDisconnected(allDeletedUserData);
@@ -541,6 +544,11 @@ export class HiFiMixerSession {
         }
         this._raviSignalingConnection.addStateChangeHandler(tempUnavailableStateHandler);
 
+        // Because we manually handle the state changes in the Promise chain, we need
+        // to make sure the main change handlers aren't ALSO trying to handle 'em
+        this._raviSignalingConnection.removeStateChangeHandler(this.onRAVISignalingStateChanged);
+        this._raviSession.removeStateChangeHandler(this.onRAVISessionStateChanged);
+
         // This `Promise.resolve()` is just here for formatting and reading sanity
         // for the below Promise chain.
         this._tryingToConnect = true;
@@ -579,18 +587,9 @@ export class HiFiMixerSession {
             // on the core RAVI objects. (Before this point -- i.e. in the Promise chain -- we
             // were handling these state changes ourselves by following the thens/catches on the
             // promises).
-            this._raviSignalingConnection.addStateChangeHandler((event: any) => {
-                this.onRAVISignalingStateChanged(event);
-            });
-            this._raviSession.addStateChangeHandler((event: any) => {
-                this.onRAVISessionStateChanged(event);
-            });
-            this._raviSession.getCommandController().addBinaryHandler((data: any) => {
-                this.handleRAVISessionBinaryData(data)
-            }, true);
+            this._raviSignalingConnection.addStateChangeHandler(this.onRAVISignalingStateChanged);
+            this._raviSession.addStateChangeHandler(this.onRAVISessionStateChanged);
         })
-        
-
         .catch((error) => {
             // No matter what happens up there, we want to go to a failed state
             // and pass along the error message. `this._onConnectionStateChange`
@@ -886,7 +885,7 @@ export class HiFiMixerSession {
      * Fires when the RAVI Signaling State changes.
      * @param event 
      */
-    async onRAVISignalingStateChanged(event: any): Promise<void> {
+    onRAVISignalingStateChanged = (async function(event: any) : Promise<void> {
         HiFiLogger.log(`New RAVI signaling state: \`${event.state}\``);
         switch (event.state) {
             case RaviSignalingStates.UNAVAILABLE:
@@ -898,13 +897,13 @@ export class HiFiMixerSession {
                 }
                 break;
         }
-    }
+    }).bind(this);
 
     /**
      * Fires when the RAVI Session State changes.
      * @param event
      */
-    async onRAVISessionStateChanged(event: any): Promise<void> {
+    onRAVISessionStateChanged = (async function(event:any) : Promise<void> {
         HiFiLogger.log(`New RAVI session state: \`${event.state}\``);
         let message = undefined;
         switch (event.state) {
@@ -926,7 +925,7 @@ export class HiFiMixerSession {
                 }
                 break;
         }
-    }
+    }).bind(this);
 
     startCollectingWebRTCStats(callback: Function) {
         if (!this._raviSession) {
@@ -1134,5 +1133,6 @@ export class HiFiMixerSession {
         this.mixerInfo = {
             "connected": false,
         };
+        this._mixerPeerKeyToStateCacheDict = {};
     }
 }
