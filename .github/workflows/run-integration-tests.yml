@@ -39,7 +39,7 @@ jobs:
           echo "CHECKOUT_REF=refs/pull/${{ github.event.number }}/merge" >> $GITHUB_ENV;
          fi
       
-      - uses: actions/checkout@master
+      - uses: actions/checkout@v2
         with:
           ref: '${{ env.CHECKOUT_REF }}'
     
