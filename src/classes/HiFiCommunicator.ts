@@ -636,16 +636,10 @@ export class HiFiCommunicator {
                 }
                 return;
 
-            // TODO: If this._currentHiFiConnectionState is "UNAVAILABLE", subsequent changes to "FAILED" or "DISCONNECTED"
-            // should probably not trigger a change (they don't in the current implementation), because "UNAVAIALBLE" is
-            // itself a failure status (for "velvet rope"). However, if the change from "UNAVAILABLE" goes to something else (e.g. "CONNECTING")
-            // then the change _should_ be triggered. Need to think through that a little bit more, and also re-evaluate how that behavior has
-            // changed since the websocket signaling changes were implemented (the UNAVAILABLE state gets communicated the same way, which
-            // is what made its original handling logic so very complicated before RaviSession was updated with the new short-circuit approach).
-            // It's probably easier now (i.e. I think the RaviSession may just stay at UNAVAILABLE, in which case this would all be moot).
             case HiFiConnectionStates.Unavailable:
                 /**
-                 * "Unavailable" means there isn't any room on the server
+                 * "Unavailable" means there isn't any room on the server; this is itself a
+                 * "failure" and "disconnected" state and so no additional state changes should get called after this.
                  */
                 this._updateStateAndCallUserStateChangeHandler(newState, message);
                 return;
@@ -689,7 +683,7 @@ export class HiFiCommunicator {
         }
         // If this._rejectOpen is _not_ undefined, this disconnect happened without ever opening
         // the connection in the first place (because that would've set it to undefined), and therefore is an error.
-        if (newState === HiFiConnectionStates.Disconnected && this._rejectOpen) {
+        if ((newState === HiFiConnectionStates.Disconnected || newState === HiFiConnectionStates.Unavailable) && this._rejectOpen) {
             let errMsg = message ? message : { success: false, message: "Open attempt timed out" };
             this._rejectOpen(message);
             this._resolveOpen = undefined;
