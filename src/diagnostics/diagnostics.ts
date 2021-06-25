@@ -176,7 +176,7 @@ export class Diagnostics {
                 }
             };
         safelyGet('readyState', this.webSocket);
-        ['connectionState', 'signalingState', 'iceConnctionState','iceGatheringState'].forEach(p => safelyGet(p));
+        ['connectionState', 'signalingState', 'iceConnectionState','iceGatheringState'].forEach(p => safelyGet(p));
         return this.s('WebSocket', collector.readyState, '\n') +
             this.s('RTC', collector.connectionState) +
             this.s('SIGNALING', collector.signalingState) +
