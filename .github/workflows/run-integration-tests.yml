@@ -36,7 +36,7 @@ jobs:
           if [ ${{ github.event_name }} == "workflow_dispatch" ]; then
             echo $GITHUB_SHA >> $GITHUB_ENV
           else
-            echo "CHECKOUT_REF='refs/pull/${{ github.event.number }}/merge" >> $GITHUB_ENV
+            echo "CHECKOUT_REF='refs/pull/${{ github.event.number }}/merge'" >> $GITHUB_ENV
       
       - uses: actions/checkout@v2
         with:
