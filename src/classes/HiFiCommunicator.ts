@@ -491,7 +491,7 @@ export class HiFiCommunicator {
      * to users as part of the Reject or Resolve of the connection opening Promise.
      */
     private _manageConnection(newState: HiFiConnectionStates, message?: string): void {
-        HiFiLogger.log(`_manageConnection called for: ${newState} with ${message}`);
+        HiFiLogger.log(`_manageConnection called for: ${newState} with message: \n${message}`);
         switch (newState) {
             case HiFiConnectionStates.Connecting:
             case HiFiConnectionStates.Reconnecting:
@@ -561,7 +561,7 @@ export class HiFiCommunicator {
                     // (And if it's not, someone will hopefully let us know.)
                     if (this._currentHiFiConnectionState !== HiFiConnectionStates.Connecting &&
                                 this._currentHiFiConnectionState !== HiFiConnectionStates.Reconnecting) {
-                        HiFiLogger.warn(`_manageConnection handling reconnection, but encountered unexpected state ${newState}; will attempt to reconnect, but please contact High Fidelity and report this message`);
+                        HiFiLogger.warn(`_manageConnection handling reconnection, but encountered unexpected state ${this._currentHiFiConnectionState}; will attempt to reconnect, but please contact High Fidelity and report this message`);
                         // Fix the state; "Reconnecting" seems the best option at this point.
                         this._currentHiFiConnectionState = HiFiConnectionStates.Reconnecting;
                     }
@@ -604,6 +604,7 @@ export class HiFiCommunicator {
                     // calling the customer's state change handler. Let them know about a failure if it
                     // had happened, then tell them about the disconnection.
                     if (this._failureNotificationPending) {
+                        HiFiLogger.error(this._failureNotificationPending);
                         this._updateStateAndCallUserStateChangeHandler(HiFiConnectionStates.Failed);
                     }
                     this._updateStateAndCallUserStateChangeHandler(HiFiConnectionStates.Disconnected, this._failureNotificationPending);
@@ -621,6 +622,7 @@ export class HiFiCommunicator {
 
                     if (this._currentHiFiConnectionState === HiFiConnectionStates.Connected) {
                         // Set the state to "Reconnecting" if it's the first failure from a connected state.
+                        this._currentHiFiConnectionState = HiFiConnectionStates.Reconnecting;
                         setTimeout(() => {
                                 this._manageConnection(HiFiConnectionStates.Reconnecting);
                         }, this._connectionRetryAndTimeoutConfig.pauseBetweenRetriesMS);

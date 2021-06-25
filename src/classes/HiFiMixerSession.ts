@@ -184,6 +184,13 @@ export class HiFiMixerSession {
      * Contains information about the mixer to which we are currently connected.
      */
     mixerInfo: any;
+    
+    /**
+     * Track whether or not we're in the process of attempting to connect. (This is
+     * a little bit hacky, but given the maze of twisty callbacks and Promises, it
+     * seems the most sane way to avoid double-connecting.)
+     */
+    _tryingToConnect: boolean;
 
     /**
      * 
@@ -224,6 +231,7 @@ export class HiFiMixerSession {
 
         this.onConnectionStateChanged = onConnectionStateChanged;
 
+        this._tryingToConnect = false;
         this._resetMixerInfo();
     }
 
@@ -505,6 +513,11 @@ export class HiFiMixerSession {
      */
     async connectToHiFiMixer({ webRTCSessionParams, customSTUNandTURNConfig, timeout }: { webRTCSessionParams?: WebRTCSessionParams, customSTUNandTURNConfig?: CustomSTUNandTURNConfig, timeout?: number }): Promise<any> {
 
+        if (this._tryingToConnect) {
+            HiFiLogger.warn("`HiFiMixerSession.connectToHiFiMixer()` was called, but is already in the process of connecting. No action will be taken.");
+            return;
+        }
+
         if (this.mixerInfo["connected"]) {
             let msg = `Already connected! If a reconnect is needed, please hang up and try again.`;
             this._onConnectionStateChange(HiFiConnectionStates.Connected, msg);
@@ -530,6 +543,7 @@ export class HiFiMixerSession {
 
         // This `Promise.resolve()` is just here for formatting and reading sanity
         // for the below Promise chain.
+        this._tryingToConnect = true;
         Promise.resolve()
         .then(() => {
             HiFiLogger.log(`Opening signaling connection`);
@@ -581,12 +595,11 @@ export class HiFiMixerSession {
             // No matter what happens up there, we want to go to a failed state
             // and pass along the error message. `this._onConnectionStateChange`
             // will disconnect and clean up for us.
-            console.error("in catch");
-            console.error(error);
             this._onConnectionStateChange(HiFiConnectionStates.Failed, error);
         })
         .finally(() => {
             this._raviSignalingConnection.removeStateChangeHandler(tempUnavailableStateHandler);
+            this._tryingToConnect = false;
         });
     }
 
@@ -902,10 +915,9 @@ export class HiFiMixerSession {
                 message = "RaviSession has been closed; connection to High Fidelity servers has been disconnected";
                 this._onConnectionStateChange(HiFiConnectionStates.Disconnected, message);
                 break;
-            case RaviSessionStates.DISCONNECTED: // "disconnected" should hypothetically transient for libravi, but it never seems to resolve to "error", so I'm trapping it here anyway
+            case RaviSessionStates.DISCONNECTED:
             case RaviSessionStates.FAILED:
                 message = "RaviSession has disconnected";
-                console.error(event);
                 this._onConnectionStateChange(HiFiConnectionStates.Failed, message);
                 try {
                     await this.disconnectFromHiFiMixer();
