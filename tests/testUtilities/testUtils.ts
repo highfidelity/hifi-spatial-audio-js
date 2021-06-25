@@ -140,6 +140,7 @@ export interface ZoneData {
 
 export interface AttenuationData {
     "attenuation": number,
+    "frequency-rolloff": number,
     "listener-zone-id": number,
     "source-zone-id": number,
     "za-offset": number,

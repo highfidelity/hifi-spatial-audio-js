@@ -8,15 +8,11 @@ import { HiFiAudioAPIData, OrientationQuat3D, Point3D, ReceivedHiFiAudioAPIData,
 import { HiFiLogger } from "../utilities/HiFiLogger";
 import { HiFiConnectionStates, HiFiUserDataStreamingScopes } from "./HiFiCommunicator";
 
-// We use @ts-ignore here so TypeScript doesn't complain about importing these plain JS modules.
-// @ts-ignore
 import { RaviUtils } from "../libravi/RaviUtils";
-// @ts-ignore
-import { RaviSession, RaviSessionStates, WebRTCSessionParams } from "../libravi/RaviSession";
-// @ts-ignore
+import { RaviSession, RaviSessionStates, WebRTCSessionParams, CustomSTUNandTURNConfig } from "../libravi/RaviSession";
 import { RaviSignalingConnection, RaviSignalingStates } from "../libravi/RaviSignalingConnection";
 import { HiFiAxisUtilities, ourHiFiAxisConfiguration } from "./HiFiAxisConfiguration";
-const pako = require('pako');
+import pako from 'pako'
 
 const INIT_TIMEOUT_MS = 5000;
 const PERSONAL_VOLUME_ADJUST_TIMEOUT_MS = 5000;
@@ -485,10 +481,8 @@ export class HiFiMixerSession {
                 if (instructionName === "mute") {
                     let shouldBeMuted: boolean;
                     if (instructionArguments.length >= 1) {
-                        if (instructionArguments[0] === 1) {
-                            shouldBeMuted = true;
-                        } else if (instructionArguments[0] === 0) {
-                            shouldBeMuted = false;
+                        if (typeof(instructionArguments[0]) === "boolean") {
+                            shouldBeMuted = instructionArguments[0];
                         }
                     }
                     if (shouldBeMuted !== undefined) {
@@ -506,7 +500,7 @@ export class HiFiMixerSession {
      * @param webRTCSessionParams - Parameters passed to the RAVI session when opening that session.
      * @returns A Promise that rejects with an error message string upon failure, or resolves with the response from `audionet.init` as a string.
      */
-    async connectToHiFiMixer({ webRTCSessionParams }: { webRTCSessionParams?: WebRTCSessionParams }): Promise<any> {
+    async connectToHiFiMixer({ webRTCSessionParams, customSTUNandTURNConfig }: { webRTCSessionParams?: WebRTCSessionParams, customSTUNandTURNConfig?: CustomSTUNandTURNConfig }): Promise<any> {
 
         if (this._currentHiFiConnectionState === HiFiConnectionStates.Connected && this.mixerInfo["connected"]) {
             let msg = `Already connected! If a reconnect is needed, please hang up and try again.`;
@@ -549,7 +543,7 @@ export class HiFiMixerSession {
         }
 
         try {
-            await this._raviSession.openRAVISession({ signalingConnection: this._raviSignalingConnection, params: webRTCSessionParams });
+            await this._raviSession.openRAVISession({ signalingConnection: this._raviSignalingConnection, params: webRTCSessionParams, customStunAndTurn: customSTUNandTURNConfig });
         } catch (errorOpeningRAVISession) {
             let errMsg = `Couldn't open RAVI session associated with \`${this.webRTCAddress.slice(0, this.webRTCAddress.indexOf("token="))}<token redacted>\`! Error:\n${errorOpeningRAVISession}`;
             if (mixerIsUnavailable) {
@@ -751,7 +745,7 @@ export class HiFiMixerSession {
         if (this._raviSession && streamController) {
             let hasMicPermission = false;
 
-            if (navigator && navigator.permissions && navigator.permissions.query) {
+            if (typeof (navigator) !== "undefined" && navigator.permissions && navigator.permissions.query) {
                 let result: PermissionStatus;
                 try {
                     result = await navigator.permissions.query({ name: 'microphone' });
@@ -902,6 +896,14 @@ export class HiFiMixerSession {
                     break;
                 }
                 this._setCurrentHiFiConnectionState(HiFiConnectionStates.Failed);
+                break;
+            case RaviSessionStates.CLOSED:
+                // We don't want to override an "Unavailable" state. (This will hopefully
+                // be able to go away once changes from HIFI-629 are complete, but is safe to leave in for now.)
+                if (this._currentHiFiConnectionState === HiFiConnectionStates.Unavailable) {
+                    break;
+                }
+                this._setCurrentHiFiConnectionState(HiFiConnectionStates.Disconnected);
                 break;
         }
     }

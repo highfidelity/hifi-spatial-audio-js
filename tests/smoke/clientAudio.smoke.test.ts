@@ -1,5 +1,3 @@
-const puppeteer = require('puppeteer');
-let browser: any;
 const fetch = require('node-fetch');
 const stacks = require('../secrets/auth.json').stacks;
 const { MediaStream } = require('wrtc');
@@ -27,6 +25,9 @@ describe('Audio', () => {
     } else if (stackname === "api-pro-east.highfidelity.com" || stackname === "api-pro-latest-east.highfidelity.com") {
         stackData = stacks.east;
         console.log("_______________USING EAST AUTH FILE_______________________");
+    } else if (stackname === "api-pro-eu.highfidelity.com" || stackname === "api-pro-latest-eu.highfidelity.com") {
+        stackData = stacks['api-pro-eu.highfidelity.com'];
+        console.log("_______________USING EU AUTH FILE_______________________");
     } else if (stackname === "api.highfidelity.com" || stackname === "api-hobby-latest.highfidelity.com") {
         stackData = stacks.hobby;
         console.log("_______________USING HOBBY AUTH FILE_______________________");
@@ -37,11 +38,6 @@ describe('Audio', () => {
     setStackData(stackData);
 
     beforeAll(async () => {
-        browser = await puppeteer.launch({ args: ['--use-fake-ui-for-media-stream'] });
-        const page = await browser.newPage();
-        page.setContent('<!doctype html><html><body></body></html>');
-        global.window = page;
-        global.navigator = window.navigator;
         adminTokenNoSpace = await generateJWT(tokenTypes.ADMIN_ID_APP1);
     });
 
@@ -128,13 +124,13 @@ describe('Audio', () => {
             expect(usersDataArray[usersDataArray.findIndex((userData: UserData) => userData.hashedVisitID === user1HashedVisitID)].volumeDecibels).toBe(0);
 
             // user 1 can mute, user 2 stops hearing user 1
-            user1.setInputAudioMuted(true);
+            await user1.setInputAudioMuted(true);
             await sleep(1000);
             // what is the right value here?
             expect(usersDataArray[usersDataArray.findIndex((userData: UserData) => userData.hashedVisitID === user1HashedVisitID)].volumeDecibels).toBeLessThan(-60);
 
             // user 1 can unmute, user 2 can hear user 1 again
-            user1.setInputAudioMuted(false);
+            await user1.setInputAudioMuted(false);
             await sleep(1000);
             expect(usersDataArray[usersDataArray.findIndex((userData: UserData) => userData.hashedVisitID === user1HashedVisitID)].volumeDecibels).toBe(0);
 
