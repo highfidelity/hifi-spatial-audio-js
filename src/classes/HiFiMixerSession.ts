@@ -119,11 +119,6 @@ export class HiFiMixerSession {
     private _raviSession: RaviSession;
 
     /**
-     * USED ONLY FOR DIAGNOSTICS: Stores the current HiFi Connection State, which is an abstraction separate from the RAVI Session State and RAVI Signaling State.
-     */
-    private _currentHiFiConnectionState: HiFiConnectionStates;
-
-    /**
      * Used when muting and unmuting to save the state of the user's input device's `MediaTrackConstraints`.
      * When a user mutes, we explicitly call `stop()` on all audio tracks associated with the user's input device.
      * When a user unmutes, we must call `getUserMedia()` to re-obtain those audio tracks. We want to call `getUserMedia()`
@@ -208,6 +203,10 @@ export class HiFiMixerSession {
      */
     _tryingToConnect: boolean;
 
+    /**
+     * Used for diagnostics
+     */
+    private _getUserFacingConnectionState: Function;
     private _raviDiagnostics: Diagnostics;
     private _hifiDiagnostics: Diagnostics;
 
@@ -225,13 +224,15 @@ export class HiFiMixerSession {
         onUserDataUpdated,
         onUsersDisconnected,
         onConnectionStateChanged,
-        onMuteChanged
+        onMuteChanged,
+        getUserFacingConnectionState
     }: {
         userDataStreamingScope?: HiFiUserDataStreamingScopes,
         onUserDataUpdated?: Function,
         onUsersDisconnected?: Function,
         onConnectionStateChanged?: ConnectionStateChangeHandler,
-        onMuteChanged?: OnMuteChangedCallback
+        onMuteChanged?: OnMuteChangedCallback,
+        getUserFacingConnectionState?: Function
     }) {
 
         this.webRTCAddress = undefined;
@@ -241,6 +242,7 @@ export class HiFiMixerSession {
         this._mixerPeerKeyToStateCacheDict = {};
         this._lastSuccessfulInputAudioMutedValue = false;
         this.onMuteChanged = onMuteChanged;
+        this._getUserFacingConnectionState = getUserFacingConnectionState;
 
         RaviUtils.setDebug(false);
 
@@ -895,19 +897,15 @@ export class HiFiMixerSession {
                this._raviSignalingConnection.getState() === RaviSignalingStates.OPEN;
     }
 
-    // TODO
-    _setCurrentHiFiConnectionState(state: HiFiConnectionStates): void {
-        if (this._currentHiFiConnectionState !== state) {
-            this._currentHiFiConnectionState = state;
-            this._hifiDiagnostics.fire();
-        }
-    }
-    
     /**
      * Return the current state of the connection.
      */
     getCurrentHiFiConnectionState(): HiFiConnectionStates {
-        return this._currentHiFiConnectionState;
+        if (this._getUserFacingConnectionState) {
+            return this._getUserFacingConnectionState();
+        } else {
+            return undefined;
+        }
     }
 
     /**
@@ -915,10 +913,11 @@ export class HiFiMixerSession {
      * @param state
      */
     async _onConnectionStateChange(state: HiFiConnectionStates, result: ConnectionAttemptResult): Promise<void> {
-        this._setCurrentHiFiConnectionState(state);
-
-        if (this.onConnectionStateChanged) {
-            this.onConnectionStateChanged(state, result);
+        if (this.getCurrentHiFiConnectionState() !== state) {
+            if (this.onConnectionStateChanged) {
+                this.onConnectionStateChanged(state, result);
+            }
+            this._hifiDiagnostics.fire();
         }
 
         if (state === HiFiConnectionStates.Failed) {

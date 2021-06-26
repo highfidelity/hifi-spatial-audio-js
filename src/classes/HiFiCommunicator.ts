@@ -206,13 +206,12 @@ export class HiFiCommunicator {
     private _currentHiFiConnectionState: HiFiConnectionStates = HiFiConnectionStates.Disconnected;
     /**
      * @returns The current state of the connection to High Fidelity, as one of the HiFiConnectionStates.
-     * This will return null if the current state is not available (e.g. if the HiFiCommunicator
+     * This will return undefined if the current state is not available (e.g. if the HiFiCommunicator
      * is still in the process of initializing its underlying HiFiMixerSession).
      */
-    getConnectionState(): HiFiConnectionStates {
+    public getConnectionState(): HiFiConnectionStates {
         return this._currentHiFiConnectionState;
     }
-
 
     // This contains data dealing with the mixer session, such as the RAVI session, WebRTC address, etc.
     private _mixerSession: HiFiMixerSession;
@@ -314,7 +313,8 @@ export class HiFiCommunicator {
             "onUserDataUpdated": (data: Array<ReceivedHiFiAudioAPIData>) => { this._handleUserDataUpdates(data); },
             "onUsersDisconnected": (data: Array<ReceivedHiFiAudioAPIData>) => { this._onUsersDisconnected(data); },
             "onConnectionStateChanged": (state: HiFiConnectionStates, message: ConnectionAttemptResult) => { this._manageConnection(state, message); },
-            "onMuteChanged": onMuteChanged
+            "onMuteChanged": onMuteChanged,
+            "getUserFacingConnectionState": this.getConnectionState.bind(this)
         });
 
         this._inputAudioMediaStream = undefined;
