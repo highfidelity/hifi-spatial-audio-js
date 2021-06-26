@@ -215,6 +215,8 @@ export class HiFiCommunicator {
     private _connectionRetryAndTimeoutConfig: ConnectionRetryAndTimeoutConfig;
     private _retryTimerInProgress: any;
     private _failureNotificationPending: ConnectionAttemptResult; // Stores the most recent failure notification message
+    // `connectToHiFiAudioAPIServer()` creates a Promise, but we want to resolve it within the change handler.
+    // These store a reference to the `resolve()` and `reject()` methods until they need to be called.
     private _resolveOpen: Function;
     private _rejectOpen: Function;
 
