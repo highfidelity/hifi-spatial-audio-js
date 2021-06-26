@@ -143,7 +143,15 @@ export interface ConnectionRetryAndTimeoutConfig {
    */
   maxSecondsToSpendRetryingOnDisconnect?: number;
   
+  /**
+   * The amount of time in milliseconds to wait between retry attempts. This defaults
+   * to 500 milliseconds and can be used to slow down the connection attempts if needed
+   * (especially for testing!) In general, you probably won't need to set this value.
+   * TODO: Don't let this go below some arbitrary number to avoid completely slamming
+   * the servers.
+   */
   pauseBetweenRetriesMS?: number;
+
   /**
    * The amount of time in milliseconds to wait before timing out an attempted
    * connection. This is used for all connection attempts, including retries
@@ -731,7 +739,6 @@ export class HiFiCommunicator {
 
         return this._mixerSession.disconnectFromHiFiMixer();
     }
-
 
     /**
      *
