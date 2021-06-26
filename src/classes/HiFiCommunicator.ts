@@ -67,7 +67,8 @@ export enum HiFiConnectionStates {
      */
     Failed = "Failed",
     /**
-     * The `HiFiConnectionState` will be `"Unavailable"` when the API Server is at capacity.
+     * The `HiFiConnectionState` will be `"Unavailable"` when the API Server is at capacity. This state does not transition
+     * to Disconnected, but does mean that the HiFiCommunicator does not have an active connection with the server.
      */
     Unavailable = "Unavailable"
 };
