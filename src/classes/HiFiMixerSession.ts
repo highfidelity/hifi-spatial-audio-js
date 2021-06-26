@@ -12,7 +12,8 @@ import { RaviUtils } from "../libravi/RaviUtils";
 import { RaviSession, RaviSessionStates, WebRTCSessionParams, CustomSTUNandTURNConfig } from "../libravi/RaviSession";
 import { RaviSignalingConnection, RaviSignalingStates } from "../libravi/RaviSignalingConnection";
 import { HiFiAxisUtilities, ourHiFiAxisConfiguration } from "./HiFiAxisConfiguration";
-const pako = require('pako');
+import { Diagnostics } from "../diagnostics/diagnostics";
+import pako from 'pako'
 
 const INIT_TIMEOUT_MS = 5000;
 const PERSONAL_VOLUME_ADJUST_TIMEOUT_MS = 5000;
@@ -118,6 +119,11 @@ export class HiFiMixerSession {
     private _raviSession: RaviSession;
 
     /**
+     * USED ONLY FOR DIAGNOSTICS: Stores the current HiFi Connection State, which is an abstraction separate from the RAVI Session State and RAVI Signaling State.
+     */
+    private _currentHiFiConnectionState: HiFiConnectionStates;
+
+    /**
      * Used when muting and unmuting to save the state of the user's input device's `MediaTrackConstraints`.
      * When a user mutes, we explicitly call `stop()` on all audio tracks associated with the user's input device.
      * When a user unmutes, we must call `getUserMedia()` to re-obtain those audio tracks. We want to call `getUserMedia()`
@@ -137,8 +143,8 @@ export class HiFiMixerSession {
      * Since the server doesn't always send the "Provided User ID" in these peer updates, we have to keep track of the (presumably stable) key in `jsonData.peers`
      * associated with that "Provided User ID" in order to forward that "Provided User ID" to the Subscription handler and thus to the Library user.
      * 
-     * And since we are caching that one value, we are also caching the full state for all kwnon peers.
-     * This allows to optimize the received stream of changed data for a given peer from the server to just the necessary bits
+     * And since we are caching that one value, we are also caching the full state for all known peers.
+     * This allows us to optimize the received stream of changed data for a given peer from the server to just the necessary bits
      * and reconstruct the complete information with the knowledge of the cached state of thata peer.
      * One caveat, the position and orienationQuat fields cached for a peer are expressed in the 'MixerSpace', not transformed yet in the 'ClientUserSpace'.
      * 
@@ -156,6 +162,11 @@ export class HiFiMixerSession {
     private _lastSuccessfulInputAudioMutedValue: boolean;
 
     private onMuteChanged: OnMuteChangedCallback;
+
+    /**
+     * Only valid for users covered by a user data subscription. Remains constant at disconnect until the next connect.
+     */
+    public concurrency:number = 0;
 
     /**
      * The WebRTC Stats Observer callback
@@ -196,6 +207,9 @@ export class HiFiMixerSession {
      * seems the most sane way to avoid double-connecting.)
      */
     _tryingToConnect: boolean;
+
+    private _raviDiagnostics: Diagnostics;
+    private _hifiDiagnostics: Diagnostics;
 
     /**
      * 
@@ -240,6 +254,11 @@ export class HiFiMixerSession {
 
         this._tryingToConnect = false;
         this._resetMixerInfo();
+        this._raviDiagnostics = new Diagnostics({label: 'ravi', session: this, ravi: this._raviSession});
+        this._hifiDiagnostics = new Diagnostics({label: 'app', session: this, ravi: this._raviSession,
+                                                 // The first is the standard way to tell, but browser have bugs in which they don't fire.
+                                                 // The second is enough for all known browser bugs, except for Safari desktop closing a visible tab.
+                                                 fireOn: ['visibilitychange', 'pagehide', 'beforeunload']});
     }
 
     /**
@@ -284,6 +303,8 @@ export class HiFiMixerSession {
                     this.mixerInfo["build_type"] = parsedResponse.build_type;
                     this.mixerInfo["build_version"] = parsedResponse.build_version;
                     this.mixerInfo["visit_id_hash"] = parsedResponse.visit_id_hash;
+                    this._raviDiagnostics.prime(this.mixerInfo.visit_id_hash);
+                    this._hifiDiagnostics.prime(this.mixerInfo.visit_id_hash);
                     return resolve({
                         success: true,
                         audionetInitResponse: parsedResponse
@@ -330,9 +351,10 @@ export class HiFiMixerSession {
                 }
 
                 allDeletedUserData.push(deletedUserData);
-
             }
 
+            // TODO: remove the entry from the peer state cache
+            this.concurrency -= allDeletedUserData.length;
             if (this.onUsersDisconnected && allDeletedUserData.length > 0) {
                 this.onUsersDisconnected(allDeletedUserData);
             }
@@ -355,6 +377,7 @@ export class HiFiMixerSession {
                 else {
                     userDataCache = new ReceivedHiFiAudioAPIData();
                     this._mixerPeerKeyToStateCacheDict[peerKeys[itr]] = userDataCache;
+                    this.concurrency += 1;
                 }
 
                 // This is a new empty data that will collect the changes received from the server.
@@ -600,6 +623,7 @@ export class HiFiMixerSession {
         })
         .finally(() => {
             this._raviSignalingConnection.removeStateChangeHandler(tempUnavailableStateHandler);
+            this.concurrency = 0;
             this._tryingToConnect = false;
         });
     }
@@ -609,6 +633,11 @@ export class HiFiMixerSession {
      * @returns A Promise that _always_ Resolves with a "success" status string.
      */
     async disconnectFromHiFiMixer(): Promise<string> {
+        this._raviDiagnostics.noteExplicitApplicationClose();
+        this._hifiDiagnostics.noteExplicitApplicationClose();
+        return this._disconnectFromHiFiMixer();
+    }
+    async _disconnectFromHiFiMixer(): Promise<string> {
         async function close(thingToClose: (RaviSignalingConnection | RaviSession), nameOfThingToClose: string, closedState: string) {
             if (thingToClose) {
                 let state = thingToClose.getState();
@@ -866,14 +895,32 @@ export class HiFiMixerSession {
                this._raviSignalingConnection.getState() === RaviSignalingStates.OPEN;
     }
 
+    // TODO
+    _setCurrentHiFiConnectionState(state: HiFiConnectionStates): void {
+        if (this._currentHiFiConnectionState !== state) {
+            this._currentHiFiConnectionState = state;
+            this._hifiDiagnostics.fire();
+        }
+    }
+    
+    /**
+     * Return the current state of the connection.
+     */
+    getCurrentHiFiConnectionState(): HiFiConnectionStates {
+        return this._currentHiFiConnectionState;
+    }
+
     /**
      * Fire the onChange handler for a state operation
      * @param state
      */
     async _onConnectionStateChange(state: HiFiConnectionStates, result: ConnectionAttemptResult): Promise<void> {
+        this._setCurrentHiFiConnectionState(state);
+
         if (this.onConnectionStateChanged) {
             this.onConnectionStateChanged(state, result);
         }
+
         if (state === HiFiConnectionStates.Failed) {
             try {
                 await this.disconnectFromHiFiMixer();
@@ -893,7 +940,7 @@ export class HiFiMixerSession {
             case RaviSignalingStates.UNAVAILABLE:
                 this._onConnectionStateChange(HiFiConnectionStates.Unavailable, { success: false, message: `High Fidelity server is at capacity; service is unavailable.` });
                 try {
-                    await this.disconnectFromHiFiMixer();
+                    await this._disconnectFromHiFiMixer();
                 } catch (errorClosing) {
                     HiFiLogger.log(`Error encountered while trying to close the connection. Error:\n${RaviUtils.safelyPrintable(errorClosing)}`);
                 }
@@ -908,6 +955,7 @@ export class HiFiMixerSession {
     onRAVISessionStateChanged = (async function(event:any) : Promise<void> {
         HiFiLogger.log(`New RAVI session state: \`${event.state}\``);
         let message = undefined;
+        this._raviDiagnostics.fire();
         switch (event.state) {
             case RaviSessionStates.CONNECTED:
                 HiFiLogger.log(`RaviSession connected; waiting for results of audionet.init`);
@@ -921,7 +969,7 @@ export class HiFiMixerSession {
                 message = "RaviSession has disconnected";
                 this._onConnectionStateChange(HiFiConnectionStates.Failed, { success: false, message: message });
                 try {
-                    await this.disconnectFromHiFiMixer();
+                    await this._disconnectFromHiFiMixer();
                 } catch (errorClosing) {
                     HiFiLogger.log(`Error encountered while trying to close the connection. Error:\n${RaviUtils.safelyPrintable(errorClosing)}`);
                 }
