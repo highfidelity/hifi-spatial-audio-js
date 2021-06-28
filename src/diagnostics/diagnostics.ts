@@ -38,7 +38,11 @@ interface CandidateReport {
 let nStatsClients = 0;
 let browserStats: CandidateReport = {};
 let remoteStats: CandidateReport = {};
-let reports:any;
+let reports:any = {
+    'outbound-rtp': {},
+    'inbound-rtp': {},
+    'remote-inbound-rtp': {}
+};
 const useDebugPrefixes = false;
 
 /** 
@@ -108,11 +112,6 @@ export class Diagnostics {
         this.webSocket = this.rtc = {};
         // don't leave them hanging around. E.g., beforeunload can mess with the bfcache.
         this.fireOn.forEach(event => (xDocument as any).removeEventListener(event, this.fireListener));
-        reports = {
-            'outbound-rtp': {},
-            'inbound-rtp': {},
-            'remote-inbound-rtp': {}
-        }
     }
     isPrimed() {
         return this.identifier !== nonOperative;
@@ -279,6 +278,7 @@ export class Diagnostics {
         if (--nStatsClients > 0) return;   // Someone is still primed.     
         session.stopCollectingWebRTCStats();
         browserStats = remoteStats = {};
+        for (let key in reports) { reports[key] = {}; }
     }
 }
 
