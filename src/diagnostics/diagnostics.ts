@@ -87,11 +87,11 @@ export class Diagnostics {
     async fire() {
         if (!this.isPrimed()) return;
         const reportString = this.toString();
+        this.reset();
         if (! await this.report(reportString)) {
             this.persist(reportString);
         }
-        this.reset();
-        }
+    }
     noteExplicitApplicationClose() {
         this.explicitApplicationClose = true;
     }
