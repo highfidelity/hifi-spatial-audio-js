@@ -8,11 +8,8 @@
     │   └── serverConnections.integration.test.ts  
     ├── secrets  
     │   ├── auth_example.json  (A template for creating your own `auth.json` file.)
-    │   ├── auth.json  (You will create this file for local smoke or integration testing.)  
+    │   ├── auth.json  (You will create this file for local integration testing.)  
     │   └── auth.json.gpg  (An encrypted version of `auth.json` for the `staging-latest` stack used by GHA.)  
-    ├── smoke  
-    │   ├── clientAudio.smoke.test.ts 
-    │   └── rest.smoke.test.ts  
     ├── testUtilities  
     │   ├── globalTeardown.js  (A file used to ensure all `HiFiCommunicator` instances get shut down after testing.)
     │   ├── testUser.ts  (A test user class.)
@@ -44,10 +41,6 @@ Unit testing will test each part of the API to show that the individual function
 ## Integration Tests
 Integration testing will combine different modules in the API and test individual functions using actual server connections. These tests will run automatically via GHA before any code is merged and can be run manually from the console or from GHA workflow dispatch.
 
-## Smoke Tests
-
-Smoke testing will test multiple modules working together using real server connections by running a series of instructions in a typical usage scenario for the API. For example, one test might create a space within an app, edit its settings, and then delete the space. This should be run manually after a new deploy to ensure nothing is broken.
-
 ## Health Tests
 Health tests are tests that should be run on an interval to catch any problems as soon as possible. These tests will use 1 of 6 preset spaces, depending on the time at which the script is run. This is to ensure we are using different mixers each time we run the test. Before running the test, you will need to add your app data to the auth file and create 6 spaces in that app, named '1', '2', ... '6'.
 
@@ -63,7 +56,7 @@ npm run test serverConnections.integration.test.ts -- --stackname=api.highfideli
 ```
 
 ### False Test Failures
-If a stack runs out of mixers, some tests may fail. If you have AWS access, you can observe stack allocations [here](https://us-west-2.console.aws.amazon.com/dynamodb/home?region=us-west-2#tables:selected=Allocations-api-pro-05;tab=items). You will see a list of mixers for the selected stack. If there are no (`NA`) unallocated mixers, tests can fail. We usually need 1-2 mixers for smoke or integration tests run alone and 2-4 for running all tests at once.
+If a stack runs out of mixers, some tests may fail. If you have AWS access, you can observe stack allocations [here](https://us-west-2.console.aws.amazon.com/dynamodb/home?region=us-west-2#tables:selected=Allocations-api-pro-05;tab=items). You will see a list of mixers for the selected stack. If there are no (`NA`) unallocated mixers, tests can fail. We usually need 1-2 mixers for integration tests run alone and 2-4 for running all tests at once.
 
 ### Editing Tests Within a File
 
@@ -91,7 +84,7 @@ beforeAll(async () => {
 ```
 
 ### Secrets and Account Setup
-Since integration and smoke tests require actual server connections (as opposed to mock functions and connections), you will need to set up an account with some preset apps and a way to access private data to test with if you are not testing one of the preset stacks. The tests will use specific app names and IDs/secrets, so create a copy of `auth.example.json` named `auth.json` in your `secrets` folder and then replace the data for the stack called 'some-other-stackname' to match your own account.
+Since integration tests require actual server connections (as opposed to mock functions and connections), you will need to set up an account with some preset apps and a way to access private data to test with if you are not testing one of the preset stacks. The tests will use specific app names and IDs/secrets, so create a copy of `auth.example.json` named `auth.json` in your `secrets` folder and then replace the data for the stack called 'some-other-stackname' to match your own account.
 
 ### Github Actions (GHA) 
 
