@@ -223,6 +223,16 @@ export class HiFiMixerSession {
      * If set to `false`, User Data Subscriptions will serve no purpose.
      * @param onUserDataUpdated - The function to call when the server sends user data to the client. Irrelevant if `userDataStreamingScope` is `HiFiUserDataStreamingScopes.None`.
      * @param onUsersDisconnected - The function to call when the server sends user data about peers who just disconnected to the client.
+     * @param onConnectionStateChanged - The function to call when the connection state of the HiFiMixerSession changes. (In practice, this is always the HiFiCommunicator's
+     * `_manageConnection` method, which does the heavy lifting).
+     * @param onMuteChanged - The function to call when the server sends a "mute" message to the client
+     * @param getUserFacingConnectionState - The function to call (specifically this is a function on the HiFiCommunicator object that's using this HiFiMixerSession)
+     * that will allow access to the connection state as seen by the user (i.e. the "meta-state" that gets tracked by the HiFiCommunicator). TODO: This is
+     * here only because the diagnostics code (which only has a reference to the MixerSesssion) needs access to that "user-facing state" (and this class's
+     * `_onConnectionStateChange` needs to examine it to decide when to call the diagnostics code), NOT because this class actually has a need for it.
+     * (The `_onConnectionStateChange` method can just blindly call the passed change handler if it wants to, without checking for a "real" change.)
+     * So, if/when we remove diagnostics code (or if we want to approach this some other way) we could get rid of the `getUserFacingConnectionState`
+     * parameter without affecting the functionality at all.
      */
     constructor({
         userDataStreamingScope = HiFiUserDataStreamingScopes.All,
