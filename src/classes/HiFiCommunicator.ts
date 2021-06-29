@@ -115,7 +115,6 @@ export interface ConnectionRetryAndTimeoutConfig {
    * The total amount of time (in seconds) to keep retrying the initial
    * connection before giving up completely. If `autoRetryInitialConnection`
    * is set to `true`, this defaults to 60 seconds.
-   * TODO: Don't let this be negative
    */
   maxSecondsToSpendRetryingInitialConnection?: number;
 
@@ -139,7 +138,6 @@ export interface ConnectionRetryAndTimeoutConfig {
    * has passed, if a connection has not been established, we will stop
    * trying to reconnect and set the connection state to 'Failed'.
    * If `autoRetryOnDisconnect` is set to `true`, this defaults to 300 seconds (5 minutes).
-   * TODO: Don't let this be negative
    */
   maxSecondsToSpendRetryingOnDisconnect?: number;
   
@@ -147,8 +145,6 @@ export interface ConnectionRetryAndTimeoutConfig {
    * The amount of time in milliseconds to wait between retry attempts. This defaults
    * to 500 milliseconds and can be used to slow down the connection attempts if needed
    * (especially for testing!) In general, you probably won't need to set this value.
-   * TODO: Don't let this go below some arbitrary number to avoid completely slamming
-   * the servers.
    */
   pauseBetweenRetriesMS?: number;
 
@@ -306,6 +302,15 @@ export class HiFiCommunicator {
 
         this._connectionRetryAndTimeoutConfig = {};
         Object.assign(this._connectionRetryAndTimeoutConfig, HiFiConstants.DEFAULT_CONNECTION_RETRY_AND_TIMEOUT, connectionRetryAndTimeoutConfig);
+        if (this._connectionRetryAndTimeoutConfig.maxSecondsToSpendRetryingInitialConnection <= 0) {
+            HiFiLogger.warn(`\`connectionRetryAndTimeoutConfig.maxSecondsToSpendRetryingInitialConnection\` must be greater than 0! Setting to the default (${HiFiConstants.DEFAULT_CONNECTION_RETRY_AND_TIMEOUT.maxSecondsToSpendRetryingInitialConnection}) instead.`);
+        }
+        if (this._connectionRetryAndTimeoutConfig.maxSecondsToSpendRetryingOnDisconnect <= 0) {
+            HiFiLogger.warn(`\`connectionRetryAndTimeoutConfig.maxSecondsToSpendRetryingOnDisconnect\` must be greater than 0! Setting to the default (${HiFiConstants.DEFAULT_CONNECTION_RETRY_AND_TIMEOUT.maxSecondsToSpendRetryingOnDisconnect}) instead.`);
+        }
+        if (this._connectionRetryAndTimeoutConfig.pauseBetweenRetriesMS < HiFiConstants.MIN_PAUSE_BETWEEN_RETRIES) {
+            HiFiLogger.warn(`\`connectionRetryAndTimeoutConfig.pauseBetweenRetriesMS\` must be >= ${HiFiConstants.MIN_PAUSE_BETWEEN_RETRIES}! Setting to ${HiFiConstants.MIN_PAUSE_BETWEEN_RETRIES}.`);
+        }
 
         this._mixerSession = new HiFiMixerSession({
             "userDataStreamingScope": userDataStreamingScope,

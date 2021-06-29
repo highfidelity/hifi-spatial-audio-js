@@ -38,6 +38,12 @@ export class HiFiConstants {
         pauseBetweenRetriesMS: 500,
         timeoutPerConnectionAttemptMS: 5000
     };
+    /**
+     * Defines the minimum amount of time that we must wait before
+     * retrying connection attempts. (Somewhat arbitrary, but avoids
+     * completely slamming the servers.)
+     */
+    static MIN_PAUSE_BETWEEN_RETRIES: number = 100;
 
     constructor() {}
 };
