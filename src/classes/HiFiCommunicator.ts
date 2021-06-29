@@ -303,10 +303,9 @@ export class HiFiCommunicator {
         if (onConnectionStateChanged) {
             this.onConnectionStateChanged = onConnectionStateChanged;
         }
-        this._connectionRetryAndTimeoutConfig = HiFiConstants.DEFAULT_CONNECTION_RETRY_AND_TIMEOUT;
-        if (connectionRetryAndTimeoutConfig) {
-            Object.assign(this._connectionRetryAndTimeoutConfig, connectionRetryAndTimeoutConfig);
-        }
+
+        this._connectionRetryAndTimeoutConfig = {};
+        Object.assign(this._connectionRetryAndTimeoutConfig, HiFiConstants.DEFAULT_CONNECTION_RETRY_AND_TIMEOUT, connectionRetryAndTimeoutConfig);
 
         this._mixerSession = new HiFiMixerSession({
             "userDataStreamingScope": userDataStreamingScope,

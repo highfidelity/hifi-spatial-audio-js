@@ -450,8 +450,8 @@ class RaviSignalingWebSocketImplementation {
    */
   _close() {
     var signalingConnection = this._raviSignalingConnection;
-    // If we're already closed, make sure the signaling connection knows about it and return immediately
-    if (! this._webSocket || this._webSocket.readyState === crossPlatformWebSocket.CLOSED) {
+    // If we don't have a websocket at all, make sure that the parent knows about it and return immediately.
+    if (! this._webSocket ) {
         signalingConnection._handleStateChange({}, RaviSignalingStates.CLOSED);
         return;
     }

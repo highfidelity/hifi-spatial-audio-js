@@ -199,7 +199,12 @@ export class HiFiMixerSession {
     /**
      * Track whether or not we're in the process of attempting to connect. (This is
      * a little bit hacky, but given the maze of twisty callbacks and Promises, it
-     * seems the most sane way to avoid double-connecting.)
+     * seems the most sane way to avoid double-connecting.) The HiFiCommunicator
+     * does set its meta-state to "Connecting" or "Reconnecting" when we're in the
+     * larger overall "trying to connect" process, but that's true the entire time
+     * when we're generally connecting, retrying, waiting for a retry, etc.
+     * This boolean is `true` ONLY if this particular HiFiMixerSession is actively
+     * in the process of trying to connect.
      */
     _tryingToConnect: boolean;
 
@@ -305,8 +310,6 @@ export class HiFiMixerSession {
                     this.mixerInfo["build_type"] = parsedResponse.build_type;
                     this.mixerInfo["build_version"] = parsedResponse.build_version;
                     this.mixerInfo["visit_id_hash"] = parsedResponse.visit_id_hash;
-                    this._raviDiagnostics.prime(this.mixerInfo.visit_id_hash);
-                    this._hifiDiagnostics.prime(this.mixerInfo.visit_id_hash);
                     return resolve({
                         success: true,
                         audionetInitResponse: parsedResponse
@@ -917,7 +920,12 @@ export class HiFiMixerSession {
             if (this.onConnectionStateChanged) {
                 this.onConnectionStateChanged(state, result);
             }
-            this._hifiDiagnostics.fire();
+            if (state === HiFiConnectionStates.Connected) {
+                this._raviDiagnostics.prime(this.mixerInfo.visit_id_hash);
+                this._hifiDiagnostics.prime(this.mixerInfo.visit_id_hash);
+            } else {
+                this._hifiDiagnostics.fire();
+            }
         }
 
         if (state === HiFiConnectionStates.Failed) {
