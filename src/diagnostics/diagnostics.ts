@@ -122,7 +122,6 @@ export class Diagnostics {
      * Answer a single (long) log line to report.
      */
     toString() {
-        console.warn(this.session.getCurrentHiFiConnectionState());
         return `${new Date().toISOString()} ${this.identifier} ` +
             this.s('logReason', 'sessionEND') +
             this.connectionStats('browserStats') +
@@ -216,13 +215,11 @@ export class Diagnostics {
         // A failure gets logged to console in some browsers, but they don't actually emit an error event.
         // return navigator.sendBeacon(this.url, reportString);
         // Instead, let's POST exactly as sendBeacon would, and check success:
-/*
         return xfetch(this.url, {
             method: 'POST',
             headers: { 'Content-Type': 'text/plain' },
             body: reportString
         }).then((response:Response) => response.ok, (x:any) => false);
-*/
     }
     /**
      * Add reportString to the set of data being saved for later reporting.
