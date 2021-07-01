@@ -20,6 +20,10 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event.pusher.name != 'hifibuild' && github.event.pusher.name != 'dependabot'
 
+    env:
+      TESTING_AUTH_DECRYPTION_KEY: ${{ secrets.TESTING_AUTH_DECRYPTION_KEY }}
+      STACKNAME: ${{ github.event.inputs.stackname }}
+
     steps:
       - name: View Commit Author
         run: echo "The last push was made by a user named ${{ github.event.pusher.name }}."
@@ -54,9 +58,6 @@ jobs:
       - name: Decrypt auth file
         if: always()
         run: ./.github/scripts/decryptAuthFile.sh
-        env:
-          TESTING_AUTH_DECRYPTION_KEY: ${{ secrets.TESTING_AUTH_DECRYPTION_KEY }}
-          STACKNAME: ${{ github.event.inputs.stackname || 'api-staging-latest' }}
         
       - name: Run Jest Integration Tests
         if: always()
