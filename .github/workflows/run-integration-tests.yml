@@ -1,0 +1,77 @@
+name: Run-Jest-Integration-Tests
+
+on:
+  workflow_dispatch:
+    inputs:
+      stackname:
+        description: "Host name, i.e. 'api.highfidelity.com', `api-staging-latest.highfidelity.com`, or 'api-pro-east.highfidelity.com'"
+        required: true
+        default: api-staging-latest.highfidelity.com
+      
+  pull_request_target:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+    branches:
+      - main
+      - release
+ 
+
+jobs:
+  Run-Jest-Integration-Tests:
+    runs-on: ubuntu-latest
+    if: github.event.pusher.name != 'hifibuild' && github.event.pusher.name != 'dependabot'
+
+    steps:
+      - name: View Commit Author
+        run: echo "The last push was made by a user named ${{ github.event.pusher.name }}."
+
+      - name: Disallow checks on unsafe code
+        continue-on-error: false
+        if: ${{ !contains(github.event.pull_request.labels.*.name, 'safe to test') && github.event_name != 'workflow_dispatch' }}
+        run: exit 1
+        
+      - name: Configure Build Environment
+        shell: bash
+        id: buildenv
+        run: |
+         if [ ${{ github.event_name }} == "workflow_dispatch" ]; then
+          echo "CHECKOUT_REF=${{ github.ref }}" >> $GITHUB_ENV;
+         else 
+          echo "CHECKOUT_REF=refs/pull/${{ github.event.number }}/merge" >> $GITHUB_ENV;
+         fi
+      
+      - uses: actions/checkout@v2
+        with:
+          ref: '${{ env.CHECKOUT_REF }}'
+    
+      - uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+
+      - name: Install Modules
+        run: npm i
+
+     # Run integration tests
+      - name: Decrypt auth file
+        if: always()
+        run: ./.github/scripts/decryptAuthFile.sh
+        env:
+          TESTING_AUTH_DECRYPTION_KEY: ${{ secrets.TESTING_AUTH_DECRYPTION_KEY }}
+          STACKNAME: ${{ github.event.inputs.stackname || 'api-staging-latest' }}
+        
+      - name: Run Jest Integration Tests
+        if: always()
+        shell: bash
+        run: |
+          ./node_modules/.bin/jest integration --ci --useStderr 2>&1 | tee testoutput
+          ./testfails.sh
+
+      # Final testing status for repo
+      - name: All Tests Passed
+        if: success()
+        run: |
+          curl --request POST --url https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.sha }} --header 'authorization: Bearer ${{ secrets.GITHUB_TOKEN }}' --header 'content-type: application/json' --data '{ "context": "tests", "state": "success", "description": "Tests passed", "target_url": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}" }'
+
+      - name: Any Test Failed
+        if: failure()
+        run: |
+          curl --request POST --url https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.sha }} --header 'authorization: Bearer ${{ secrets.GITHUB_TOKEN }}' --header 'content-type: application/json' --data '{ "context": "tests", "state": "failure", "description": "Tests failed", "target_url": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}" }'

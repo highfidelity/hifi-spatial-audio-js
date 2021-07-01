@@ -1,27 +1,16 @@
-name: Run-Jest-Tests
+name: Run-Jest-Unit-Tests
 
 on:
-  workflow_dispatch:
-    inputs:
-      stackname:
-        description: "Host name, i.e. 'api', `api-hobby-latest`, or 'api-pro'"
-        required: true
-        default: api-staging-latest
-  push:
+  workflow_dispatch:      
+  pull_request:
     branches:
       - main
       - release
-      
-  pull_request_target:
-    branches:
-      - main
-      - release
- 
 
 jobs:
-  Run-Jest-Tests:
+  Run-Jest-Unit-Tests:
     runs-on: ubuntu-latest
-    if: github.event.pusher.name != 'hifibuild'
+    if: github.event.pusher.name != 'hifibuild' && github.event.pusher.name != 'dependabot'
 
     steps:
       - name: View Commit Author
@@ -41,21 +30,6 @@ jobs:
         shell: bash
         run: |
           ./node_modules/.bin/jest unit --ci --useStderr 2>&1 | tee testoutput
-          ./testfails.sh
-
-     # Run integration tests
-      - name: Decrypt auth file
-        if: always()
-        run: ./.github/scripts/decryptAuthFile.sh
-        env:
-          TESTING_AUTH_DECRYPTION_KEY: ${{ secrets.TESTING_AUTH_DECRYPTION_KEY }}
-          STACKNAME: ${{ github.event.inputs.stackname || 'api-staging-latest' }}
-        
-      - name: Run Jest Integration Tests
-        if: always()
-        shell: bash
-        run: |
-          ./node_modules/.bin/jest integration --ci --useStderr 2>&1 | tee testoutput
           ./testfails.sh
 
       # Final testing status for repo
