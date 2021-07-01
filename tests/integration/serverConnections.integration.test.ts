@@ -127,7 +127,6 @@ describe('Mixer connections', () => {
     describe('Connections that should be denied', () => {
         beforeEach(() => {
             hifiCommunicator = new HiFiCommunicator();
-            jest.setTimeout(30000);
         });
 
         afterEach(async () => {
@@ -348,7 +347,6 @@ describe('Mixer connections', () => {
     describe('Verifying connection targets', () => {
         beforeEach(() => {
             hifiCommunicator = new HiFiCommunicator();
-            jest.setTimeout(30000);
         });
 
         afterEach(async () => {
