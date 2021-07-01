@@ -14,7 +14,7 @@ import { HiFiLogger } from "../utilities/HiFiLogger";
 import { HiFiUtilities } from "../utilities/HiFiUtilities";
 import { HiFiAudioAPIData, ReceivedHiFiAudioAPIData, Point3D, OrientationQuat3D, OrientationEuler3D, OrientationEuler3DOrder, eulerToQuaternion, eulerFromQuaternion, OtherUserGainMap } from "./HiFiAudioAPIData";
 import { HiFiAxisConfiguration, HiFiAxisUtilities, ourHiFiAxisConfiguration } from "./HiFiAxisConfiguration";
-import { HiFiMixerSession, SetOtherUserGainForThisConnectionResponse, SetOtherUserGainsForThisConnectionResponse, OnMuteChangedCallback, ConnectionAttemptResult } from "./HiFiMixerSession";
+import { HiFiMixerSession, SetOtherUserGainForThisConnectionResponse, SetOtherUserGainsForThisConnectionResponse, OnMuteChangedCallback } from "./HiFiMixerSession";
 import { AvailableUserDataSubscriptionComponents, UserDataSubscription } from "./HiFiUserDataSubscription";
 
 /**
@@ -157,6 +157,31 @@ export interface ConnectionRetryAndTimeoutConfig {
 };
 
 /**
+ * A `HiFiConnectionAttemptResult` is returned by the Promise that is created when HiFiCommunicator.connectToHiFiAudioAPIServer()
+ * is called.
+ */
+export interface HiFiConnectionAttemptResult {
+    /**
+     * `success` will be `true` if the connection attempt was successful (and the Promise was resolved)
+     * or `false` if it was unsuccessful and the Promise was rejected.
+     */
+    success: boolean,
+    /**
+     * `error` will be an error message when `success` is `false`. Sometimes when `success` is `true` there may
+     * also be a message in here, in which case the message is informational only. (For instance, if you attempt
+     * to connect using a HiFiCommunicator that's already connected, it will resolve with success = true, but
+     * will also have a message in `error` about it being already connected.)
+     */
+    error?: string,
+    /**
+     * `audionetInitResponse` is information that gets returned by the High Fidelity server when a connection
+     * is made. It is primarily used for debugging and includes information about the server build version and
+     * other details. This will not be set if there is an error when connecting to the server.
+     */
+    audionetInitResponse?: any
+}
+
+/**
  * This class exposes properties and methods useful for communicating from the High Fidelity Audio API Client to
  * the High Fidelity Audio API Server. 
  */
@@ -217,7 +242,7 @@ export class HiFiCommunicator {
 
     private _connectionRetryAndTimeoutConfig: ConnectionRetryAndTimeoutConfig;
     private _retryTimerInProgress: any;
-    private _failureNotificationPending: ConnectionAttemptResult; // Stores the most recent failure notification message
+    private _failureNotificationPending: HiFiConnectionAttemptResult; // Stores the most recent failure notification message
     // `connectToHiFiAudioAPIServer()` creates a Promise, but we want to resolve it within the change handler.
     // These store a reference to the `resolve()` and `reject()` methods until they need to be called.
     private _resolveOpen: Function;
@@ -304,19 +329,22 @@ export class HiFiCommunicator {
         Object.assign(this._connectionRetryAndTimeoutConfig, HiFiConstants.DEFAULT_CONNECTION_RETRY_AND_TIMEOUT, connectionRetryAndTimeoutConfig);
         if (this._connectionRetryAndTimeoutConfig.maxSecondsToSpendRetryingInitialConnection <= 0) {
             HiFiLogger.warn(`\`connectionRetryAndTimeoutConfig.maxSecondsToSpendRetryingInitialConnection\` must be greater than 0! Setting to the default (${HiFiConstants.DEFAULT_CONNECTION_RETRY_AND_TIMEOUT.maxSecondsToSpendRetryingInitialConnection}) instead.`);
+            this._connectionRetryAndTimeoutConfig.maxSecondsToSpendRetryingInitialConnection = HiFiConstants.DEFAULT_CONNECTION_RETRY_AND_TIMEOUT.maxSecondsToSpendRetryingInitialConnection;
         }
         if (this._connectionRetryAndTimeoutConfig.maxSecondsToSpendRetryingOnDisconnect <= 0) {
             HiFiLogger.warn(`\`connectionRetryAndTimeoutConfig.maxSecondsToSpendRetryingOnDisconnect\` must be greater than 0! Setting to the default (${HiFiConstants.DEFAULT_CONNECTION_RETRY_AND_TIMEOUT.maxSecondsToSpendRetryingOnDisconnect}) instead.`);
+            this._connectionRetryAndTimeoutConfig.maxSecondsToSpendRetryingOnDisconnect = HiFiConstants.DEFAULT_CONNECTION_RETRY_AND_TIMEOUT.maxSecondsToSpendRetryingOnDisconnect;
         }
         if (this._connectionRetryAndTimeoutConfig.pauseBetweenRetriesMS < HiFiConstants.MIN_PAUSE_BETWEEN_RETRIES) {
             HiFiLogger.warn(`\`connectionRetryAndTimeoutConfig.pauseBetweenRetriesMS\` must be >= ${HiFiConstants.MIN_PAUSE_BETWEEN_RETRIES}! Setting to ${HiFiConstants.MIN_PAUSE_BETWEEN_RETRIES}.`);
+            this._connectionRetryAndTimeoutConfig.pauseBetweenRetriesMS = HiFiConstants.MIN_PAUSE_BETWEEN_RETRIES;
         }
 
         this._mixerSession = new HiFiMixerSession({
             "userDataStreamingScope": userDataStreamingScope,
             "onUserDataUpdated": (data: Array<ReceivedHiFiAudioAPIData>) => { this._handleUserDataUpdates(data); },
             "onUsersDisconnected": (data: Array<ReceivedHiFiAudioAPIData>) => { this._onUsersDisconnected(data); },
-            "onConnectionStateChanged": (state: HiFiConnectionStates, message: ConnectionAttemptResult) => { this._manageConnection(state, message); },
+            "onConnectionStateChanged": (state: HiFiConnectionStates, message: HiFiConnectionAttemptResult) => { this._manageConnection(state, message); },
             "onMuteChanged": onMuteChanged,
             "getUserFacingConnectionState": this.getConnectionState.bind(this)
         });
@@ -397,7 +425,7 @@ export class HiFiCommunicator {
      * @returns If this operation is successful, the Promise will resolve with `{ success: true, audionetInitResponse: <The response to `audionet.init` from the server in Object format>}`.
      * If unsuccessful, the Promise will reject with `{ success: false, error: <an error message> }`.
      */
-    async connectToHiFiAudioAPIServer(hifiAuthJWT: string, signalingHostURL?: string, signalingPort?: number): Promise<any> {
+    async connectToHiFiAudioAPIServer(hifiAuthJWT: string, signalingHostURL?: string, signalingPort?: number): Promise<HiFiConnectionAttemptResult> {
         if (!this._mixerSession) {
             let errMsg = `\`this._mixerSession\` is falsey; try creating a new HiFiCommunicator and starting over.`;
             return Promise.reject({
@@ -471,7 +499,7 @@ export class HiFiCommunicator {
      */
     private _connectToHiFiMixer(): void {
         if (!this._mixerSession || !this._mixerSession.webRTCAddress) {
-            this._manageConnection(HiFiConnectionStates.Failed, { success: false, message: "_connectToHiFiMixer() must be called after connectToHiFiAudioAPIServer()" });
+            this._manageConnection(HiFiConnectionStates.Failed, { success: false, error: "_connectToHiFiMixer() must be called after connectToHiFiAudioAPIServer()" });
         }
         // This should never get called unless we are reasonably certain that the session is
         // NOT connected, but just in case.
@@ -505,7 +533,7 @@ export class HiFiCommunicator {
      * @param message An optional message to include as part of the state change. This will be communicated
      * to users as part of the Reject or Resolve of the connection opening Promise.
      */
-    private _manageConnection(newState: HiFiConnectionStates, message?: ConnectionAttemptResult): void {
+    private _manageConnection(newState: HiFiConnectionStates, message?: HiFiConnectionAttemptResult): void {
         switch (newState) {
             case HiFiConnectionStates.Connecting:
             case HiFiConnectionStates.Reconnecting:
@@ -535,7 +563,7 @@ export class HiFiCommunicator {
                 clearTimeout(this._retryTimerInProgress);
                 this._retryTimerInProgress = null;
                 this._failureNotificationPending = undefined; // No need to let them know if we failed earlier; everything's OK now!
-                // Finally, tell the user ("message" should be set to audionet.init by the mixer change handler)
+                // Finally, tell the user ("message" should be set to audionet.init result by the mixer change handler)
                 this._updateStateAndCallUserStateChangeHandler(newState, message);
                 return;
 
@@ -672,7 +700,7 @@ export class HiFiCommunicator {
      * All updates to `this._currentHiFiConnectionState` should go through this method
      * unless there's a really good reason (e.g. `_cancelRetriedConnectionAttempts`)
      */
-    private _updateStateAndCallUserStateChangeHandler(newState: HiFiConnectionStates, message?: ConnectionAttemptResult): void {
+    private _updateStateAndCallUserStateChangeHandler(newState: HiFiConnectionStates, message?: HiFiConnectionAttemptResult): void {
         if (newState === HiFiConnectionStates.Connected) {
             // Always transmit current data as soon as we connect, just to be sure
             this._transmitHiFiAudioAPIDataToServer(true);
@@ -699,7 +727,7 @@ export class HiFiCommunicator {
         // If this._rejectOpen is _not_ undefined, this disconnect happened without ever opening
         // the connection in the first place (because that would've set it to undefined), and therefore is an error.
         if ((newState === HiFiConnectionStates.Disconnected || newState === HiFiConnectionStates.Unavailable) && this._rejectOpen) {
-            let errMsg = message ? message : { success: false, message: "Open attempt timed out" };
+            let errMsg = message ? message : { success: false, error: "Open attempt timed out" };
             this._rejectOpen(message);
             this._resolveOpen = undefined;
             this._rejectOpen = undefined;
@@ -719,7 +747,7 @@ export class HiFiCommunicator {
         // end up just kicking off another set of retries. This will get
         // messaged to the user once the `disconnectFromHiFiMixer` method
         // finishes up.
-        if (! this._failureNotificationPending) this._failureNotificationPending = { success: false, message: "Connection retry attempts unsuccessful" }; 
+        if (! this._failureNotificationPending) this._failureNotificationPending = { success: false, error: "Connection retry attempts unsuccessful" }; 
         this._updateStateAndCallUserStateChangeHandler(HiFiConnectionStates.Failed, this._failureNotificationPending);
         this._mixerSession.disconnectFromHiFiMixer();
     }

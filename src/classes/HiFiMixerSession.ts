@@ -6,7 +6,7 @@
 
 import { HiFiAudioAPIData, OrientationQuat3D, Point3D, ReceivedHiFiAudioAPIData, OtherUserGainMap } from "./HiFiAudioAPIData";
 import { HiFiLogger } from "../utilities/HiFiLogger";
-import { HiFiConnectionStates, HiFiUserDataStreamingScopes } from "./HiFiCommunicator";
+import { HiFiConnectionStates, HiFiUserDataStreamingScopes, HiFiConnectionAttemptResult } from "./HiFiCommunicator";
 
 import { RaviUtils } from "../libravi/RaviUtils";
 import { RaviSession, RaviSessionStates, WebRTCSessionParams, CustomSTUNandTURNConfig } from "../libravi/RaviSession";
@@ -18,12 +18,7 @@ import pako from 'pako'
 const INIT_TIMEOUT_MS = 5000;
 const PERSONAL_VOLUME_ADJUST_TIMEOUT_MS = 5000;
 
-export interface ConnectionAttemptResult {
-    success: boolean,
-    message?: string,
-    audionetInitResponse?: any
-}
-type ConnectionStateChangeHandler = (state: HiFiConnectionStates, result: ConnectionAttemptResult) => void;
+type ConnectionStateChangeHandler = (state: HiFiConnectionStates, result: HiFiConnectionAttemptResult) => void;
 
 interface AudionetSetOtherUserGainsForThisConnectionResponse {
     success: boolean,
@@ -284,7 +279,7 @@ export class HiFiMixerSession {
      * @returns If this operation is successful, the Promise will resolve with `{ success: true, audionetInitResponse: <The response to `audionet.init` from the server in Object format>}`.
      * If unsuccessful, the Promise will reject with `{ success: false, error: <an error message> }`.
      */
-    async promiseToRunAudioInit(): Promise<any> {
+    async promiseToRunAudioInit(): Promise<HiFiConnectionAttemptResult> {
         return new Promise((resolve, reject) => {
             let initData = {
                 primary: true,
@@ -560,13 +555,13 @@ export class HiFiMixerSession {
 
         if (this.mixerInfo["connected"]) {
             let msg = `Already connected! If a reconnect is needed, please hang up and try again.`;
-            this._onConnectionStateChange(HiFiConnectionStates.Connected, { success: true, message: msg });
+            this._onConnectionStateChange(HiFiConnectionStates.Connected, { success: true, error: msg });
         }
 
         if (!this.webRTCAddress) {
             let errMsg = `Couldn't connect: \`this.webRTCAddress\` is falsey!`;
             // this._onConnectionStateChange will attempt a clean-up disconnect for us
-            this._onConnectionStateChange(HiFiConnectionStates.Failed, { success: false, message: errMsg });
+            this._onConnectionStateChange(HiFiConnectionStates.Failed, { success: false, error: errMsg });
         }
 
         let mixerIsUnavailable = false;
@@ -574,7 +569,7 @@ export class HiFiMixerSession {
             if (event && event.state === RaviSignalingStates.UNAVAILABLE) {
                 mixerIsUnavailable = true;
                 let message = `High Fidelity server is at capacity; service is unavailable.`;
-                this._onConnectionStateChange(HiFiConnectionStates.Unavailable, { success: false, message: message });
+                this._onConnectionStateChange(HiFiConnectionStates.Unavailable, { success: false, error: message });
                 this._raviSignalingConnection.removeStateChangeHandler(tempUnavailableStateHandler);
                 this._raviSession.closeRAVISession();
             }
@@ -605,7 +600,7 @@ export class HiFiMixerSession {
                 let errMsg = `Couldn't open RAVI session associated with \`${this.webRTCAddress.slice(0, this.webRTCAddress.indexOf("token="))}<token redacted>\`! Error:\n${RaviUtils.safelyPrintable(errorOpeningRAVISession)}`;
                 if (mixerIsUnavailable) {
                     errMsg = `High Fidelity server is at capacity; service is unavailable.`;
-                    this._onConnectionStateChange(HiFiConnectionStates.Unavailable, { success: false, message: errMsg });
+                    this._onConnectionStateChange(HiFiConnectionStates.Unavailable, { success: false, error: errMsg });
                 }
                 throw(errMsg);
             });
@@ -634,7 +629,7 @@ export class HiFiMixerSession {
             // No matter what happens up there, we want to go to a failed state
             // and pass along the error message. `this._onConnectionStateChange`
             // will disconnect and clean up for us.
-            this._onConnectionStateChange(HiFiConnectionStates.Failed, { success: false, message: error });
+            this._onConnectionStateChange(HiFiConnectionStates.Failed, { success: false, error: error });
         })
         .finally(() => {
             this._raviSignalingConnection.removeStateChangeHandler(tempUnavailableStateHandler);
@@ -684,7 +679,7 @@ export class HiFiMixerSession {
 
         await this._setMutedByAdmin(false, MuteReason.INTERNAL);
 
-        this._onConnectionStateChange(HiFiConnectionStates.Disconnected, { success: true, message: "Successfully disconnected" });
+        this._onConnectionStateChange(HiFiConnectionStates.Disconnected, { success: true, error: "Successfully disconnected" });
 
         return Promise.resolve(`Successfully disconnected.`);
     }
@@ -925,7 +920,7 @@ export class HiFiMixerSession {
      * Fire the onChange handler for a state operation
      * @param state
      */
-    async _onConnectionStateChange(state: HiFiConnectionStates, result: ConnectionAttemptResult): Promise<void> {
+    async _onConnectionStateChange(state: HiFiConnectionStates, result: HiFiConnectionAttemptResult): Promise<void> {
         if (this.getCurrentHiFiConnectionState() !== state) {
             if (this.onConnectionStateChanged) {
                 this.onConnectionStateChanged(state, result);
@@ -955,7 +950,7 @@ export class HiFiMixerSession {
         HiFiLogger.log(`New RAVI signaling state: \`${event.state}\``);
         switch (event.state) {
             case RaviSignalingStates.UNAVAILABLE:
-                this._onConnectionStateChange(HiFiConnectionStates.Unavailable, { success: false, message: `High Fidelity server is at capacity; service is unavailable.` });
+                this._onConnectionStateChange(HiFiConnectionStates.Unavailable, { success: false, error: `High Fidelity server is at capacity; service is unavailable.` });
                 try {
                     await this._disconnectFromHiFiMixer();
                 } catch (errorClosing) {
@@ -979,12 +974,12 @@ export class HiFiMixerSession {
                 break;
             case RaviSessionStates.CLOSED:
                 message = "RaviSession has been closed; connection to High Fidelity servers has been disconnected";
-                this._onConnectionStateChange(HiFiConnectionStates.Disconnected, { success: true, message: message });
+                this._onConnectionStateChange(HiFiConnectionStates.Disconnected, { success: true, error: message });
                 break;
             case RaviSessionStates.DISCONNECTED:
             case RaviSessionStates.FAILED:
-                message = "RaviSession has disconnected";
-                this._onConnectionStateChange(HiFiConnectionStates.Failed, { success: false, message: message });
+                message = "RaviSession has disconnected unexpectedly";
+                this._onConnectionStateChange(HiFiConnectionStates.Failed, { success: false, error: message });
                 try {
                     await this._disconnectFromHiFiMixer();
                 } catch (errorClosing) {
