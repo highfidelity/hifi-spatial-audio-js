@@ -154,6 +154,12 @@ export class HiFiMixerSession {
     private onMuteChanged: OnMuteChangedCallback;
 
     /**
+     * A MediaStream that persists across reconnection attempts; we add the
+     * actual output tracks to this when the RAVI session connects.
+     */
+    private _outputAudioMediaStream: MediaStream;
+
+    /**
      * Only valid for users covered by a user data subscription. Remains constant at disconnect until the next connect.
      */
     public concurrency:number = 0;
@@ -263,6 +269,9 @@ export class HiFiMixerSession {
         }, true);
 
         this.onConnectionStateChanged = onConnectionStateChanged;
+
+        // Create an empty output media stream that will persist across reconnects
+        this._outputAudioMediaStream = new MediaStream();
 
         this._tryingToConnect = false;
         this._resetMixerInfo();
@@ -883,17 +892,7 @@ export class HiFiMixerSession {
      * @returns The mixed, spatialized `MediaStream` from the Mixer. Returns `null` if it's not possible to obtain that `MediaStream`.
      */
     getOutputAudioMediaStream(): MediaStream {
-        if (!this._raviSession) {
-            return null;
-        }
-
-        let streamController = this._raviSession.getStreamController();
-
-        if (!streamController) {
-            return null;
-        }
-
-        return streamController.getAudioStream();
+        return this._outputAudioMediaStream;
     }
     /**
      * Examines the underlying connection objects to determine
@@ -928,6 +927,7 @@ export class HiFiMixerSession {
             if (state === HiFiConnectionStates.Connected) {
                 this._raviDiagnostics.prime(this.mixerInfo.visit_id_hash);
                 this._hifiDiagnostics.prime(this.mixerInfo.visit_id_hash);
+                this._copyAudioTracksFromRavi();
             } else {
                 this._hifiDiagnostics.fire();
             }
@@ -961,6 +961,26 @@ export class HiFiMixerSession {
     }).bind(this);
 
     /**
+     * This method is meant to be called once the connection state reaches "Connected".
+     * It removes any existing tracks from the persistent `this._outputAudioMediaStream`
+     * and replaces them with the tracks that are currently on the RAVI stream controller.
+     */
+    _copyAudioTracksFromRavi() {
+        let currentAudioTracks = this._outputAudioMediaStream.getAudioTracks();
+        let raviAudioTracks = undefined;
+        let streamController = this._raviSession.getStreamController();
+
+        if (streamController && streamController.getAudioStream()) {
+            raviAudioTracks = streamController.getAudioStream().getAudioTracks();
+        }
+
+        if (raviAudioTracks) {
+            HiFiLogger.log(`Resetting this._outputAudioMediaStream tracks to the current RAVI audio tracks.`);
+            currentAudioTracks.forEach(f => this._outputAudioMediaStream.removeTrack(f));
+            raviAudioTracks.forEach(f => this._outputAudioMediaStream.addTrack(f));
+        }
+    }
+    /**
      * Fires when the RAVI Session State changes.
      * @param event
      */
@@ -971,6 +991,7 @@ export class HiFiMixerSession {
         switch (event.state) {
             case RaviSessionStates.CONNECTED:
                 HiFiLogger.log(`RaviSession connected; waiting for results of audionet.init`);
+                this._copyAudioTracksFromRavi();
                 break;
             case RaviSessionStates.CLOSED:
                 message = "RaviSession has been closed; connection to High Fidelity servers has been disconnected";
