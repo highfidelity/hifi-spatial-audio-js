@@ -565,26 +565,26 @@ export class HiFiMixerSession {
      * 
      * @param __namedParameters
      * @param webRTCSessionParams - Parameters passed to the RAVI session when opening that session.
-     * @returns boolean indicating success or failure; the callback function can be used to catch information about errors upon failure, or the response from `audionet.init` when successful
+     * @returns void. Use the callback function to get information about errors upon failure, or the response from `audionet.init` when successful
      */
-    connectToHiFiMixer({ webRTCSessionParams, customSTUNandTURNConfig, timeout }: { webRTCSessionParams?: WebRTCSessionParams, customSTUNandTURNConfig?: CustomSTUNandTURNConfig, timeout?: number }): boolean {
+    connectToHiFiMixer({ webRTCSessionParams, customSTUNandTURNConfig, timeout }: { webRTCSessionParams?: WebRTCSessionParams, customSTUNandTURNConfig?: CustomSTUNandTURNConfig, timeout?: number }): void {
 
         if (this._tryingToConnect) {
             HiFiLogger.warn("`HiFiMixerSession.connectToHiFiMixer()` was called, but is already in the process of connecting. No action will be taken.");
-            return false;
+            return;
         }
 
         if (this.mixerInfo["connected"]) {
             let msg = `Already connected! If a reconnect is needed, please hang up and try again.`;
             this._onConnectionStateChange(HiFiConnectionStates.Connected, { success: true, error: msg });
-            return true;
+            return;
         }
 
         if (!this.webRTCAddress) {
             let errMsg = `Couldn't connect: \`this.webRTCAddress\` is falsey!`;
             // this._onConnectionStateChange will attempt a clean-up disconnect for us
             this._onConnectionStateChange(HiFiConnectionStates.Failed, { success: false, error: errMsg });
-            return false;
+            return;
         }
 
         let mixerIsUnavailable = false;
@@ -647,14 +647,12 @@ export class HiFiMixerSession {
             // promises).
             this._raviSignalingConnection.addStateChangeHandler(this.onRAVISignalingStateChanged);
             this._raviSession.addStateChangeHandler(this.onRAVISessionStateChanged);
-            return true;
         })
         .catch((error) => {
             // No matter what happens up there, we want to go to a failed state
             // and pass along the error message. `this._onConnectionStateChange`
             // will disconnect and clean up for us.
             this._onConnectionStateChange(HiFiConnectionStates.Failed, { success: false, error: error });
-            return false;
         })
         .finally(() => {
             this._raviSignalingConnection.removeStateChangeHandler(tempUnavailableStateHandler);
