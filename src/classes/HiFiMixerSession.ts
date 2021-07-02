@@ -15,6 +15,18 @@ import { HiFiAxisUtilities, ourHiFiAxisConfiguration } from "./HiFiAxisConfigura
 import { Diagnostics } from "../diagnostics/diagnostics";
 import pako from 'pako'
 
+const isBrowser = typeof window !== 'undefined';
+// Since we're initializing a MediaStream, we need to
+// do it using the correct cross-platform class (node or browser)
+let xMediaStream = isBrowser && window.MediaStream;
+if (!isBrowser) {
+    try {
+        xMediaStream = require('wrtc').MediaStream;
+    } catch (e) {
+        ; // Remains falsey. Don't report, don't log
+    }
+}
+
 const INIT_TIMEOUT_MS = 5000;
 const PERSONAL_VOLUME_ADJUST_TIMEOUT_MS = 5000;
 
@@ -271,7 +283,7 @@ export class HiFiMixerSession {
         this.onConnectionStateChanged = onConnectionStateChanged;
 
         // Create an empty output media stream that will persist across reconnects
-        this._outputAudioMediaStream = new MediaStream();
+        this._outputAudioMediaStream = new xMediaStream();
 
         this._tryingToConnect = false;
         this._resetMixerInfo();
@@ -553,24 +565,26 @@ export class HiFiMixerSession {
      * 
      * @param __namedParameters
      * @param webRTCSessionParams - Parameters passed to the RAVI session when opening that session.
-     * @returns void, but the callback function can be used to catch information about errors upon failure, or the response from `audionet.init` when successful
+     * @returns boolean indicating success or failure; the callback function can be used to catch information about errors upon failure, or the response from `audionet.init` when successful
      */
-    async connectToHiFiMixer({ webRTCSessionParams, customSTUNandTURNConfig, timeout }: { webRTCSessionParams?: WebRTCSessionParams, customSTUNandTURNConfig?: CustomSTUNandTURNConfig, timeout?: number }): Promise<any> {
+    connectToHiFiMixer({ webRTCSessionParams, customSTUNandTURNConfig, timeout }: { webRTCSessionParams?: WebRTCSessionParams, customSTUNandTURNConfig?: CustomSTUNandTURNConfig, timeout?: number }): boolean {
 
         if (this._tryingToConnect) {
             HiFiLogger.warn("`HiFiMixerSession.connectToHiFiMixer()` was called, but is already in the process of connecting. No action will be taken.");
-            return;
+            return false;
         }
 
         if (this.mixerInfo["connected"]) {
             let msg = `Already connected! If a reconnect is needed, please hang up and try again.`;
             this._onConnectionStateChange(HiFiConnectionStates.Connected, { success: true, error: msg });
+            return true;
         }
 
         if (!this.webRTCAddress) {
             let errMsg = `Couldn't connect: \`this.webRTCAddress\` is falsey!`;
             // this._onConnectionStateChange will attempt a clean-up disconnect for us
             this._onConnectionStateChange(HiFiConnectionStates.Failed, { success: false, error: errMsg });
+            return false;
         }
 
         let mixerIsUnavailable = false;
@@ -639,12 +653,15 @@ export class HiFiMixerSession {
             // and pass along the error message. `this._onConnectionStateChange`
             // will disconnect and clean up for us.
             this._onConnectionStateChange(HiFiConnectionStates.Failed, { success: false, error: error });
+            return false;
         })
         .finally(() => {
             this._raviSignalingConnection.removeStateChangeHandler(tempUnavailableStateHandler);
             this.concurrency = 0;
             this._tryingToConnect = false;
         });
+
+        return true;
     }
 
     /**
