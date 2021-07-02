@@ -509,9 +509,10 @@ export class HiFiCommunicator {
         }
 
         let timeoutPerConnectionAttempt = this._connectionRetryAndTimeoutConfig.timeoutPerConnectionAttemptMS;
-        // Allow this call to be kicked off asynchronously. Calls to this method get handled
-        // entirely by callback-initiated retry code, so this should not get called unless
-        // a callback asked us to do it.
+        // Kick off the connection attempt. This returns a boolean, but any actual success or failure
+        // gets handled by the _manageConnection callback handler. (Note that calls to our _connectToHiFiMixer()
+        // method get handled entirely by callback-initiated retry code, so we should never get here unless
+        // a callback asked us to do it.)
         this._mixerSession.connectToHiFiMixer({ webRTCSessionParams: this._webRTCSessionParams, customSTUNandTURNConfig: this._customSTUNandTURNConfig, timeout: timeoutPerConnectionAttempt });
     }
 
