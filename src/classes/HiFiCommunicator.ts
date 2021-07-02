@@ -702,7 +702,8 @@ export class HiFiCommunicator {
      */
     private _updateStateAndCallUserStateChangeHandler(newState: HiFiConnectionStates, message?: HiFiConnectionAttemptResult): void {
         if (newState === HiFiConnectionStates.Connected) {
-            // Always transmit current data as soon as we connect, just to be sure
+            // Always reset last transmitted, and transmit current data as soon as we connect, just to be sure
+            this._lastTransmittedHiFiAudioAPIData = new HiFiAudioAPIData();
             this._transmitHiFiAudioAPIDataToServer(true);
         }
 
