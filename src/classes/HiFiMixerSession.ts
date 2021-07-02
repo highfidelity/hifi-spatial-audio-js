@@ -647,6 +647,7 @@ export class HiFiMixerSession {
             // promises).
             this._raviSignalingConnection.addStateChangeHandler(this.onRAVISignalingStateChanged);
             this._raviSession.addStateChangeHandler(this.onRAVISessionStateChanged);
+            return true;
         })
         .catch((error) => {
             // No matter what happens up there, we want to go to a failed state
@@ -661,7 +662,6 @@ export class HiFiMixerSession {
             this._tryingToConnect = false;
         });
 
-        return true;
     }
 
     /**
