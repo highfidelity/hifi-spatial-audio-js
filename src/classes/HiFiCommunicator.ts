@@ -114,7 +114,7 @@ export interface ConnectionRetryAndTimeoutConfig {
   /**
    * The total amount of time (in seconds) to keep retrying the initial
    * connection before giving up completely. If `autoRetryInitialConnection`
-   * is set to `true`, this defaults to 60 seconds.
+   * is set to `true`, this defaults to 15 seconds.
    */
   maxSecondsToSpendRetryingInitialConnection?: number;
 
@@ -137,7 +137,7 @@ export interface ConnectionRetryAndTimeoutConfig {
    * being attempted, the state will be "Connecting". After this amount of time
    * has passed, if a connection has not been established, we will stop
    * trying to reconnect and set the connection state to 'Failed'.
-   * If `autoRetryOnDisconnect` is set to `true`, this defaults to 300 seconds (5 minutes).
+   * If `autoRetryOnDisconnect` is set to `true`, this defaults to 60 seconds (1 minute).
    */
   maxSecondsToSpendRetryingOnDisconnect?: number;
 
