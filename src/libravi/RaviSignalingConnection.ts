@@ -396,24 +396,45 @@ class RaviSignalingWebSocketImplementation {
     // stateChangeHandlers.
     // (We can't set these until we attempt to open the
     // WebSocket, because there's no other WebSocket constructor.)
-    this._webSocket.addEventListener('open', function(event: any) { signalingConnection._handleStateChange(event, RaviSignalingStates.OPEN); });
-    this._webSocket.addEventListener('error', function(event: any) { signalingConnection._handleStateChange(event, RaviSignalingStates.ERROR); });
-    this._webSocket.addEventListener('close', function(event: any) { 
-        if (event && event.code && event.code > 4000) {
-            // This "close" event is really an error, because we're
-            // returning one of our custom error codes. Treat it as such.
-            RaviUtils.err("_handleStateChange: signaling error code " + event.code + ":  " + event.reason, "RaviSignalingConnection");
-            signalingConnection._handleStateChange(event, RaviSignalingStates.ERROR);
-        } else {
-            signalingConnection._handleStateChange(event, RaviSignalingStates.CLOSED);
-        }
-    });
+    this._webSocket.addEventListener('open', this._onWebSocketOpen);
+    this._webSocket.addEventListener('error', this._onWebSocketError);
+    this._webSocket.addEventListener('close', this._onWebSocketClose);
 
     // Any additional messaging handling gets done by the main
     // RaviSignalingConnection's messageHandlers
     this._webSocket.addEventListener('message', function(event: any) { signalingConnection._handleMessage(event); });
   }
   
+  /**
+   * @private
+   */
+  _onWebSocketOpen = (function(event: any) {
+    this._raviSignalingConnection._handleStateChange(event, RaviSignalingStates.OPEN);
+  }).bind(this);
+
+  /**
+   * These handlers need to be named references so that we can easily remove them from the
+   * websocket when we're closing it.
+   * @private
+   */
+  _onWebSocketError = (function(event: any) {
+    this._raviSignalingConnection._handleStateChange(event, RaviSignalingStates.ERROR);
+  }).bind(this);
+
+  /**
+   * @private
+   */
+  _onWebSocketClose = (function(event: any) {
+    if (event && event.code && event.code > 4000) {
+      // This "close" event is really an error, because we're
+      // returning one of our custom error codes. Treat it as such.
+      RaviUtils.err("_handleStateChange: signaling error code " + event.code + ":  " + event.reason, "RaviSignalingConnection");
+      this._raviSignalingConnection._handleStateChange(event, RaviSignalingStates.ERROR);
+    } else {
+      this._raviSignalingConnection._handleStateChange(event, RaviSignalingStates.CLOSED);
+    }
+  }).bind(this);
+
   /**
    * @private
    */
@@ -429,13 +450,27 @@ class RaviSignalingWebSocketImplementation {
    */
   _close() {
     var signalingConnection = this._raviSignalingConnection;
-    // If we're already closed, make sure the signaling connection knows about it and return immediately
-    if (! this._webSocket || this._webSocket.readyState === crossPlatformWebSocket.CLOSED) {
+    // If we don't have a websocket at all, make sure that the parent knows about it and return immediately.
+    if (! this._webSocket ) {
         signalingConnection._handleStateChange({}, RaviSignalingStates.CLOSED);
         return;
     }
-    this._webSocket.close();
+    // The behavior of WebSocket.close() in browser JavaScript is a little wacky
+    // (it sends a "close handshake" rather than just shutting down the connection) and doesn't always close
+    // cleanly right away. Jumping through a couple hoops here to make sure that the websocket
+    // reference goes away and we for sure get the message that it's closed. Without this, I've observed
+    // occasional weird race conditions when testing reconnects.
+    let oldSocket = this._webSocket;
     this._webSocket = null;
+    // If these listeners don't get explicitly removed, they can sometimes
+    // trigger long after the WebSocket was expected to have been closed (because the
+    // WebSocket doesn't always close cleanly), and that leads to all sorts of confusion.
+    oldSocket.removeEventListener('open', this._onWebSocketOpen);
+    oldSocket.removeEventListener('error', this._onWebSocketError);
+    oldSocket.removeEventListener('close', this._onWebSocketClose);
+    oldSocket.close();
+    // Since we removed the event listeners, explicitly call "closed" after closing.
+    signalingConnection._handleStateChange({}, RaviSignalingStates.CLOSED);
   }
 }
 
