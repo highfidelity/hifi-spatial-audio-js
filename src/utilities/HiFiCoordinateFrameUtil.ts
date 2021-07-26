@@ -90,13 +90,11 @@ export class HiFiCoordinateFrameUtil {
      */
     WorldOrientationToHiFi(orientation: Quaternion): Quaternion {
         // The best way to understand this math is to remember:
-        // this matrix operates from the LEFT on a hypothetical columnar Vector3 on the RIGHT
-        // this hypothetical Vector3 is in the HiFi-frame and as the three matrices operate on it...
-        // (1) it gets transformed into the World-frame
-        // (2) the world-frame Orientation rotates it
-        // (3) it gets transformed back into the HiFi-frame
-        // The hypothetical result would be:
-        // the HiFi-frame Vector3 has been rotated by whatever world-frame oriention equivalent in the HiFi-frame
+        // this matrix operates from the LEFT on a hypothetical columnar Vector3 on the RIGHT.
+        // which would start in the HiFi-frame and as the three matrices operate on it...
+        // (1) it is transformed into the World-frame
+        // (2) where it rotated by the world-frame Orientation
+        // (3) and finally transformed back into the HiFi-frame
 
         // newOrientation = worldToHifi * orientation * hifiToWorld
         let m = Matrix3.fromQuaternion(orientation);
