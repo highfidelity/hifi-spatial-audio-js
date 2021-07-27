@@ -184,6 +184,7 @@ export class Diagnostics {
     }
     connectionStats(kind:string) {
         let report = kind === 'browserStats' ?  browserStats : remoteStats;
+        if (!report) return ''; // Can happen with bots.
         return this.s(kind+'IP', report.ip || report.address, '\n') +
             this.s(kind+'TYPE', report.candidateType) +
             this.s(kind+'PROTOCOL', report.protocol);
@@ -250,8 +251,9 @@ export class Diagnostics {
     static startStats(session:HiFiMixerSession) { // Results not defined if called with different session.
         if (nStatsClients++ > 0) return; // Someone primed before this call (and since the final reset).
         session.startCollectingWebRTCStats((next:any, previous:any) => {
-            let selected = next.find((report:any) => report.writable || report.nominated),
-                localReport = next.find((report:any) => report.id === selected.localCandidateId),
+            let selected = next.find((report:any) => report.writable || report.nominated);
+            if (!selected) return; // Can happen on bots.
+            let localReport = next.find((report:any) => report.id === selected.localCandidateId),
                 remoteReport = next.find((report:any) => report.id === selected.remoteCandidateId);
             if (localReport)  browserStats = localReport;
             if (remoteReport) remoteStats = remoteReport;
