@@ -1,0 +1,21 @@
+name: Update-Bots-API-Docker-Image
+
+on:
+  workflow_dispatch:      
+  push:
+    branches:
+      - main
+
+jobs:
+  Trigger-Repository-Dispatch-Event-for-Testing-Bots:
+    runs-on: ubuntu-latest
+    if: github.event.pusher.name != 'hifibuild' && github.event.pusher.name != 'dependabot'
+
+    steps:
+      # Trigger event via curl
+      - name: Repository Dispatch
+        uses: peter-evans/repository-dispatch@v1
+        with:
+          token: ${{ secrets.BOTS_REPO_TOKEN }}
+          repository: https://github.com/highfidelity/testing-bots
+          event-type: update
