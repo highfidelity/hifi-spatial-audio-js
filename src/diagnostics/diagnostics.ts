@@ -44,6 +44,7 @@ let reports:any = {
     'remote-inbound-rtp': {}
 };
 const useDebugPrefixes = false;
+const directSendLabel = 'directSend';
 
 /** 
  * @internal
@@ -92,8 +93,24 @@ export class Diagnostics {
         if (!this.isPrimed()) return;
         const reportString = this.toString();
         this.reset();
+        // When we fire on closing tab or browser, we sometimes don't have enough time to report, or
+        // sometimes have enough time to report, but not enough to check the response.
+        // So:
+        // 1. Persist the report with a label that indicates we have not yet phoned it in.
+        // 2. Report the original report text with no special label.
+        // 3. IFF we get a chance to execute after the report, then either
+        //      Send a report with a failed label, or
+        //      clean up so that we don't report again.
+        // As a result, the following are all possible:
+        //   No report can happen if we get stopped during (1), or if stopped during (2) and the user never connects again.
+        //   PERISTENCE=premptive if we get through (2) and the user reconnects.
+        //   Two reports, one with premptive and one with directSend, if we get stopped between 2 and 3.
+        //   PERSISTENCE=directSend (or unlikely, fail), if we get through all 3 steps.
+        this.persist(reportString, 'preemptive', false); // Save in case the browser doesn't give us enough time to send.
         if (! await this.report(reportString)) {
-            this.persist(reportString);
+            this.persist(reportString, 'failed');
+        } else { // Successful report. 
+            xStorage.removeItem(this.label);
         }
     }
     noteExplicitApplicationClose() {
@@ -134,6 +151,7 @@ export class Diagnostics {
             this.s('XPLICITCLOSED', this.explicitApplicationClose ? 'yes' : 'no') +
             this.visibilityInfo() +
             this.connectionInfo() +
+            this.s('PERSISTENCE', directSendLabel) +
             (useDebugPrefixes ? '\n' : '') +
             ` [${xNavigator.userAgent}]`;
     }
@@ -219,21 +237,23 @@ export class Diagnostics {
             method: 'POST',
             headers: { 'Content-Type': 'text/plain' },
             body: reportString
-        }).then((response:Response) => response.ok, (x:any) => false);
+        }).then((response:Response) => response.ok);
     }
     /**
      * Add reportString to the set of data being saved for later reporting.
      */
-    persist(reportString:string) {
+    persist(reportString:string, reason:string, addListener = true) {
         let existing = xStorage.getItem(this.label) || "";
         // By construction existing is expected to be empty or one line. It could have multiple lines if
         // there is a bug, or if the application site limits the connect-src (or default-src)
         // in its Content-Security-Policy header without allowing this.url.
         // If it is more than a line, we are accumulating stuff and really ought to phone home through the mixer when connected.
         if (existing) existing += "\n";
+        // The reportString is generated as through it will be sent directly. Here we replace that label with a reason why we're persisting.
+        reportString = reportString.replace(directSendLabel, reason);
         xStorage.setItem(this.label, existing + reportString);
         // An optimization to get caught up on data quicker in the case where network is lost and returns while tab is still up.
-        xAddEventListener('online', this.onlineListener);
+        if (addListener) xAddEventListener('online', this.onlineListener);
     }
     /**
      * If there's anything persisted, try to report it. If successful, clear persistence.
