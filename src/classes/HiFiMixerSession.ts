@@ -370,13 +370,13 @@ export class HiFiMixerSession {
                 });
 
                 let mixerPeerKeys = Object.keys(this._mixerPeerKeyToStateCacheDict);
-                for (const mixerPeerKey of mixerPeerKeys) {
-                    if (this._mixerPeerKeyToStateCacheDict[mixerPeerKey].hashedVisitID === hashedVisitID) {
-                        if (this._mixerPeerKeyToStateCacheDict[mixerPeerKey].providedUserID) {
-                            deletedUserData.providedUserID = this._mixerPeerKeyToStateCacheDict[mixerPeerKey].providedUserID;
+                for (const key of mixerPeerKeys) {
+                    let peerData = this._mixerPeerKeyToStateCacheDict[key];
+                    if (peerData.hashedVisitID === hashedVisitID) {
+                        if (peerData.providedUserID) {
+                            deletedUserData.providedUserID = peerData.providedUserID;
                         }
-                        // TODO: remove the entry from the peer state cache -- is this OK?
-                        //delete this._mixerPeerKeyToStateCacheDict[mixerPeerKey];
+                        delete this._mixerPeerKeyToStateCacheDict[key];
                         break;
                     }
                 }
