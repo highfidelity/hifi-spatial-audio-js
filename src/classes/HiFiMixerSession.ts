@@ -152,7 +152,7 @@ export class HiFiMixerSession {
      * 
      * Thus, the Library user should never have to care about the `_mixerPeerKeyToStateCacheDict`.
      */
-    private _mixerPeerKeyToStateCacheDict: any;
+    private _mixerPeerKeyToStateCacheDict: { [id: string] : ReceivedHiFiAudioAPIData };
 
     /**
      * We will track whether or not the input stream is stereo, so that
@@ -358,39 +358,6 @@ export class HiFiMixerSession {
         let unGZippedData = pako.ungzip(data, { to: 'string' });
         let jsonData = JSON.parse(unGZippedData);
 
-        if (jsonData.deleted_visit_ids) {
-            let allDeletedUserData: Array<ReceivedHiFiAudioAPIData> = [];
-
-            let deletedVisitIDs = jsonData.deleted_visit_ids;
-            for (const deletedVisitID of deletedVisitIDs) {
-                let hashedVisitID = deletedVisitID;
-
-                let deletedUserData = new ReceivedHiFiAudioAPIData({
-                    hashedVisitID: hashedVisitID
-                });
-
-                let mixerPeerKeys = Object.keys(this._mixerPeerKeyToStateCacheDict);
-                for (const key of mixerPeerKeys) {
-                    let peerData = this._mixerPeerKeyToStateCacheDict[key];
-                    if (peerData.hashedVisitID === hashedVisitID) {
-                        if (peerData.providedUserID) {
-                            deletedUserData.providedUserID = peerData.providedUserID;
-                        }
-                        delete this._mixerPeerKeyToStateCacheDict[key];
-                        break;
-                    }
-                }
-
-                allDeletedUserData.push(deletedUserData);
-            }
-
-            // TODO: remove the entry from the peer state cache
-            this.concurrency -= allDeletedUserData.length;
-            if (this.onUsersDisconnected && allDeletedUserData.length > 0) {
-                this.onUsersDisconnected(allDeletedUserData);
-            }
-        }
-
         if (jsonData.peers) {
             let allNewUserData: Array<ReceivedHiFiAudioAPIData> = [];
 
@@ -534,6 +501,38 @@ export class HiFiMixerSession {
 
             if (this.onUserDataUpdated && allNewUserData.length > 0) {
                 this.onUserDataUpdated(allNewUserData);
+            }
+        }
+
+        if (jsonData.deleted_visit_ids) {
+            let allDeletedUserData: Array<ReceivedHiFiAudioAPIData> = [];
+
+            let deletedVisitIDs = jsonData.deleted_visit_ids;
+            for (const deletedVisitID of deletedVisitIDs) {
+                let hashedVisitID = deletedVisitID;
+
+                let deletedUserData = new ReceivedHiFiAudioAPIData({
+                    hashedVisitID: hashedVisitID
+                });
+
+                let mixerPeerKeys = Object.keys(this._mixerPeerKeyToStateCacheDict);
+                for (const key of mixerPeerKeys) {
+                    let peerData = this._mixerPeerKeyToStateCacheDict[key];
+                    if (peerData.hashedVisitID === hashedVisitID) {
+                        if (peerData.providedUserID) {
+                            deletedUserData.providedUserID = peerData.providedUserID;
+                        }
+                        delete this._mixerPeerKeyToStateCacheDict[key];
+                        break;
+                    }
+                }
+
+                allDeletedUserData.push(deletedUserData);
+            }
+
+            this.concurrency -= allDeletedUserData.length;
+            if (this.onUsersDisconnected && allDeletedUserData.length > 0) {
+                this.onUsersDisconnected(allDeletedUserData);
             }
         }
         
@@ -1238,18 +1237,20 @@ export class HiFiMixerSession {
      * Clears all cached peer data and submits all hashedVisitIDs as "deleted"
      */
     private _clearPeerData(): void {
-        if (this.onUsersDisconnected && this._mixerPeerKeyToStateCacheDict.length > 0) {
+        if (this.onUsersDisconnected) {
             let allDeletedUserData: Array<ReceivedHiFiAudioAPIData> = [];
-            for (const peerData of this._mixerPeerKeyToStateCacheDict) {
+            for (let [key , value] of Object.entries(this._mixerPeerKeyToStateCacheDict)) {
                 let deletedUserData = new ReceivedHiFiAudioAPIData({
-                    hashedVisitID: peerData.hashedVisitID,
+                    hashedVisitID: value.hashedVisitID
                 });
-                if (peerData.providedUserID) {
-                    deletedUserData.providedUserID = peerData.providedUserID;
+                if (value.providedUserID) {
+                    deletedUserData.providedUserID = value.providedUserID;
                 }
                 allDeletedUserData.push(deletedUserData);
             }
-            this.onUsersDisconnected(allDeletedUserData);
+            if (allDeletedUserData.length > 0) {
+                this.onUsersDisconnected(allDeletedUserData);
+            }
         }
         this._mixerPeerKeyToStateCacheDict = {};
     }
