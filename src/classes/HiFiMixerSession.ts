@@ -699,6 +699,7 @@ export class HiFiMixerSession {
         await close(this._raviSignalingConnection, "Signaling Connection", RaviSignalingStates.CLOSED);
         await close(this._raviSession, "Session", RaviSessionStates.CLOSED);
 
+        this._clearPeerData();
         this._resetMixerInfo();
 
         await this._setMutedByAdmin(false, MuteReason.INTERNAL);
@@ -1231,6 +1232,25 @@ export class HiFiMixerSession {
         this.mixerInfo = {
             "connected": false,
         };
+    }
+
+    /** 
+     * Clears all cached peer data and submits all hashedVisitIDs as "deleted"
+     */
+    private _clearPeerData(): void {
+        if (this.onUsersDisconnected && this._mixerPeerKeyToStateCacheDict.length > 0) {
+            let allDeletedUserData: Array<ReceivedHiFiAudioAPIData> = [];
+            for (const peerData of this._mixerPeerKeyToStateCacheDict) {
+                let deletedUserData = new ReceivedHiFiAudioAPIData({
+                    hashedVisitID: peerData.hashedVisitID,
+                });
+                if (peerData.providedUserID) {
+                    deletedUserData.providedUserID = peerData.providedUserID;
+                }
+                allDeletedUserData.push(deletedUserData);
+            }
+            this.onUsersDisconnected(allDeletedUserData);
+        }
         this._mixerPeerKeyToStateCacheDict = {};
     }
 }
