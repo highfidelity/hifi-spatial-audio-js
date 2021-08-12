@@ -280,7 +280,7 @@ export class HiFiMixerSession {
         onUsersDisconnected?: Function,
         onConnectionStateChanged?: ConnectionStateChangeHandler,
         onMuteChanged?: OnMuteChangedCallback,
-        getUserFacingConnectionState?: Function
+        getUserFacingConnectionState?: Function,
         coordFrameUtil?: HiFiCoordinateFrameUtil
     }) {
         this.webRTCAddress = undefined;
