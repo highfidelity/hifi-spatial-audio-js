@@ -267,6 +267,10 @@ export class Quaternion {
         return this.getElevation();
     }
 
+    // Note: there is no getRoll() implementation because in order to compute roll
+    // we whould first also have to compute pitch and yaw.  If you only need roll
+    // then use getEulerAngles() and extract roll from the results.
+
     /**
      * @returns the dot product of two Quaternions
      */

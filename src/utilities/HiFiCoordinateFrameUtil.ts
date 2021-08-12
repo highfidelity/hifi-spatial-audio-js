@@ -9,9 +9,13 @@ import { Matrix3, Quaternion, Vector3 } from "./HiFiMath";
  * HiFi Spatial Audio uses a right-handed Cartesian coordinate system
  * with FORWARD pointing along negative Z-axis and UP along positive Y-axis.
  *
- * If the World uses a different coordinate system then it will be necessary
- * to convert World-frame Position into the HiFi-frame.
- * HiFiCoordinateFrameUtil is a helper class for this scenario.
+ * If the World uses an incompatible coordinate system then it may be necessary
+ * to convert World-frame Position into the HiFi-frame.  HiFiCoordinateFrameUtil
+ * is a helper class for making it easy to convert from one frame to another.
+ *
+ * The World-frame is compatible whith the HiFi-frame IFF:  
+ * (1) It is right-handed
+ * (2) It uses the Y-axis (positive or negative, doesn't matter) for the UP direction.
  *
  * To build a HiFiCoordinateFrameUtil instance you must present three arguments:
  * (1) The normalized FORWARD axis in the World-frame

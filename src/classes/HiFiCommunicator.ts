@@ -252,7 +252,9 @@ export class HiFiCommunicator {
 
     /**
      * If the World coordinate system is NOT compatible with the HiFi coordindate frame used by the mixer              
-     * then configure a HiFiCoordinateFrameUtil to transform to and from HiFi-frame.
+     * then configure a HiFiCoordinateFrameUtil to transform to and from HiFi-frame.  All position/orientation
+     * data will automatically transformed to/from the HiFi coordinate frame by the HiFiMixerSession for
+     * on-the-wire data.
      *
      * The World-frame is compatible iff:  
      * (1) It is right-handed
@@ -393,7 +395,6 @@ export class HiFiCommunicator {
             webrtcSessionParams.audioMaxJitterBufferDuration = HiFiUtilities.clamp(webrtcSessionParams.audioMaxJitterBufferDuration, 0.0, 10.0);
         }
         this._webRTCSessionParams = webrtcSessionParams;
-
 
         // Initialize the current Audio API Data with the given data, but use the 'updateUserData()' call for sanity.
         this._updateUserData(initialHiFiAudioAPIData);
