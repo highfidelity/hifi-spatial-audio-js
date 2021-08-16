@@ -145,9 +145,9 @@ export class Quaternion {
     /**
      * @returns Euler angle decomposition object: {yaw:, pitch:, roll:}
      * where:
-     *   yaw = degrees rotation about 'up' axis
-     *   pitch = degrees rotation about yawed 'right' axis
-     *   roll = degrees rotation about yawed and pitched 'forward' axis
+     *   yawDegrees = degrees rotation about 'up' axis
+     *   pitchDegrees = degrees rotation about yawed 'right' axis
+     *   rollDegrees = degrees rotation about yawed and pitched 'forward' axis
      */
     getEulerAngles() {
         let forward = new Vector3({x: 0.0, y: 0.0, z: -1.0});
@@ -190,7 +190,7 @@ export class Quaternion {
         pitch *= RADIANS_TO_DEGREES;
         roll *= RADIANS_TO_DEGREES;
 
-        return {"yaw": yaw, "pitch": pitch, "roll": roll};
+        return {"yawDegrees": yaw, "pitchDegrees": pitch, "rollDegrees": roll};
     }
 
     /**
@@ -235,20 +235,20 @@ export class Quaternion {
 
     /**
      * @returns Quaternion representing a rotation of yaw, pitch, roll about successive local axes: up, right, forward
-     * @param yaw - angle in degrees rotation about local-up
-     * @param pitch - angle in degrees rotation about local-right
-     * @param roll - angle in degrees rotation about local-forward
+     * @param yawDegrees - angle in degrees rotation about local-up
+     * @param pitchDegrees - angle in degrees rotation about local-right
+     * @param rollDegrees - angle in degrees rotation about local-forward
      */
-    static fromEulerAngles({yaw = 0, pitch = 0, roll= 0 }: { yaw?: number, pitch?: number, roll?: number } = {}) {
+    static fromEulerAngles({yawDegrees = 0, pitchDegrees = 0, rollDegrees= 0 }: { yawDegrees?: number, pitchDegrees?: number, rollDegrees?: number } = {}) {
         let upAxis = new Vector3({ x: 0.0, y: 1.0, z: 0.0 });
         let rightAxis = new Vector3({ x: 1.0, y: 0.0, z: 0.0 });
         let forwardAxis = new Vector3({ x: 0.0, y: 0.0, z: -1.0 });
 
-        let qYaw = Quaternion.fromAngleAxis(yaw * DEGREES_TO_RADIANS, upAxis);
+        let qYaw = Quaternion.fromAngleAxis(yawDegrees * DEGREES_TO_RADIANS, upAxis);
         let pitchAxis = qYaw.rotateVector(rightAxis);
-        let qPitch = Quaternion.fromAngleAxis(pitch * DEGREES_TO_RADIANS, pitchAxis);
+        let qPitch = Quaternion.fromAngleAxis(pitchDegrees * DEGREES_TO_RADIANS, pitchAxis);
         let rollAxis = qPitch.rotateVector(qYaw.rotateVector(forwardAxis));
-        let qRoll = Quaternion.fromAngleAxis(roll * DEGREES_TO_RADIANS, rollAxis);
+        let qRoll = Quaternion.fromAngleAxis(rollDegrees * DEGREES_TO_RADIANS, rollAxis);
 
         return Quaternion.multiply(qRoll, Quaternion.multiply(qPitch, qYaw));
     }

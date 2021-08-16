@@ -313,18 +313,18 @@ describe("Quaternion", () => {
         let yaw = 57.0;
         let pitch = 41.0;
         let roll = 23.0;
-        let q = Quaternion.fromEulerAngles({yaw: yaw, pitch: pitch, roll: roll});
+        let q = Quaternion.fromEulerAngles({yawDegrees: yaw, pitchDegrees: pitch, rollDegrees: roll});
         let angles = q.getEulerAngles();
-        expect(Math.abs(yaw - angles.yaw) < ALMOST_ZERO).toBe(true);
-        expect(Math.abs(pitch - angles.pitch) < ALMOST_ZERO).toBe(true);
-        expect(Math.abs(roll - angles.roll) < ALMOST_ZERO).toBe(true);
+        expect(Math.abs(yaw - angles.yawDegrees) < ALMOST_ZERO).toBe(true);
+        expect(Math.abs(pitch - angles.pitchDegrees) < ALMOST_ZERO).toBe(true);
+        expect(Math.abs(roll - angles.rollDegrees) < ALMOST_ZERO).toBe(true);
     });
 
     test("azimuth", ()=> {
         let yaw = 57.0;
         let pitch = 41.0;
         let roll = 23.0;
-        let q = Quaternion.fromEulerAngles({yaw: yaw, pitch: pitch, roll: roll});
+        let q = Quaternion.fromEulerAngles({yawDegrees: yaw, pitchDegrees: pitch, rollDegrees: roll});
         let azimuth = q.getAzimuth();
         expect(Math.abs(Math.abs(yaw - azimuth)) < ALMOST_ZERO).toBe(true);
     });
@@ -333,7 +333,7 @@ describe("Quaternion", () => {
         let yaw = 57.0;
         let pitch = 41.0;
         let roll = 23.0;
-        let q = Quaternion.fromEulerAngles({yaw: yaw, pitch: pitch, roll: roll});
+        let q = Quaternion.fromEulerAngles({yawDegrees: yaw, pitchDegrees: pitch, rollDegrees: roll});
         let elevation = q.getElevation();
         expect(Math.abs(Math.abs(elevation - pitch)) < ALMOST_ZERO).toBe(true);
     });
