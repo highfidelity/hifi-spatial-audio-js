@@ -123,12 +123,6 @@ export interface ConnectionRetryAndTimeoutConfig {
    * connection is disconnected. When this is set to true, we will attempt
    * to reconnect if any disconnect from any cause occurs.
    * By default, reconnections are not automatically attempted.
-   * NOTE: The retrying that happens when this is set to `true` does not currently take into account
-   * the reason WHY a connection was disconnected. This means that if this is
-   * set to true, a connection that is disconnected via a purposeful server-side
-   * action (e.g. a "kick") will be automatically reconnected. (However, connections
-   * that are explicitly closed from the client side via the `disconnectFromHiFiAudioAPIServer()`
-   * method will stay closed.)
    */
   autoRetryOnDisconnect?: boolean;
   /**
