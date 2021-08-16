@@ -1146,19 +1146,10 @@ export class HiFiMixerSession {
                 // The mixer expects Quaternion components in its space and to be mulitiplied by 1000.
                 let translatedOrientation = HiFiAxisUtilities.translateOrientationQuat3DToMixerSpace(ourHiFiAxisConfiguration, currentHifiAudioAPIData.orientationQuat);
 
-                if (changedComponents.w) {
-                    dataForMixer["W"] = translatedOrientation.w * 1000;
-                }
-                if (changedComponents.x) {
-                    dataForMixer["X"] = translatedOrientation.x * 1000;
-                }
-                if (changedComponents.y) {
-                    dataForMixer["Y"] = translatedOrientation.y * 1000;
-                }
-                // if (changedComponents.z) {
-                // Need to send Z all the time at the moment until we merge the fix https://github.com/highfidelity/audionet-hifi/pull/271
+                dataForMixer["W"] = translatedOrientation.w * 1000;
+                dataForMixer["X"] = translatedOrientation.x * 1000;
+                dataForMixer["Y"] = translatedOrientation.y * 1000;
                 dataForMixer["Z"] = translatedOrientation.z * 1000;
-                //}
             }
         }
 
