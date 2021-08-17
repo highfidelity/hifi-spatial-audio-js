@@ -6,15 +6,17 @@ test(`brand new mixer session can't connect`, async () => {
 
     const stateChangeCallback = jest.fn();
     let newMixerSession = new HiFiMixerSession({
-        onConnectionStateChanged: stateChangeCallback
+    onConnectionStateChanged: stateChangeCallback
     });
     const failureResult:HiFiConnectionAttemptResult = {
         "error": "Couldn't connect: `this.webRTCAddress` is falsey!",
         "success": false,
+        disableReconnect: false,
     };
     const disconnectResult:HiFiConnectionAttemptResult = {
         "error": "Successfully disconnected",
         "success": true,
+        disableReconnect: false,
     };
     newMixerSession.connectToHiFiMixer({ webRTCSessionParams: {} });
     await sleep(1000);
