@@ -123,6 +123,8 @@ export interface ConnectionRetryAndTimeoutConfig {
    * connection is disconnected. When this is set to true, we will attempt
    * to reconnect if any disconnect from any cause occurs.
    * By default, reconnections are not automatically attempted.
+   * The client will not attempt to reconnect when the client is 'kicked'
+   * or the space is forcibly shut down.
    */
   autoRetryOnDisconnect?: boolean;
   /**
@@ -456,6 +458,9 @@ export class HiFiCommunicator {
             // If signalingHostURL is not defined, we assign the default URL
             signalingHostURLSafe = signalingHostURL ? signalingHostURL : HiFiConstants.DEFAULT_PROD_HIGH_FIDELITY_ENDPOINT;
         }
+
+        // if reconnections are enabled, attempt them if necessary.
+        this._mixerSession._disableReconnect  = false;
 
         signalingPort = signalingPort ? signalingPort : HiFiConstants.DEFAULT_PROD_HIGH_FIDELITY_PORT;
         let webRTCSignalingAddress = `wss://${signalingHostURLSafe}:${signalingPort}/?token=`;

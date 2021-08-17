@@ -222,9 +222,10 @@ export class HiFiMixerSession {
     _tryingToConnect: boolean;
     
     /**
-     * Don't attempt a reconnect when kicked or timed out from the server.
+     * Don't attempt a reconnect if kicked or the space is shut down.  This value is
+     * used internally and may change depending on server activity.
      */
-    private _disableReconnect: boolean;
+    _disableReconnect: boolean;
 
     /**
      * Used for diagnostics
