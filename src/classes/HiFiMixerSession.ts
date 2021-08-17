@@ -1201,10 +1201,9 @@ export class HiFiMixerSession {
                 if (changedComponents.y) {
                     dataForMixer["Y"] = translatedOrientation.y * 1000;
                 }
-                // if (changedComponents.z) {
-                // Need to send Z all the time at the moment until we merge the fix https://github.com/highfidelity/audionet-hifi/pull/271
-                dataForMixer["Z"] = translatedOrientation.z * 1000;
-                //}
+                if (changedComponents.z) {
+                    dataForMixer["Z"] = translatedOrientation.z * 1000;
+                }
             }
         }
 
