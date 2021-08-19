@@ -123,12 +123,8 @@ export interface ConnectionRetryAndTimeoutConfig {
    * connection is disconnected. When this is set to true, we will attempt
    * to reconnect if any disconnect from any cause occurs.
    * By default, reconnections are not automatically attempted.
-   * NOTE: The retrying that happens when this is set to `true` does not currently take into account
-   * the reason WHY a connection was disconnected. This means that if this is
-   * set to true, a connection that is disconnected via a purposeful server-side
-   * action (e.g. a "kick") will be automatically reconnected. (However, connections
-   * that are explicitly closed from the client side via the `disconnectFromHiFiAudioAPIServer()`
-   * method will stay closed.)
+   * The client will not attempt to reconnect when the client is 'kicked'
+   * or the space is forcibly shut down.
    */
   autoRetryOnDisconnect?: boolean;
   /**
@@ -178,7 +174,12 @@ export interface HiFiConnectionAttemptResult {
      * is made. It is primarily used for debugging and includes information about the server build version and
      * other details. This will not be set if there is an error when connecting to the server.
      */
-    audionetInitResponse?: any
+    audionetInitResponse?: any,
+    /**
+     * `disableReconnect` will be present and 'true' on a failed connection attempt or disconnect if reconnects should not
+     * be performed.  This typically happens during a kick operation.
+     */
+    disableReconnect?: boolean;
 }
 
 /**
@@ -458,6 +459,9 @@ export class HiFiCommunicator {
             signalingHostURLSafe = signalingHostURL ? signalingHostURL : HiFiConstants.DEFAULT_PROD_HIGH_FIDELITY_ENDPOINT;
         }
 
+        // if reconnections are enabled, attempt them if necessary.
+        this._mixerSession._disableReconnect  = false;
+
         signalingPort = signalingPort ? signalingPort : HiFiConstants.DEFAULT_PROD_HIGH_FIDELITY_PORT;
         let webRTCSignalingAddress = `wss://${signalingHostURLSafe}:${signalingPort}/?token=`;
         this._mixerSession.webRTCAddress = `${webRTCSignalingAddress}${hifiAuthJWT}`;
@@ -621,14 +625,15 @@ export class HiFiCommunicator {
                 // OK, we've dealt with the situation where there's already a retry cycle going.
                 // Now see if we need to start one.
                 let retriesTimeoutMs = 0;
-
                 if (this._currentHiFiConnectionState === HiFiConnectionStates.Connecting &&
-                            this._connectionRetryAndTimeoutConfig.autoRetryInitialConnection) {
+                            this._connectionRetryAndTimeoutConfig.autoRetryInitialConnection &&
+                            !message.disableReconnect) {
                     // The user has started a connection attempt. It failed, and they want to retry.
                     retriesTimeoutMs = 1000 * this._connectionRetryAndTimeoutConfig.maxSecondsToSpendRetryingInitialConnection;
 
                 } else if (this._currentHiFiConnectionState === HiFiConnectionStates.Reconnecting &&
-                            this._connectionRetryAndTimeoutConfig.autoRetryOnDisconnect) {
+                            this._connectionRetryAndTimeoutConfig.autoRetryOnDisconnect &&
+                            !message.disableReconnect) {
                     // The user had previously been trying to reconnect. It failed, and they want to keep retrying.
                     // (Note - we're not even supposed to be here; this situation should have been
                     // caught by the "there's already a timer in play" logic above.
@@ -637,7 +642,8 @@ export class HiFiCommunicator {
                     retriesTimeoutMs = 1000 * this._connectionRetryAndTimeoutConfig.maxSecondsToSpendRetryingOnDisconnect;
 
                 } else if (this._currentHiFiConnectionState === HiFiConnectionStates.Connected &&
-                            this._connectionRetryAndTimeoutConfig.autoRetryOnDisconnect) {
+                            this._connectionRetryAndTimeoutConfig.autoRetryOnDisconnect &&
+                            !message.disableReconnect) {
                     // The user had previously been connected. They got disconnected, and they want to retry
                     retriesTimeoutMs = 1000 * this._connectionRetryAndTimeoutConfig.maxSecondsToSpendRetryingOnDisconnect;
 
