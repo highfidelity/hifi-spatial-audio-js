@@ -966,7 +966,7 @@ export class HiFiCommunicator {
      * @param position - The new position of the user.
      * @param orientationQuat - The new orientationQuat of the user.
      * @param orientationEuler - The new orientationEuler of the user.
-     * @param volumeThreshold - The new volumeThreshold of the user.
+     * @param volumeThreshold - The new volumeThreshold of the user.  Setting this to null will use the space default volume threshold.
      * @param hiFiGain - This value affects how loud User A will sound to User B at a given distance in 3D space.
      * This value also affects the distance at which User A can be heard in 3D space.
      * Higher values for User A means that User A will sound louder to other users around User A, and it also means that User A will be audible from a greater distance.
@@ -1003,7 +1003,8 @@ export class HiFiCommunicator {
             this._currentHiFiAudioAPIData.orientationQuat = eulerToQuaternion(checkedEuler, ourHiFiAxisConfiguration.eulerOrder);
         }
 
-        if (typeof (volumeThreshold) === "number") {
+        if (typeof (volumeThreshold) === "number" ||
+            volumeThreshold === null) {
             this._currentHiFiAudioAPIData.volumeThreshold = volumeThreshold;
         }
         if (typeof (hiFiGain) === "number") {
@@ -1058,7 +1059,8 @@ export class HiFiCommunicator {
             this._lastTransmittedHiFiAudioAPIData.orientationQuat.z = dataJustTransmitted.orientationQuat.z ?? this._lastTransmittedHiFiAudioAPIData.orientationQuat.z;
         }
 
-        if (typeof (dataJustTransmitted.volumeThreshold) === "number") {
+        if (typeof (dataJustTransmitted.volumeThreshold) === "number" ||
+            dataJustTransmitted.volumeThreshold === null) {
             this._lastTransmittedHiFiAudioAPIData["volumeThreshold"] = dataJustTransmitted.volumeThreshold;
         }
 
