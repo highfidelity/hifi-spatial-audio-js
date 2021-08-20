@@ -307,7 +307,7 @@ export class HiFiMixerSession {
      * @returns If this operation is successful, the Promise will resolve with `{ success: true, audionetInitResponse: <The response to `audionet.init` from the server in Object format>}`.
      * If unsuccessful, the Promise will reject with `{ success: false, error: <an error message> }`.
      */
-    async promiseToRunAudioInit(): Promise<HiFiConnectionAttemptResult> {
+    async promiseToRunAudioInit(currentHifiAudioAPIData? : HiFiAudioAPIData): Promise<HiFiConnectionAttemptResult> {
         return new Promise((resolve, reject) => {
             let initData = {
                 primary: true,
@@ -317,6 +317,12 @@ export class HiFiMixerSession {
                 streaming_scope: this.userDataStreamingScope,
                 is_input_stream_stereo: this._inputAudioMediaStreamIsStereo
             };
+
+            if (currentHifiAudioAPIData) {
+                let initialDataToSend = this._getDataToTransmitToMixer(currentHifiAudioAPIData);
+                initData = { ...initData, ...initialDataToSend };
+            }
+
             let commandController = this._raviSession.getCommandController();
             if (!commandController) {
                 return reject({
@@ -583,7 +589,7 @@ export class HiFiMixerSession {
      * @param webRTCSessionParams - Parameters passed to the RAVI session when opening that session.
      * @returns void. Use the callback function to get information about errors upon failure, or the response from `audionet.init` when successful
      */
-    connectToHiFiMixer({ webRTCSessionParams, customSTUNandTURNConfig, timeout }: { webRTCSessionParams?: WebRTCSessionParams, customSTUNandTURNConfig?: CustomSTUNandTURNConfig, timeout?: number }): void {
+    connectToHiFiMixer({ webRTCSessionParams, customSTUNandTURNConfig, timeout, initData }: { webRTCSessionParams?: WebRTCSessionParams, customSTUNandTURNConfig?: CustomSTUNandTURNConfig, timeout?: number, initData?: HiFiAudioAPIData }): void {
 
         if (this._tryingToConnect) {
             HiFiLogger.warn("`HiFiMixerSession.connectToHiFiMixer()` was called, but is already in the process of connecting. No action will be taken.");
@@ -646,7 +652,7 @@ export class HiFiMixerSession {
         })
         .then((value) => {
             HiFiLogger.log(`Session open; running audionet.init`);
-            return this.promiseToRunAudioInit()
+            return this.promiseToRunAudioInit(initData)
             .catch((errorRunningAudionetInit) => {
                 let errMsg = `Connected, but was then unable to communicate the \`audionet.init\` message to the server. Error:\n${RaviUtils.safelyPrintable(errorRunningAudionetInit)}`;
                 throw(errMsg);
@@ -1069,18 +1075,9 @@ export class HiFiMixerSession {
     }
 
     /**
-     * @param currentHifiAudioAPIData - The new user data that we want to send to the High Fidelity Audio API server.
-     * @returns If this operation is successful, returns `{ success: true, stringifiedDataForMixer: <the raw data that was transmitted to the server>}`. If unsuccessful, returns
-     * `{ success: false, error: <an error message> }`.
+     * This method converts the HiFiAudioAPIData structure into the format needed by the mixer.
      */
-    _transmitHiFiAudioAPIDataToServer(currentHifiAudioAPIData: HiFiAudioAPIData, previousHifiAudioAPIData?: HiFiAudioAPIData): any {
-        if (!this.mixerInfo["connected"] || !this._raviSession) {
-            return {
-                success: false,
-                error: `Can't transmit data to mixer; not connected to mixer.`
-            };
-        }
-
+    _getDataToTransmitToMixer(currentHifiAudioAPIData: HiFiAudioAPIData, previousHifiAudioAPIData?: HiFiAudioAPIData): any {
         let dataForMixer: any = {};
 
         // if a position is specified with valid components, let's consider adding position payload
@@ -1216,6 +1213,23 @@ export class HiFiMixerSession {
                 dataForMixer["V"] = changedUserGains;
             }
         }
+        return dataForMixer;
+    }
+
+    /**
+     * @param currentHifiAudioAPIData - The new user data that we want to send to the High Fidelity Audio API server.
+     * @returns If this operation is successful, returns `{ success: true, stringifiedDataForMixer: <the raw data that was transmitted to the server>}`. If unsuccessful, returns
+     * `{ success: false, error: <an error message> }`.
+     */
+    _transmitHiFiAudioAPIDataToServer(currentHifiAudioAPIData: HiFiAudioAPIData, previousHifiAudioAPIData?: HiFiAudioAPIData): any {
+        if (!this.mixerInfo["connected"] || !this._raviSession) {
+            return {
+                success: false,
+                error: `Can't transmit data to mixer; not connected to mixer.`
+            };
+        }
+
+        let dataForMixer = this._getDataToTransmitToMixer(currentHifiAudioAPIData, previousHifiAudioAPIData);
 
         if (Object.keys(dataForMixer).length === 0) {
             // We call this a "success" even though we didn't send anything to the mixer.

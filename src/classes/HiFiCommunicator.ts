@@ -475,6 +475,7 @@ export class HiFiCommunicator {
         // or reject function once they're done with the retry attempts.
         let communicator = this;
         communicator._failureNotificationPending = undefined;
+
         return new Promise((resolve, reject) => {
             // This promise will get resolved later by `this._manageConnection` once
             // the state changes to Connected!
@@ -517,7 +518,7 @@ export class HiFiCommunicator {
         // gets handled by the _manageConnection callback handler. (Note that calls to our _connectToHiFiMixer()
         // method get handled entirely by callback-initiated retry code, so we should never get here unless
         // a callback asked us to do it.)
-        this._mixerSession.connectToHiFiMixer({ webRTCSessionParams: this._webRTCSessionParams, customSTUNandTURNConfig: this._customSTUNandTURNConfig, timeout: timeoutPerConnectionAttempt });
+        this._mixerSession.connectToHiFiMixer({ webRTCSessionParams: this._webRTCSessionParams, customSTUNandTURNConfig: this._customSTUNandTURNConfig, timeout: timeoutPerConnectionAttempt, initData: this._currentHiFiAudioAPIData });
     }
 
     /**
