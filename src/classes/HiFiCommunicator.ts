@@ -475,7 +475,6 @@ export class HiFiCommunicator {
         // or reject function once they're done with the retry attempts.
         let communicator = this;
         communicator._failureNotificationPending = undefined;
-
         return new Promise((resolve, reject) => {
             // This promise will get resolved later by `this._manageConnection` once
             // the state changes to Connected!
