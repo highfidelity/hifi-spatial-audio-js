@@ -1,7 +1,7 @@
 const fetch = require('node-fetch');
 const stacks = require('../secrets/auth.json').stacks;
 
-import { Point3D } from "../../src/classes/HiFiAudioAPIData";
+import { Point3D, Quaternion } from "../../src/classes/HiFiAudioAPIData";
 import { HiFiCommunicator } from "../../src/classes/HiFiCommunicator";
 import { UserDataSubscription, AvailableUserDataSubscriptionComponents } from "../../src/classes/HiFiUserDataSubscription";
 import { TestUser } from "../testUtilities/TestUser";
