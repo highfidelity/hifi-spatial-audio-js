@@ -358,11 +358,15 @@ export class HiFiCommunicator {
 
         if (worldFrameConfig) {
             if (WorldFrameConfiguration.isValid(worldFrameConfig)) {
-                let isLeft = worldFrameConfig.handedness == HiFiHandedness.LeftHand;
+                let isRight = worldFrameConfig.handedness == HiFiHandedness.RightHand;
                 this._coordFrameUtil = new HiFiCoordinateFrameUtil(
                     worldFrameConfig.forward,
                     worldFrameConfig.up,
-                    isLeft);
+                    isRight);
+                if (this._coordFrameUtil.WorldIsCompatibleWithHifi()) {
+                    // The only reason I could imagine why someone would want to use 
+                    HiFiLogger.warn(`The \`WorldFrameConfiguration\` is compatible with the HiFi-frame and is not strictly necessary.`);
+                }
             } else {
                 HiFiLogger.error(`There is an error with the passed \`WorldFrameConfiguration\`, so it was not used. There are more error details in the logs above.`);
             }

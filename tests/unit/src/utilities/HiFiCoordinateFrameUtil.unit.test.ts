@@ -41,7 +41,7 @@ test("RightHanded", () => {
     // now we rotate in the world-frame
     let world_angle = Math.PI / 0.987;
     let world_axis = new Vector3({x: -2.46, y: 7.53, z: 8.64 });
-    let world_rotation = Quaternion.angleAxis(world_angle, world_axis);
+    let world_rotation = Quaternion.fromAngleAxis(world_angle, world_axis);
     let rotated_world_position = world_rotation.rotateVector(world_position);
 
     let hifi_rotation = util.WorldOrientationToHiFi(world_rotation);
@@ -88,7 +88,7 @@ test("LeftHanded", () => {
     // now we rotate in the world-frame
     let world_angle = Math.PI / 0.987;
     let world_axis = new Vector3({x: -2.46, y: 7.53, z: 8.64 });
-    let world_rotation = Quaternion.angleAxis(world_angle, world_axis);
+    let world_rotation = Quaternion.fromAngleAxis(world_angle, world_axis);
     let rotated_world_position = world_rotation.rotateVector(world_position);
 
     let hifi_rotation = util.WorldOrientationToHiFi(world_rotation);
@@ -96,4 +96,69 @@ test("LeftHanded", () => {
 
     let expected_rotated_hifi_position = util.WorldPositionToHiFi(rotated_world_position);
     expect(Vector3.distance(rotated_hifi_position, expected_rotated_hifi_position) < ALMOST_ZERO).toBe(true);
+});
+
+test("WorldIsCompatibleWithHifi", () => {
+    {
+        // right-handed World coordinate system with UP not along the yAxis
+        let world_forward = new Vector3({x: 1.0, y: 0.0, z: 0.0}); // xAxis
+        let world_up = new Vector3({x: 0.0, y: 0.0, z: 1.0}); // zAxis
+        //let world_right = Vector3.cross(world_forward, world_up); // -yAxis
+        let isRight = true;
+
+        let util = new HiFiCoordinateFrameUtil(world_forward, world_up, isRight);
+        expect(util.WorldIsCompatibleWithHifi()).toBe(false);
+    }
+    {
+        // right-handed World coordinate system with UP along yAxis
+        let world_forward = new Vector3({x: 1.0, y: 0.0, z: 0.0}); // xAxis
+        let world_up = new Vector3({x: 0.0, y: 1.0, z: 0.0}); // yAxis
+        //let world_right = Vector3.cross(world_forward, world_up); // zAxis
+        let isRight = true;
+
+        let util = new HiFiCoordinateFrameUtil(world_forward, world_up, isRight);
+        expect(util.WorldIsCompatibleWithHifi()).toBe(true);
+    }
+    {
+        // right-handed World coordinate system with UP along -yAxis
+        let world_forward = new Vector3({x: 1.0, y: 0.0, z: 0.0}); // xAxis
+        let world_up = new Vector3({x: 0.0, y: -1.0, z: 0.0}); // -yAxis
+        //let world_right = Vector3.cross(world_forward, world_up); // -zAxis
+        let isRight = true;
+
+        let util = new HiFiCoordinateFrameUtil(world_forward, world_up, isRight);
+        expect(util.WorldIsCompatibleWithHifi()).toBe(true);
+    }
+
+    // the same configs but left-handed should NOT be compatible
+    {
+        // left-handed World coordinate system with UP not along the yAxis
+        let world_forward = new Vector3({x: 1.0, y: 0.0, z: 0.0}); // xAxis
+        let world_up = new Vector3({x: 0.0, y: 0.0, z: 1.0}); // zAxis
+        //let world_right = Vector3.cross(world_forward, world_up); // -yAxis
+        let isRight = false;
+
+        let util = new HiFiCoordinateFrameUtil(world_forward, world_up, isRight);
+        expect(util.WorldIsCompatibleWithHifi()).toBe(false);
+    }
+    {
+        // left-handed World coordinate system with UP along yAxis
+        let world_forward = new Vector3({x: 1.0, y: 0.0, z: 0.0}); // xAxis
+        let world_up = new Vector3({x: 0.0, y: 1.0, z: 0.0}); // yAxis
+        //let world_right = Vector3.cross(world_forward, world_up); // zAxis
+        let isRight = false;
+
+        let util = new HiFiCoordinateFrameUtil(world_forward, world_up, isRight);
+        expect(util.WorldIsCompatibleWithHifi()).toBe(false);
+    }
+    {
+        // left-handed World coordinate system with UP along -yAxis
+        let world_forward = new Vector3({x: 1.0, y: 0.0, z: 0.0}); // xAxis
+        let world_up = new Vector3({x: 0.0, y: -1.0, z: 0.0}); // -yAxis
+        //let world_right = Vector3.cross(world_forward, world_up); // -zAxis
+        let isRight = false;
+
+        let util = new HiFiCoordinateFrameUtil(world_forward, world_up, isRight);
+        expect(util.WorldIsCompatibleWithHifi()).toBe(false);
+    }
 });

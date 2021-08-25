@@ -118,4 +118,35 @@ export class HiFiCoordinateFrameUtil {
         m = Matrix3.multiply(this._hifiToWorld, m);
         return Matrix3.toQuaternion(m);
     }
+
+    /**
+     * Some World-frame configurations are 100% compatible with the HiFi-Frame and
+     * don't require any transform: the audio will sound correct using World-frame
+     * coordinates.  The World-frame is 100% compatible if the following conditions
+     * are met:
+     * (1) World-frame is a right-handed coordinate system
+     * (2) World-frame UP is parallel to the y-axis (doesn't matter whether it points
+     *     along the + or - y-direction).
+     *
+     * @returns True if the World-frame config satisfies both of the above conditions.
+     */
+    WorldIsCompatibleWithHifi() : boolean {
+        // check to see if both world and hifi use Y-axis as up
+        let ALMOST_ZERO = 1.0e-3;
+        let y_axis = new Vector3({x: 0.0, y: 1.0, z: 0.0});
+        let hifi_y = this._worldToHifi.transformVector(y_axis);
+        if (Math.abs(1.0 - Math.abs(Vector3.dot(y_axis, hifi_y))) > ALMOST_ZERO) {
+            // world-up is not along +/- y-axis
+            return false;
+        }
+
+        // check to see if Z cross X points along +Y
+        // which only happens in a right-handed coordinate frame
+        let x_axis = new Vector3({x: 1.0, y: 0.0, z: 0.0});
+        let z_axis = new Vector3({x: 0.0, y: 0.0, z: 1.0});
+        let hifi_x = this._worldToHifi.transformVector(x_axis);
+        let hifi_z = this._worldToHifi.transformVector(z_axis);
+        let hifi_z_cross_x = Vector3.cross(hifi_z, hifi_x);
+        return Math.abs(1.0 - Vector3.dot(hifi_z_cross_x, hifi_y)) < ALMOST_ZERO;
+    }
 }
