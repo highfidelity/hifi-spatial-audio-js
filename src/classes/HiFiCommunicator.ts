@@ -364,8 +364,9 @@ export class HiFiCommunicator {
                     worldFrameConfig.up,
                     isRight);
                 if (this._coordFrameUtil.WorldIsCompatibleWithHifi()) {
-                    // The only reason I could imagine why someone would want to use 
-                    HiFiLogger.warn(`The \`WorldFrameConfiguration\` is compatible with the HiFi-frame and is not strictly necessary.`);
+                    // When the World-frame is 100% compatible with the HiFi-frame it is a waste
+                    // of CPU cycles to transform between the two frames.
+                    HiFiLogger.warn(`The \`WorldFrameConfiguration\` is compatible with the HiFi-frame and is unnecessary.`);
                 }
             } else {
                 HiFiLogger.error(`There is an error with the passed \`WorldFrameConfiguration\`, so it was not used. There are more error details in the logs above.`);
