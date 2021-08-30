@@ -21,6 +21,7 @@ export { apiVersion };
 // Scroll down to check out those shorter synonyms.
 export { HiFiAudioAPIData, ReceivedHiFiAudioAPIData, OrientationEuler3D, OrientationQuat3D, Point3D, eulerToQuaternion, eulerFromQuaternion} from "./classes/HiFiAudioAPIData";
 export { HiFiCommunicator, HiFiConnectionStates, HiFiUserDataStreamingScopes } from "./classes/HiFiCommunicator";
+export { SetOtherUserGainForThisConnectionResponse, SetOtherUserGainsForThisConnectionResponse, MuteReason, MuteChangedEvent, OnMuteChangedCallback } from "./classes/HiFiMixerSession";
 export { WebRTCSessionParams } from "./libravi/RaviSession";
 export { AvailableUserDataSubscriptionComponents, UserDataSubscription } from "./classes/HiFiUserDataSubscription";
 export { HiFiLogLevel, HiFiLogger } from "./utilities/HiFiLogger";
