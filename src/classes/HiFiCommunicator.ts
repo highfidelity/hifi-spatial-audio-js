@@ -979,17 +979,25 @@ export class HiFiCommunicator {
      * @param __namedParameters
      * @param position - The new position of the user.
      * @param orientation - The new orientation of the user (in Quaternion form)
-     * @param volumeThreshold - The new volumeThreshold of the user.  Setting this to `NaN` will use the space default volume threshold.
+     * @param volumeThreshold - The new volumeThreshold of the user.  Setting this to `NaN` or `null` will use the space default volume threshold.
+     * 
+     * **COMPATIBILITY WARNING:** In the future, the High Fidelity Audio API server will only fall back to the space volume threshold if the threshold is `NaN`.
      * @param hiFiGain - This value affects how loud User A will sound to User B at a given distance in 3D space.
      * This value also affects the distance at which User A can be heard in 3D space.
      * Higher values for User A means that User A will sound louder to other users around User A, and it also means that User A will be audible from a greater distance.
      * The new hiFiGain of the user.
+     * 
      * @param userAttenuation - This value affects how far a user's voice will travel in 3D space.
-     * Setting this to `NaN` will use the space default attenuation, or, if zones are defined for the space,
+     * Setting this to `NaN` or 0 will use the space default attenuation, or, if zones are defined for the space,
      * the attenuation settings at the user's position.
+     * 
+     * **COMPATIBILITY WARNING:** In the future, the High Fidelity Audio API server will only fall back to the space/zone attenuation if the user attenuation is `NaN`.
+     * 
      * @param userRolloff - This value affects the frequency rolloff for a given user.
-     * Setting this to `NaN` will use the space default rolloff, or, if zones are defined for the space,
+     * Setting this to `NaN` or 0 will use the space default rolloff, or, if zones are defined for the space,
      * the frequency rolloff settings at the user's position.
+     * 
+     * **COMPATIBILITY WARNING:** In the future, the High Fidelity Audio API server will only fall back to the space/zone rolloff if the user rolloff is `NaN`.
      */
     private _updateUserData({ position, orientation, volumeThreshold, hiFiGain, userAttenuation, userRolloff }: { position?: Point3D, orientation?: Quaternion, volumeThreshold?: number, hiFiGain?: number, userAttenuation?: number, userRolloff?: number } = {}): void {
         if (position) {
@@ -1013,7 +1021,8 @@ export class HiFiCommunicator {
             this._currentHiFiAudioAPIData.orientation.z = orientation.z ?? this._currentHiFiAudioAPIData.orientation.z;
         }
 
-        if (typeof (volumeThreshold) === "number") { // May be NaN
+        if (typeof (volumeThreshold) === "number" ||
+            volumeThreshold === null) { // May be NaN
             this._currentHiFiAudioAPIData.volumeThreshold = volumeThreshold;
         }
         if (typeof (hiFiGain) === "number") {
@@ -1068,7 +1077,8 @@ export class HiFiCommunicator {
             this._lastTransmittedHiFiAudioAPIData.orientation.z = dataJustTransmitted.orientation.z ?? this._lastTransmittedHiFiAudioAPIData.orientation.z;
         }
 
-        if (typeof (dataJustTransmitted.volumeThreshold) === "number") { // May be NaN
+        if (typeof (dataJustTransmitted.volumeThreshold) === "number" ||
+            dataJustTransmitted.volumeThreshold === null) { // May be NaN
             this._lastTransmittedHiFiAudioAPIData["volumeThreshold"] = dataJustTransmitted.volumeThreshold;
         }
 
