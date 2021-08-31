@@ -44,6 +44,9 @@ export class HiFiAudioAPIData {
      * A volume level below this value is considered background noise and will be smoothly gated off.
      * The floating point value is specified in dBFS (decibels relative to full scale) with values between -96 dB (indicating no gating)
      * and 0 dB (effectively muting the input from this user). It is in the same decibel units as the VolumeDecibels component of UserDataSubscription.
+     * Setting this value to `NaN` will cause the volume threshold from the space to be used instead.
+     *
+     * If you don't supply a `volumeThreshold` when constructing instantiations of this class, it will be ignored.
      */
     volumeThreshold: number;
     /**
@@ -61,23 +64,21 @@ export class HiFiAudioAPIData {
      * This value affects how far a user's sound will travel in 3D space, without affecting the user's loudness.
      * By default, there is a global attenuation value (set for a given space) that applies to all users in a space. This default space
      * attenuation is usually 0.5, which represents a reasonable approximation of a real-world fall-off in sound over distance.
-     * Lower numbers represent less attenuation (i.e. sound travels farther); higher numbers represent more attenuation (i.e. sound drops
-     * off more quickly).
      * 
      * When setting this value for an individual user, the following holds:
-     *   - Positive numbers should be between 0 and 1, and they represent a logarithmic attenuation. This range is recommended, as it is
+     *   - A value of `NaN` causes the user to inherit the global attenuation for a space, or, if zones are defined for the space,
+     * the attenuation settings at the user's position.
+     *   - Positive numbers between 0 and 1 (excluding 0) represent logarithmic attenuation. This range is recommended, as it is
      * more natural sounding.  Smaller numbers represent less attenuation, so a number such as 0.2 can be used to make a particular 
-     * user's audio travel farther than other users', for instance in "amplified" concert type settings. Similarly, an extremely 
-     * small non-zero number (e.g. 0.00001) can be used to effectively turn off attenuation for a given user within a reasonably 
-     * sized space, resulting in a "broadcast mode" where the user can be heard throughout most of the space regardless of their location
-     * relative to other users. (Note: The actual value "0" is used internally to represent the default; for setting minimal attenuation, 
-     * small non-zero numbers should be used instead. See also "userRolloff" below.)
+     * user's audio travel farther than other users', for instance in "amplified" concert type settings. A number such as 0.02 will
+     * make the user's audio travel even farther.
+     *  - A value of 0 will turn off attenuation for a given user entirely, resulting in a "broadcast mode" where the user can be
+     * heard throughout the entire space regardless of their location relative to other users.
      *   - Negative attenuation numbers are used to represent linear attenuation, and are a somewhat artificial, non-real-world concept. However,
      * this setting can be used as a blunt tool to easily test attenuation, and tune it aggressively in extreme circumstances. When using linear 
      * attenuation, the setting is the distance in meters at which the audio becomes totally inaudible.
      *
-     * If you don't supply an `userAttenuation` when constructing instantiations of this class, `userAttenuation` will be `null` and the
-     * default will be used.
+     * If you don't supply a `userAttenuation` when constructing instantiations of this class, it will be ignored.
      * 
      * ✔ The client sends `userAttenuation` data to the server when `_transmitHiFiAudioAPIDataToServer()` is called.
      * 
@@ -93,7 +94,10 @@ export class HiFiAudioAPIData {
      * extremely high values (e.g. 99999) should be used in combination with "broadcast mode"-style userAttenuation settings to cause the
      * broadcasted voice to sound crisp and "up close" even at very large distances.
      *
-     * If you don't supply an `userRolloff` when constructing instantiations of this class, `userRolloff` will be `null`.
+     * A `userRolloff` of `NaN` will cause the user to inherit the global frequency rolloff for the space, or, if zones are defined
+     * for the space, the frequency rolloff settings at the user's position.
+     *
+     * If you don't supply a `userRolloff` when constructing instantiations of this class, it will be ignored.
      * 
      * ✔ The client sends `userRolloff` data to the server when `_transmitHiFiAudioAPIDataToServer()` is called.
      * 

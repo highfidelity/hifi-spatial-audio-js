@@ -1207,8 +1207,7 @@ export class HiFiMixerSession {
             }
         }
 
-        if (typeof (currentHifiAudioAPIData.volumeThreshold) === "number" ||
-            currentHifiAudioAPIData.volumeThreshold === null) {
+        if (typeof (currentHifiAudioAPIData.volumeThreshold) === "number") { // May be NaN
             dataForMixer["T"] = currentHifiAudioAPIData.volumeThreshold;
         }
 
@@ -1216,11 +1215,11 @@ export class HiFiMixerSession {
             dataForMixer["g"] = Math.max(0, currentHifiAudioAPIData.hiFiGain);
         }
 
-        if (typeof (currentHifiAudioAPIData.userAttenuation) === "number") {
+        if (typeof (currentHifiAudioAPIData.userAttenuation) === "number") { // May be NaN
             dataForMixer["a"] = currentHifiAudioAPIData.userAttenuation;
         }
 
-        if (typeof (currentHifiAudioAPIData.userRolloff) === "number") {
+        if (typeof (currentHifiAudioAPIData.userRolloff) === "number") { // May be NaN
             dataForMixer["r"] = Math.max(0, currentHifiAudioAPIData.userRolloff);
         }
 
@@ -1272,6 +1271,7 @@ export class HiFiMixerSession {
             let commandController = this._raviSession.getCommandController();
 
             if (commandController) {
+                // Stringified NaN values get converted to null, which the mixer interprets as unset
                 let stringifiedDataForMixer = JSON.stringify(dataForMixer);
                 commandController.sendInput(stringifiedDataForMixer);
                 return {

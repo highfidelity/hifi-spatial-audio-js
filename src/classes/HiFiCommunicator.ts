@@ -979,15 +979,17 @@ export class HiFiCommunicator {
      * @param __namedParameters
      * @param position - The new position of the user.
      * @param orientation - The new orientation of the user (in Quaternion form)
-     * @param volumeThreshold - The new volumeThreshold of the user.  Setting this to null will use the space default volume threshold.
+     * @param volumeThreshold - The new volumeThreshold of the user.  Setting this to `NaN` will use the space default volume threshold.
      * @param hiFiGain - This value affects how loud User A will sound to User B at a given distance in 3D space.
      * This value also affects the distance at which User A can be heard in 3D space.
      * Higher values for User A means that User A will sound louder to other users around User A, and it also means that User A will be audible from a greater distance.
      * The new hiFiGain of the user.
      * @param userAttenuation - This value affects how far a user's voice will travel in 3D space.
-     * The new attenuation value for the user.
+     * Setting this to `NaN` will use the space default attenuation, or, if zones are defined for the space,
+     * the attenuation settings at the user's position.
      * @param userRolloff - This value affects the frequency rolloff for a given user.
-     * The new rolloff value for the user.
+     * Setting this to `NaN` will use the space default rolloff, or, if zones are defined for the space,
+     * the frequency rolloff settings at the user's position.
      */
     private _updateUserData({ position, orientation, volumeThreshold, hiFiGain, userAttenuation, userRolloff }: { position?: Point3D, orientation?: Quaternion, volumeThreshold?: number, hiFiGain?: number, userAttenuation?: number, userRolloff?: number } = {}): void {
         if (position) {
@@ -1011,17 +1013,16 @@ export class HiFiCommunicator {
             this._currentHiFiAudioAPIData.orientation.z = orientation.z ?? this._currentHiFiAudioAPIData.orientation.z;
         }
 
-        if (typeof (volumeThreshold) === "number" ||
-            volumeThreshold === null) {
+        if (typeof (volumeThreshold) === "number") { // May be NaN
             this._currentHiFiAudioAPIData.volumeThreshold = volumeThreshold;
         }
         if (typeof (hiFiGain) === "number") {
             this._currentHiFiAudioAPIData.hiFiGain = Math.max(0, hiFiGain);
         }
-        if (typeof (userAttenuation) === "number") {
+        if (typeof (userAttenuation) === "number") { // May be NaN
             this._currentHiFiAudioAPIData.userAttenuation = userAttenuation;
         }
-        if (typeof (userRolloff) === "number") {
+        if (typeof (userRolloff) === "number") { // May be NaN
             this._currentHiFiAudioAPIData.userRolloff = Math.max(0, userRolloff);
         }
     }
@@ -1067,18 +1068,17 @@ export class HiFiCommunicator {
             this._lastTransmittedHiFiAudioAPIData.orientation.z = dataJustTransmitted.orientation.z ?? this._lastTransmittedHiFiAudioAPIData.orientation.z;
         }
 
-        if (typeof (dataJustTransmitted.volumeThreshold) === "number" ||
-            dataJustTransmitted.volumeThreshold === null) {
+        if (typeof (dataJustTransmitted.volumeThreshold) === "number") { // May be NaN
             this._lastTransmittedHiFiAudioAPIData["volumeThreshold"] = dataJustTransmitted.volumeThreshold;
         }
 
         if (typeof (dataJustTransmitted.hiFiGain) === "number") {
             this._lastTransmittedHiFiAudioAPIData["hiFiGain"] = dataJustTransmitted.hiFiGain;
         }
-        if (typeof (dataJustTransmitted.userAttenuation) === "number") {
+        if (typeof (dataJustTransmitted.userAttenuation) === "number") { // May be NaN
             this._lastTransmittedHiFiAudioAPIData["userAttenuation"] = dataJustTransmitted.userAttenuation;
         }
-        if (typeof (dataJustTransmitted.userRolloff) === "number") {
+        if (typeof (dataJustTransmitted.userRolloff) === "number") { // May be NaN
             this._lastTransmittedHiFiAudioAPIData["userRolloff"] = dataJustTransmitted.userRolloff;
         }
         if (typeof (dataJustTransmitted._otherUserGainQueue) === "object") {
