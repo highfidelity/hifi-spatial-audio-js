@@ -1182,6 +1182,7 @@ export class HiFiCommunicator {
 
     /**
      * A simple function that calls {@link _updateUserData}, followed by {@link _transmitHiFiAudioAPIDataToServer}.
+     * See {@link HiFiAudioAPIData} for what data can be sent to the High Fidelity Audio API Server.
      * Developers can call this function as often as they want. This function will update the internal data store of the user's
      * position, orientation, etc. No matter how often developers call this function, the internal data store transmission is rate-limited
      * and will only be sent to the server once every `transmitRateLimitTimeoutMS` milliseconds. When the internal data store is transmitted,
