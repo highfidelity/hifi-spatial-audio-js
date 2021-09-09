@@ -132,7 +132,7 @@ export class Quaternion {
             axis.x = this.x / imaginaryLength;
             axis.y = this.y / imaginaryLength;
             axis.z = this.z / imaginaryLength;
-            let wholeLength = Math.sqrt(imaginaryLength + this.w * this.w);
+            let wholeLength = Math.sqrt(imaginaryLength2 + this.w * this.w);
             let angle = 2.0 * Math.acos(this.w / wholeLength);
             if (angle < 0.0) {
                 // we choose the axis that corresponds to positive angle
