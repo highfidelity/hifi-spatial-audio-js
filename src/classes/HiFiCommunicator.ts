@@ -862,7 +862,10 @@ export class HiFiCommunicator {
      * 
      * @param newInputAudioMediaStream - The new `MediaStream` to send to the High Fidelity Audio Server. If this
      * is set to an `undefined` value, the existing input stream (if one is set) will be cleared.
-     * @param isStereo - `true` if the input stream should be treated as stereo, `false` for mono (default).
+     * @param isStereo - Most microphones are mono and the default value for isStereo (`false`) will produce the usual spatial sound. 
+     * If the input stream is a stereo music stream or a stereo microphone, the application can specify `true` so that everyone will hear this 
+     * input’s left and right channels from the respective sides. However, doing so effectively gives this stream a position, but no orientation: 
+     * the left/right spatialization that everyone will hear is whatever is in the original source, regardless of the orientation of the source.
      * @returns `true` if the new `MediaStream` was successfully set, `false` otherwise.
      */
     async setInputAudioMediaStream(newInputAudioMediaStream: MediaStream, isStereo: boolean = false): Promise<boolean> {
