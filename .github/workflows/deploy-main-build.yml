@@ -15,8 +15,6 @@ jobs:
       run: echo "The last push was made by a user named ${{ github.event.pusher.name }}."
 
     - uses: actions/checkout@v2
-      with:
-        token: ${{ secrets.GUSTAVO_TOKEN }}
 
     - name: Bump npm prerelease version
       run: |
