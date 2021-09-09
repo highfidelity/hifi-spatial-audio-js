@@ -149,8 +149,7 @@ export interface AttenuationData {
 
 export interface UserData {
     position: object,
-    orientationQuat: object,
-    orientationEuler: object,
+    orientation: object,
     volumeThreshold: number,
     hiFiGain: number,
     userAttenuation: number,

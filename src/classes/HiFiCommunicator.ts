@@ -12,8 +12,9 @@ import { HiFiConstants } from "../constants/HiFiConstants";
 import { WebRTCSessionParams, CustomSTUNandTURNConfig } from "../libravi/RaviSession";
 import { HiFiLogger } from "../utilities/HiFiLogger";
 import { HiFiUtilities } from "../utilities/HiFiUtilities";
-import { HiFiAudioAPIData, ReceivedHiFiAudioAPIData, Point3D, OrientationQuat3D, OrientationEuler3D, OrientationEuler3DOrder, eulerToQuaternion, eulerFromQuaternion, OtherUserGainMap } from "./HiFiAudioAPIData";
-import { HiFiAxisConfiguration, HiFiAxisUtilities, ourHiFiAxisConfiguration } from "./HiFiAxisConfiguration";
+import { HiFiAudioAPIData, ReceivedHiFiAudioAPIData, Point3D, Quaternion, OtherUserGainMap } from "./HiFiAudioAPIData";
+import { HiFiCoordinateFrameUtil } from "../utilities/HiFiCoordinateFrameUtil";
+import { HiFiHandedness, WorldFrameConfiguration } from "./HiFiAxisConfiguration";
 import { HiFiMixerSession, SetOtherUserGainForThisConnectionResponse, SetOtherUserGainsForThisConnectionResponse, OnMuteChangedCallback } from "./HiFiMixerSession";
 import { AvailableUserDataSubscriptionComponents, UserDataSubscription } from "./HiFiUserDataSubscription";
 
@@ -250,6 +251,20 @@ export class HiFiCommunicator {
     private _rejectOpen: Function;
 
     /**
+     * If the World coordinate system is NOT compatible with the HiFi coordindate frame used by the mixer              
+     * then configure a HiFiCoordinateFrameUtil to transform to and from HiFi-frame.  All position/orientation
+     * data will automatically transformed to/from the HiFi coordinate frame by the HiFiMixerSession for
+     * on-the-wire data.
+     *
+     * The World-frame is compatible iff:  
+     * (1) It is right-handed
+     * (2) It uses the Y-axis (positive or negative, doesn't matter) for the UP direction.
+     *           
+     * For all other cases create a {@link WorldFrameConfiguration} and pass it to the HiFiCommunicator constructor.
+     */
+    private _coordFrameUtil?: HiFiCoordinateFrameUtil;
+
+    /**
      * Constructor for the HiFiCommunicator object. Once you have created a HiFiCommunicator, you can use the
      * {@link setInputAudioMediaStream} method to assign an input audio stream to the connection, and
      * once the connection has been established, use the {@link getOutputAudioMediaStream} method to
@@ -260,7 +275,7 @@ export class HiFiCommunicator {
      * @param onUsersDisconnected - A function that will be called when a peer disconnects from the Space.
      * @param transmitRateLimitTimeoutMS - User Data updates will not be sent to the server any more frequently than this number in milliseconds.
      * @param userDataStreamingScope - Cannot be set later. See {@link HiFiUserDataStreamingScopes}.
-     * @param hiFiAxisConfiguration - Cannot be set later. The 3D axis configuration. See {@link ourHiFiAxisConfiguration} for defaults.
+     * @param worldFrameConfig - The WorldFrameConfiguration cannot be set later. Used to transform between World and HiFi coordinate frames. See {@link WorldFrameConfiguration} for details.
      * @param webrtcSessionParams - Cannot be set later. Extra parameters used for configuring the underlying WebRTC connection to the API servers.
      * These settings are not frequently used; they are primarily for specific jitter buffer configurations.
      * @param customSTUNandTURNConfig - Cannot be set later. This object can be used if specific STUN and TURN server information needs to be
@@ -277,7 +292,7 @@ export class HiFiCommunicator {
         onUsersDisconnected,
         transmitRateLimitTimeoutMS = HiFiConstants.DEFAULT_TRANSMIT_RATE_LIMIT_TIMEOUT_MS,
         userDataStreamingScope = HiFiUserDataStreamingScopes.All,
-        hiFiAxisConfiguration,
+        worldFrameConfig,
         webrtcSessionParams,
         customSTUNandTURNConfig,
         onMuteChanged,
@@ -288,7 +303,7 @@ export class HiFiCommunicator {
         onUsersDisconnected?: Function,
         transmitRateLimitTimeoutMS?: number,
         userDataStreamingScope?: HiFiUserDataStreamingScopes,
-        hiFiAxisConfiguration?: HiFiAxisConfiguration,
+        worldFrameConfig?: WorldFrameConfiguration,
         webrtcSessionParams?: WebRTCSessionParams,
         customSTUNandTURNConfig?: CustomSTUNandTURNConfig,
         onMuteChanged?: OnMuteChangedCallback,
@@ -341,13 +356,31 @@ export class HiFiCommunicator {
             this._connectionRetryAndTimeoutConfig.pauseBetweenRetriesMS = HiFiConstants.MIN_PAUSE_BETWEEN_RETRIES;
         }
 
+        if (worldFrameConfig) {
+            if (WorldFrameConfiguration.isValid(worldFrameConfig)) {
+                let isRight = worldFrameConfig.handedness == HiFiHandedness.RightHand;
+                this._coordFrameUtil = new HiFiCoordinateFrameUtil(
+                    worldFrameConfig.forward,
+                    worldFrameConfig.up,
+                    isRight);
+                if (this._coordFrameUtil.WorldIsCompatibleWithHifi()) {
+                    // When the World-frame is 100% compatible with the HiFi-frame it is a waste
+                    // of CPU cycles to transform between the two frames.
+                    HiFiLogger.warn(`The \`WorldFrameConfiguration\` is compatible with the HiFi-frame and is unnecessary.`);
+                }
+            } else {
+                HiFiLogger.error(`There is an error with the passed \`WorldFrameConfiguration\`, so it was not used. There are more error details in the logs above.`);
+            }
+        }
+
         this._mixerSession = new HiFiMixerSession({
             "userDataStreamingScope": userDataStreamingScope,
             "onUserDataUpdated": (data: Array<ReceivedHiFiAudioAPIData>) => { this._handleUserDataUpdates(data); },
             "onUsersDisconnected": (data: Array<ReceivedHiFiAudioAPIData>) => { this._onUsersDisconnected(data); },
             "onConnectionStateChanged": (state: HiFiConnectionStates, message: HiFiConnectionAttemptResult) => { this._manageConnection(state, message); },
             "onMuteChanged": onMuteChanged,
-            "getUserFacingConnectionState": this.getConnectionState.bind(this)
+            "getUserFacingConnectionState": this.getConnectionState.bind(this),
+            "coordFrameUtil": this._coordFrameUtil
         });
 
         this._inputAudioMediaStream = undefined;
@@ -367,21 +400,6 @@ export class HiFiCommunicator {
             webrtcSessionParams.audioMaxJitterBufferDuration = HiFiUtilities.clamp(webrtcSessionParams.audioMaxJitterBufferDuration, 0.0, 10.0);
         }
         this._webRTCSessionParams = webrtcSessionParams;
-
-        if (hiFiAxisConfiguration) {
-            if (HiFiAxisUtilities.verify(hiFiAxisConfiguration)) {
-                ourHiFiAxisConfiguration.rightAxis = hiFiAxisConfiguration.rightAxis;
-                ourHiFiAxisConfiguration.leftAxis = hiFiAxisConfiguration.leftAxis;
-                ourHiFiAxisConfiguration.intoScreenAxis = hiFiAxisConfiguration.intoScreenAxis;
-                ourHiFiAxisConfiguration.outOfScreenAxis = hiFiAxisConfiguration.outOfScreenAxis;
-                ourHiFiAxisConfiguration.upAxis = hiFiAxisConfiguration.upAxis;
-                ourHiFiAxisConfiguration.downAxis = hiFiAxisConfiguration.downAxis;
-                ourHiFiAxisConfiguration.handedness = hiFiAxisConfiguration.handedness;
-                ourHiFiAxisConfiguration.eulerOrder = hiFiAxisConfiguration.eulerOrder;
-            } else {
-                HiFiLogger.error(`There is an error with the passed \`HiFiAxisConfiguration\`, so the new axis configuration was not set. There are more error details in the logs above.`);
-            }
-        }
 
         // Initialize the current Audio API Data with the given data, but use the 'updateUserData()' call for sanity.
         this._updateUserData(initialHiFiAudioAPIData);
@@ -958,17 +976,9 @@ export class HiFiCommunicator {
      * the user data on the High Fidelity Audio API server. There are no good reasons for a client to call this function
      * and _not_ update the server User Data, and thus this function is `private`.
      * 
-     * You can update user orientation by passing Quaternion or Euler orientation representations to this function
-     * The quaternion representation is preferred.
-     * If both representation are provided, the euler representation is ignored.
-     * If only the euler representation is provided, it is then converted immediately to the equivalent quaternion representation.
-     * The eulerOrder used for the conversion is the provided by the 'ourAxisConfiguration.eulerOrder'.
-     * Euler representation is not used internally anymore in the Hifi API.
-     * 
      * @param __namedParameters
      * @param position - The new position of the user.
-     * @param orientationQuat - The new orientationQuat of the user.
-     * @param orientationEuler - The new orientationEuler of the user.
+     * @param orientation - The new orientation of the user (in Quaternion form)
      * @param volumeThreshold - The new volumeThreshold of the user.  Setting this to null will use the space default volume threshold.
      * @param hiFiGain - This value affects how loud User A will sound to User B at a given distance in 3D space.
      * This value also affects the distance at which User A can be heard in 3D space.
@@ -979,7 +989,7 @@ export class HiFiCommunicator {
      * @param userRolloff - This value affects the frequency rolloff for a given user.
      * The new rolloff value for the user.
      */
-    private _updateUserData({ position, orientationQuat, orientationEuler, volumeThreshold, hiFiGain, userAttenuation, userRolloff }: { position?: Point3D, orientationEuler?: OrientationEuler3D, orientationQuat?: OrientationQuat3D, volumeThreshold?: number, hiFiGain?: number, userAttenuation?: number, userRolloff?: number } = {}): void {
+    private _updateUserData({ position, orientation, volumeThreshold, hiFiGain, userAttenuation, userRolloff }: { position?: Point3D, orientation?: Quaternion, volumeThreshold?: number, hiFiGain?: number, userAttenuation?: number, userRolloff?: number } = {}): void {
         if (position) {
             if (!this._currentHiFiAudioAPIData.position) {
                 this._currentHiFiAudioAPIData.position = new Point3D();
@@ -990,20 +1000,15 @@ export class HiFiCommunicator {
             this._currentHiFiAudioAPIData.position.z = position.z ?? this._currentHiFiAudioAPIData.position.z;
         }
 
-        if (orientationQuat) {
-            if (!this._currentHiFiAudioAPIData.orientationQuat) {
-                this._currentHiFiAudioAPIData.orientationQuat = new OrientationQuat3D();
+        if (orientation) {
+            if (!this._currentHiFiAudioAPIData.orientation) {
+                this._currentHiFiAudioAPIData.orientation = new Quaternion();
             }
 
-            this._currentHiFiAudioAPIData.orientationQuat.w = orientationQuat.w ?? this._currentHiFiAudioAPIData.orientationQuat.w;
-            this._currentHiFiAudioAPIData.orientationQuat.x = orientationQuat.x ?? this._currentHiFiAudioAPIData.orientationQuat.x;
-            this._currentHiFiAudioAPIData.orientationQuat.y = orientationQuat.y ?? this._currentHiFiAudioAPIData.orientationQuat.y;
-            this._currentHiFiAudioAPIData.orientationQuat.z = orientationQuat.z ?? this._currentHiFiAudioAPIData.orientationQuat.z;
-        } 
-        // if orientation is provided as an euler format, then do the conversion immediately
-        else if (orientationEuler) {
-            let checkedEuler = new OrientationEuler3D(orientationEuler);
-            this._currentHiFiAudioAPIData.orientationQuat = eulerToQuaternion(checkedEuler, ourHiFiAxisConfiguration.eulerOrder);
+            this._currentHiFiAudioAPIData.orientation.w = orientation.w ?? this._currentHiFiAudioAPIData.orientation.w;
+            this._currentHiFiAudioAPIData.orientation.x = orientation.x ?? this._currentHiFiAudioAPIData.orientation.x;
+            this._currentHiFiAudioAPIData.orientation.y = orientation.y ?? this._currentHiFiAudioAPIData.orientation.y;
+            this._currentHiFiAudioAPIData.orientation.z = orientation.z ?? this._currentHiFiAudioAPIData.orientation.z;
         }
 
         if (typeof (volumeThreshold) === "number" ||
@@ -1051,15 +1056,15 @@ export class HiFiCommunicator {
             this._lastTransmittedHiFiAudioAPIData.position.z = dataJustTransmitted.position.z ?? this._lastTransmittedHiFiAudioAPIData.position.z;
         }
 
-        if (dataJustTransmitted.orientationQuat) {
-            if (!this._lastTransmittedHiFiAudioAPIData.orientationQuat) {
-                this._lastTransmittedHiFiAudioAPIData.orientationQuat = new OrientationQuat3D();
+        if (dataJustTransmitted.orientation) {
+            if (!this._lastTransmittedHiFiAudioAPIData.orientation) {
+                this._lastTransmittedHiFiAudioAPIData.orientation = new Quaternion();
             }
 
-            this._lastTransmittedHiFiAudioAPIData.orientationQuat.w = dataJustTransmitted.orientationQuat.w ?? this._lastTransmittedHiFiAudioAPIData.orientationQuat.w;
-            this._lastTransmittedHiFiAudioAPIData.orientationQuat.x = dataJustTransmitted.orientationQuat.x ?? this._lastTransmittedHiFiAudioAPIData.orientationQuat.x;
-            this._lastTransmittedHiFiAudioAPIData.orientationQuat.y = dataJustTransmitted.orientationQuat.y ?? this._lastTransmittedHiFiAudioAPIData.orientationQuat.y;
-            this._lastTransmittedHiFiAudioAPIData.orientationQuat.z = dataJustTransmitted.orientationQuat.z ?? this._lastTransmittedHiFiAudioAPIData.orientationQuat.z;
+            this._lastTransmittedHiFiAudioAPIData.orientation.w = dataJustTransmitted.orientation.w ?? this._lastTransmittedHiFiAudioAPIData.orientation.w;
+            this._lastTransmittedHiFiAudioAPIData.orientation.x = dataJustTransmitted.orientation.x ?? this._lastTransmittedHiFiAudioAPIData.orientation.x;
+            this._lastTransmittedHiFiAudioAPIData.orientation.y = dataJustTransmitted.orientation.y ?? this._lastTransmittedHiFiAudioAPIData.orientation.y;
+            this._lastTransmittedHiFiAudioAPIData.orientation.z = dataJustTransmitted.orientation.z ?? this._lastTransmittedHiFiAudioAPIData.orientation.z;
         }
 
         if (typeof (dataJustTransmitted.volumeThreshold) === "number" ||
@@ -1233,16 +1238,9 @@ export class HiFiCommunicator {
                             }
                             break;
 
-                        case AvailableUserDataSubscriptionComponents.OrientationQuat:
-                            if (currentDataFromServer.orientationQuat) {
-                                newCallbackData.orientationQuat = currentDataFromServer.orientationQuat;
-                                shouldPushNewCallbackData = true;
-                            }
-                            break;
-                        case AvailableUserDataSubscriptionComponents.OrientationEuler:
-                            // Generate the euler version of orientation if quat version available
-                            if (currentDataFromServer.orientationQuat) {
-                                newCallbackData.orientationEuler = eulerFromQuaternion(currentDataFromServer.orientationQuat, ourHiFiAxisConfiguration.eulerOrder);
+                        case AvailableUserDataSubscriptionComponents.Orientation:
+                            if (currentDataFromServer.orientation) {
+                                newCallbackData.orientation = currentDataFromServer.orientation;
                                 shouldPushNewCallbackData = true;
                             }
                             break;

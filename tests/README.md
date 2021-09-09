@@ -22,7 +22,9 @@
     │       │   └── HiFiMixerSession.unit.test.ts  
     │       ├── libravi  
     │       └── utilities  
-    │           └── HiFiLogger.unit.test.ts  
+    │           ├── HiFiCoordinateFrameUtil.unit.test.ts  
+    │           ├── HiFiLogger.unit.test.ts  
+    │           └── HiFiMath.unit.test.ts  
     └── README.md  
 
 ## Stack Data in the Current Auth File:
