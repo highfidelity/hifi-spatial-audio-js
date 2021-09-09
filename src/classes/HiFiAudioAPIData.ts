@@ -44,10 +44,7 @@ export class HiFiAudioAPIData {
      * A volume level below this value is considered background noise and will be smoothly gated off.
      * The floating point value is specified in dBFS (decibels relative to full scale) with values between -96 dB (indicating no gating)
      * and 0 dB (effectively muting the input from this user). It is in the same decibel units as the VolumeDecibels component of UserDataSubscription.
-     * Setting this value to `NaN` or `null` will cause the volume threshold from the space to be used instead.
-     * 
-     * **COMPATIBILITY WARNING:** In the future, the High Fidelity Audio API server will only fall back to the space volume threshold
-     * if the threshold is `NaN`.
+     * Setting this value to `NaN` will cause the volume threshold from the space to be used instead.
      *
      * If you don't supply a `volumeThreshold` when constructing instantiations of this class, it will be ignored.
      */
@@ -69,14 +66,13 @@ export class HiFiAudioAPIData {
      * attenuation is usually 0.5, which represents a reasonable approximation of a real-world fall-off in sound over distance.
      * 
      * When setting this value for an individual user, the following holds:
-     *   - A value of `NaN` or 0 causes the user to inherit the global attenuation for a space, or, if zones are defined for the space,
-     * the attenuation settings at the user's position. **COMPATIBILITY WARNING:** In the future, the High Fidelity Audio API server
-     * will only fall back to the space/zone attenuation if the user attenuation is `NaN`.
+     *   - A value of `NaN` causes the user to inherit the global attenuation for a space, or, if zones are defined for the space,
+     * the attenuation settings at the user's position.
      *   - Positive numbers between 0 and 1 (excluding 0) represent logarithmic attenuation. This range is recommended, as it is
      * more natural sounding.  Smaller numbers represent less attenuation, so a number such as 0.2 can be used to make a particular 
      * user's audio travel farther than other users', for instance in "amplified" concert type settings. A number such as 0.02 will
      * make the user's audio travel even farther.
-     *  - A value of near 0, such as 0.001, will greatly reduce attenuation for a given user, resulting effectively in a "broadcast mode" where the user can be
+     *  - A value of 0 will turn off attenuation for a given user entirely, resulting in a "broadcast mode" where the user can be
      * heard throughout the entire space regardless of their location relative to other users.
      *   - Negative attenuation numbers are used to represent linear attenuation, and are a somewhat artificial, non-real-world concept. However,
      * this setting can be used as a blunt tool to easily test attenuation, and tune it aggressively in extreme circumstances. When using linear 
@@ -98,11 +94,8 @@ export class HiFiAudioAPIData {
      * extremely high values (e.g. 99999) should be used in combination with "broadcast mode"-style userAttenuation settings to cause the
      * broadcasted voice to sound crisp and "up close" even at very large distances.
      *
-     * A `userRolloff` of `NaN` or 0 will cause the user to inherit the global frequency rolloff for the space, or, if zones are defined
+     * A `userRolloff` of `NaN` will cause the user to inherit the global frequency rolloff for the space, or, if zones are defined
      * for the space, the frequency rolloff settings at the user's position.
-     * 
-     * **COMPATIBILITY WARNING:** In the future, the High Fidelity Audio API server will only fall back to the space/zone rolloff
-     * if the user rolloff is `NaN`.
      *
      * If you don't supply a `userRolloff` when constructing instantiations of this class, it will be ignored.
      * 
