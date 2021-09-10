@@ -979,25 +979,42 @@ export class HiFiCommunicator {
      * @param __namedParameters
      * @param position - The new position of the user.
      * @param orientation - The new orientation of the user (in Quaternion form)
-     * @param volumeThreshold - The new volumeThreshold of the user.  Setting this to `NaN` or `null` will use the space default volume threshold.
+     * @param volumeThreshold - The new volumeThreshold of the user.  Setting this to `NaN` will reset its value to the space default volume threshold.
      * 
-     * **COMPATIBILITY WARNING:** In the future, the High Fidelity Audio API server will only fall back to the space volume threshold if the threshold is `NaN`.
+     * **COMPATIBILITY WARNING:** Currently, setting `volumeThreshold` to `null` will also reset its value to the space default volume threshold.
+     * In the future, the value of `volumeThreshold` will only be reset if it is set to `NaN`.
+     * A `volumeThreshold` set to `null` will in the future will be treated as if `volumeThreshold` is not supplied.
+     * If your spatial audio client application is currently resetting `volumeThreshold` by setting it to `null`, please change
+     * it to set `volumeThreshold` to `NaN` instead, in order for it to continue working with future versions of
+     * High Fidelity's Spatial Audio API.
      * @param hiFiGain - This value affects how loud User A will sound to User B at a given distance in 3D space.
      * This value also affects the distance at which User A can be heard in 3D space.
      * Higher values for User A means that User A will sound louder to other users around User A, and it also means that User A will be audible from a greater distance.
      * The new hiFiGain of the user.
      * 
      * @param userAttenuation - This value affects how far a user's voice will travel in 3D space.
-     * Setting this to `NaN` or 0 will use the space default attenuation, or, if zones are defined for the space,
+     * Setting this to `NaN` will use the space default attenuation, or, if zones are defined for the space,
      * the attenuation settings at the user's position.
      * 
-     * **COMPATIBILITY WARNING:** In the future, the High Fidelity Audio API server will only fall back to the space/zone attenuation if the user attenuation is `NaN`.
+     * **COMPATIBILITY WARNING:** Currently, setting `userAttenuation` to 0 will also reset its value to the space/zone default attenuation.
+     * In the future, the value of `userAttenuation` will only be reset if it is set to `NaN`.
+     * A `userAttenuation` set to 0 will in the future be treated as a "broadcast mode", making
+     * the user audible throughout the entire space.
+     * If your spatial audio client application is currently resetting `userAttenuation` by setting it to 0, please change
+     * it to set `userAttenuation` to `NaN` instead, in order for it to continue working with future versions of
+     * High Fidelity's Spatial Audio API.
      * 
      * @param userRolloff - This value affects the frequency rolloff for a given user.
      * Setting this to `NaN` or 0 will use the space default rolloff, or, if zones are defined for the space,
      * the frequency rolloff settings at the user's position.
      * 
-     * **COMPATIBILITY WARNING:** In the future, the High Fidelity Audio API server will only fall back to the space/zone rolloff if the user rolloff is `NaN`.
+     * **COMPATIBILITY WARNING:** Currently, setting `userRolloff` to 0 will also reset its value to the space/zone default rolloff
+     * In the future, the value of `userRolloff` will only be reset if it is set to `NaN`
+     * A `userRolloff` set to 0 will in the future be treated as a valid frequency rolloff value,
+     * which will cause the user's sound to become muffled over a short distance.
+     * If your spatial audio client application is currently resetting `userRolloff` by setting it to 0, please change
+     * it to set `userRolloff` to `NaN` instead, in order for it to continue working with future versions of
+     * High Fidelity's Spatial Audio API.
      */
     private _updateUserData({ position, orientation, volumeThreshold, hiFiGain, userAttenuation, userRolloff }: { position?: Point3D, orientation?: Quaternion, volumeThreshold?: number, hiFiGain?: number, userAttenuation?: number, userRolloff?: number } = {}): void {
         if (position) {

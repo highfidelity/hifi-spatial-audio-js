@@ -44,10 +44,14 @@ export class HiFiAudioAPIData {
      * A volume level below this value is considered background noise and will be smoothly gated off.
      * The floating point value is specified in dBFS (decibels relative to full scale) with values between -96 dB (indicating no gating)
      * and 0 dB (effectively muting the input from this user). It is in the same decibel units as the VolumeDecibels component of UserDataSubscription.
-     * Setting this value to `NaN` or `null` will cause the volume threshold from the space to be used instead.
+     * Setting this value to `NaN` will cause the volume threshold from the space to be used instead.
      * 
-     * **COMPATIBILITY WARNING:** In the future, the High Fidelity Audio API server will only fall back to the space volume threshold
-     * if the threshold is `NaN`.
+     * **COMPATIBILITY WARNING:** Currently, setting `volumeThreshold` to `null` will also reset its value to the space default volume threshold.
+     * In the future, the value of `volumeThreshold` will only be reset if it is set to `NaN`.
+     * A `volumeThreshold` set to `null` will in the future will be treated as if `volumeThreshold` is not supplied.
+     * If your spatial audio client application is currently resetting `volumeThreshold` by setting it to `null`, please change
+     * it to set `volumeThreshold` to `NaN` instead, in order for it to continue working with future versions of
+     * High Fidelity's Spatial Audio API.
      *
      * If you don't supply a `volumeThreshold` when constructing instantiations of this class, the previous value of `volumeThreshold` will
      * be used. If `volumeThreshold` has never been supplied, the volume threshold of the space will be used instead.
@@ -70,9 +74,15 @@ export class HiFiAudioAPIData {
      * attenuation is usually 0.5, which represents a reasonable approximation of a real-world fall-off in sound over distance.
      * 
      * When setting this value for an individual user, the following holds:
-     *   - A value of `NaN` or 0 causes the user to inherit the global attenuation for a space, or, if zones are defined for the space,
-     * the attenuation settings at the user's position. **COMPATIBILITY WARNING:** In the future, the High Fidelity Audio API server
-     * will only fall back to the space/zone attenuation if the user attenuation is `NaN`.
+     *   - A value of `NaN` causes the user to inherit the global attenuation for a space, or, if zones are defined for the space,
+     * the attenuation settings at the user's position. **COMPATIBILITY WARNING:** Currently, setting `userAttenuation` to 0 will
+     * also reset its value to the space/zone default attenuation.
+     * In the future, the value of `userAttenuation` will only be reset if it is set to `NaN`.
+     * A `userAttenuation` set to 0 will in the future be treated as a "broadcast mode", making
+     * the user audible throughout the entire space.
+     * If your spatial audio client application is currently resetting `userAttenuation` by setting it to 0, please change
+     * it to set `userAttenuation` to `NaN` instead, in order for it to continue working with future versions of
+     * High Fidelity's Spatial Audio API.
      *   - Positive numbers between 0 and 1 (excluding 0) represent logarithmic attenuation. This range is recommended, as it is
      * more natural sounding.  Smaller numbers represent less attenuation, so a number such as 0.2 can be used to make a particular 
      * user's audio travel farther than other users', for instance in "amplified" concert type settings. A number such as 0.02 will
@@ -100,11 +110,16 @@ export class HiFiAudioAPIData {
      * extremely high values (e.g. 99999) should be used in combination with "broadcast mode"-style userAttenuation settings to cause the
      * broadcasted voice to sound crisp and "up close" even at very large distances.
      *
-     * A `userRolloff` of `NaN` or 0 will cause the user to inherit the global frequency rolloff for the space, or, if zones are defined
+     * A `userRolloff` of `NaN` will cause the user to inherit the global frequency rolloff for the space, or, if zones are defined
      * for the space, the frequency rolloff settings at the user's position.
      * 
-     * **COMPATIBILITY WARNING:** In the future, the High Fidelity Audio API server will only fall back to the space/zone rolloff
-     * if the user rolloff is `NaN`.
+     * **COMPATIBILITY WARNING:** Currently, setting `userRolloff` to 0 will also reset its value to the space/zone default rolloff
+     * In the future, the value of `userRolloff` will only be reset if it is set to `NaN`
+     * A `userRolloff` set to 0 will in the future be treated as a valid frequency rolloff value,
+     * which will cause the user's sound to become muffled over a short distance.
+     * If your spatial audio client application is currently resetting `userRolloff` by setting it to 0, please change
+     * it to set `userRolloff` to `NaN` instead, in order for it to continue working with future versions of
+     * High Fidelity's Spatial Audio API.
      *
      * If you don't supply a `userRolloff` when constructing instantiations of this class, the previous value of `userRolloff` will
      * be used. If `userRolloff` has never been supplied, the frequency rolloff of the space will be used instead.
