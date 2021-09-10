@@ -49,7 +49,8 @@ export class HiFiAudioAPIData {
      * **COMPATIBILITY WARNING:** In the future, the High Fidelity Audio API server will only fall back to the space volume threshold
      * if the threshold is `NaN`.
      *
-     * If you don't supply a `volumeThreshold` when constructing instantiations of this class, it will be ignored.
+     * If you don't supply a `volumeThreshold` when constructing instantiations of this class, the previous value of `volumeThreshold` will
+     * be used. If `volumeThreshold` has never been supplied, the volume threshold of the space will be used instead.
      */
     volumeThreshold: number;
     /**
@@ -82,7 +83,8 @@ export class HiFiAudioAPIData {
      * this setting can be used as a blunt tool to easily test attenuation, and tune it aggressively in extreme circumstances. When using linear 
      * attenuation, the setting is the distance in meters at which the audio becomes totally inaudible.
      *
-     * If you don't supply a `userAttenuation` when constructing instantiations of this class, it will be ignored.
+     * If you don't supply a `userAttenuation` when constructing instantiations of this class, the previous value of `userAttenuation` will
+     * be used. If `userAttenuation` has never been supplied, the attenuation of the space will be used instead.
      * 
      * ✔ The client sends `userAttenuation` data to the server when `_transmitHiFiAudioAPIDataToServer()` is called.
      * 
@@ -104,7 +106,8 @@ export class HiFiAudioAPIData {
      * **COMPATIBILITY WARNING:** In the future, the High Fidelity Audio API server will only fall back to the space/zone rolloff
      * if the user rolloff is `NaN`.
      *
-     * If you don't supply a `userRolloff` when constructing instantiations of this class, it will be ignored.
+     * If you don't supply a `userRolloff` when constructing instantiations of this class, the previous value of `userRolloff` will
+     * be used. If `userRolloff` has never been supplied, the frequency rolloff of the space will be used instead.
      * 
      * ✔ The client sends `userRolloff` data to the server when `_transmitHiFiAudioAPIDataToServer()` is called.
      * 
