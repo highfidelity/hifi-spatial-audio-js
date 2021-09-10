@@ -1207,8 +1207,8 @@ export class HiFiMixerSession {
             }
         }
 
-        if (typeof (currentHifiAudioAPIData.volumeThreshold) === "number" ||
-            currentHifiAudioAPIData.volumeThreshold === null) { // May be NaN
+        if (typeof (currentHifiAudioAPIData.volumeThreshold) === "number" || // May be NaN
+            currentHifiAudioAPIData.volumeThreshold === null) {
             dataForMixer["T"] = currentHifiAudioAPIData.volumeThreshold;
         }
 

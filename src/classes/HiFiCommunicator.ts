@@ -1021,8 +1021,8 @@ export class HiFiCommunicator {
             this._currentHiFiAudioAPIData.orientation.z = orientation.z ?? this._currentHiFiAudioAPIData.orientation.z;
         }
 
-        if (typeof (volumeThreshold) === "number" ||
-            volumeThreshold === null) { // May be NaN
+        if (typeof (volumeThreshold) === "number" || // May be NaN
+            volumeThreshold === null) {
             this._currentHiFiAudioAPIData.volumeThreshold = volumeThreshold;
         }
         if (typeof (hiFiGain) === "number") {
@@ -1077,8 +1077,8 @@ export class HiFiCommunicator {
             this._lastTransmittedHiFiAudioAPIData.orientation.z = dataJustTransmitted.orientation.z ?? this._lastTransmittedHiFiAudioAPIData.orientation.z;
         }
 
-        if (typeof (dataJustTransmitted.volumeThreshold) === "number" ||
-            dataJustTransmitted.volumeThreshold === null) { // May be NaN
+        if (typeof (dataJustTransmitted.volumeThreshold) === "number" || // May be NaN
+            dataJustTransmitted.volumeThreshold === null) {
             this._lastTransmittedHiFiAudioAPIData["volumeThreshold"] = dataJustTransmitted.volumeThreshold;
         }
 
