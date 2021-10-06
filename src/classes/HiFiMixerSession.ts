@@ -338,6 +338,7 @@ export class HiFiMixerSession {
         this.onTransition = onTransition;
         this.onReadyForTransition = onReadyForTransition;
         this._inputAudioMediaStream = undefined;
+        this._inputAudioMediaStreamIsStereo = false;
         if (visitId) {
             this._visitId = visitId;
         } else {
