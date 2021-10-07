@@ -979,15 +979,42 @@ export class HiFiCommunicator {
      * @param __namedParameters
      * @param position - The new position of the user.
      * @param orientation - The new orientation of the user (in Quaternion form)
-     * @param volumeThreshold - The new volumeThreshold of the user.  Setting this to null will use the space default volume threshold.
+     * @param volumeThreshold - The new volumeThreshold of the user.  Setting this to `NaN` will reset its value to the space default volume threshold.
+     * 
+     * **COMPATIBILITY WARNING:** Currently, setting `volumeThreshold` to `null` will also reset its value to the space default volume threshold.
+     * In the future, the value of `volumeThreshold` will only be reset if it is set to `NaN`.
+     * A `volumeThreshold` set to `null` will in the future will be treated as if `volumeThreshold` is not supplied.
+     * If your spatial audio client application is currently resetting `volumeThreshold` by setting it to `null`, please change
+     * it to set `volumeThreshold` to `NaN` instead, in order for it to continue working with future versions of
+     * High Fidelity's Spatial Audio API.
      * @param hiFiGain - This value affects how loud User A will sound to User B at a given distance in 3D space.
      * This value also affects the distance at which User A can be heard in 3D space.
      * Higher values for User A means that User A will sound louder to other users around User A, and it also means that User A will be audible from a greater distance.
      * The new hiFiGain of the user.
+     * 
      * @param userAttenuation - This value affects how far a user's voice will travel in 3D space.
-     * The new attenuation value for the user.
+     * Setting this to `NaN` will use the space default attenuation, or, if zones are defined for the space,
+     * the attenuation settings at the user's position.
+     * 
+     * **COMPATIBILITY WARNING:** Currently, setting `userAttenuation` to 0 will also reset its value to the space/zone default attenuation.
+     * In the future, the value of `userAttenuation` will only be reset if it is set to `NaN`.
+     * A `userAttenuation` set to 0 will in the future be treated as a "broadcast mode", making
+     * the user audible throughout the entire space.
+     * If your spatial audio client application is currently resetting `userAttenuation` by setting it to 0, please change
+     * it to set `userAttenuation` to `NaN` instead, in order for it to continue working with future versions of
+     * High Fidelity's Spatial Audio API.
+     * 
      * @param userRolloff - This value affects the frequency rolloff for a given user.
-     * The new rolloff value for the user.
+     * Setting this to `NaN` or 0 will use the space default rolloff, or, if zones are defined for the space,
+     * the frequency rolloff settings at the user's position.
+     * 
+     * **COMPATIBILITY WARNING:** Currently, setting `userRolloff` to 0 will also reset its value to the space/zone default rolloff
+     * In the future, the value of `userRolloff` will only be reset if it is set to `NaN`
+     * A `userRolloff` set to 0 will in the future be treated as a valid frequency rolloff value,
+     * which will cause the user's sound to become muffled over a short distance.
+     * If your spatial audio client application is currently resetting `userRolloff` by setting it to 0, please change
+     * it to set `userRolloff` to `NaN` instead, in order for it to continue working with future versions of
+     * High Fidelity's Spatial Audio API.
      */
     private _updateUserData({ position, orientation, volumeThreshold, hiFiGain, userAttenuation, userRolloff }: { position?: Point3D, orientation?: Quaternion, volumeThreshold?: number, hiFiGain?: number, userAttenuation?: number, userRolloff?: number } = {}): void {
         if (position) {
@@ -1011,17 +1038,17 @@ export class HiFiCommunicator {
             this._currentHiFiAudioAPIData.orientation.z = orientation.z ?? this._currentHiFiAudioAPIData.orientation.z;
         }
 
-        if (typeof (volumeThreshold) === "number" ||
+        if (typeof (volumeThreshold) === "number" || // May be NaN
             volumeThreshold === null) {
             this._currentHiFiAudioAPIData.volumeThreshold = volumeThreshold;
         }
         if (typeof (hiFiGain) === "number") {
             this._currentHiFiAudioAPIData.hiFiGain = Math.max(0, hiFiGain);
         }
-        if (typeof (userAttenuation) === "number") {
+        if (typeof (userAttenuation) === "number") { // May be NaN
             this._currentHiFiAudioAPIData.userAttenuation = userAttenuation;
         }
-        if (typeof (userRolloff) === "number") {
+        if (typeof (userRolloff) === "number") { // May be NaN
             this._currentHiFiAudioAPIData.userRolloff = Math.max(0, userRolloff);
         }
     }
@@ -1067,7 +1094,7 @@ export class HiFiCommunicator {
             this._lastTransmittedHiFiAudioAPIData.orientation.z = dataJustTransmitted.orientation.z ?? this._lastTransmittedHiFiAudioAPIData.orientation.z;
         }
 
-        if (typeof (dataJustTransmitted.volumeThreshold) === "number" ||
+        if (typeof (dataJustTransmitted.volumeThreshold) === "number" || // May be NaN
             dataJustTransmitted.volumeThreshold === null) {
             this._lastTransmittedHiFiAudioAPIData["volumeThreshold"] = dataJustTransmitted.volumeThreshold;
         }
@@ -1075,10 +1102,10 @@ export class HiFiCommunicator {
         if (typeof (dataJustTransmitted.hiFiGain) === "number") {
             this._lastTransmittedHiFiAudioAPIData["hiFiGain"] = dataJustTransmitted.hiFiGain;
         }
-        if (typeof (dataJustTransmitted.userAttenuation) === "number") {
+        if (typeof (dataJustTransmitted.userAttenuation) === "number") { // May be NaN
             this._lastTransmittedHiFiAudioAPIData["userAttenuation"] = dataJustTransmitted.userAttenuation;
         }
-        if (typeof (dataJustTransmitted.userRolloff) === "number") {
+        if (typeof (dataJustTransmitted.userRolloff) === "number") { // May be NaN
             this._lastTransmittedHiFiAudioAPIData["userRolloff"] = dataJustTransmitted.userRolloff;
         }
         if (typeof (dataJustTransmitted._otherUserGainQueue) === "object") {
@@ -1172,6 +1199,7 @@ export class HiFiCommunicator {
 
     /**
      * A simple function that calls {@link _updateUserData}, followed by {@link _transmitHiFiAudioAPIDataToServer}.
+     * See {@link HiFiAudioAPIData} for what data can be sent to the High Fidelity Audio API Server.
      * Developers can call this function as often as they want. This function will update the internal data store of the user's
      * position, orientation, etc. No matter how often developers call this function, the internal data store transmission is rate-limited
      * and will only be sent to the server once every `transmitRateLimitTimeoutMS` milliseconds. When the internal data store is transmitted,

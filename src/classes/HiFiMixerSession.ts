@@ -1,6 +1,9 @@
 /**
- * Code in this module is used internally by the [[HiFiCommunicator]] object to manage the connection between client and server.
- * Developers do not need to and should not consider this module when writing their applications.
+ * Code in this module is used by [[HiFiCommunicator]] object to manage the connection between client and server.
+ * This module is also home to some types used to manage client volume state, for example
+ * {@link OnMuteChangedCallback}.
+ * The class HiFiMixerSession is an internal class. Developers do not need to and should not consider it
+ * when writing their applications.
  * @packageDocumentation
  */
 
@@ -32,17 +35,33 @@ const PERSONAL_VOLUME_ADJUST_TIMEOUT_MS = 5000;
 
 type ConnectionStateChangeHandler = (state: HiFiConnectionStates, result: HiFiConnectionAttemptResult) => void;
 
+/** @internal */
 interface AudionetSetOtherUserGainsForThisConnectionResponse {
     success: boolean,
     reason?: string
 }
 
+/**
+ * The result of calling {@link HiFiCommunicator.setOtherUserGainsForThisConnection}, which adjusts the
+ * gain of one or more users for the communicator's current connection only.
+ */
 export interface SetOtherUserGainsForThisConnectionResponse {
+    /**
+     * `true` if the gains of other users were adjusted, `false` otherwise
+     */
     success: boolean,
+    /**
+     * if {@link success} is `false`, then a message explaining why the gains of other users could not be adjusted
+     */
     error?: string,
+    /** @internal */
     audionetSetOtherUserGainsForThisConnectionResponse?: AudionetSetOtherUserGainsForThisConnectionResponse
 }
 
+/**
+ * The result of calling {@link HiFiCommunicator.setOtherUserGainForThisConnection}, which adjusts the
+ * gain of another user for the communicator's current connection only.
+ */
 export type SetOtherUserGainForThisConnectionResponse = SetOtherUserGainsForThisConnectionResponse;
 
 /**
@@ -114,6 +133,7 @@ export type OnMuteChangedCallback = (muteChangedEvent: MuteChangedEvent) => void
 /**
  * Instantiations of this class contain data about a connection between a client and a mixer.
  * Client library users shouldn't have to care at all about the variables and methods contained in this class.
+ * @internal
  */
 export class HiFiMixerSession {
     /**
@@ -1207,7 +1227,7 @@ export class HiFiMixerSession {
             }
         }
 
-        if (typeof (currentHifiAudioAPIData.volumeThreshold) === "number" ||
+        if (typeof (currentHifiAudioAPIData.volumeThreshold) === "number" || // May be NaN
             currentHifiAudioAPIData.volumeThreshold === null) {
             dataForMixer["T"] = currentHifiAudioAPIData.volumeThreshold;
         }
@@ -1216,11 +1236,11 @@ export class HiFiMixerSession {
             dataForMixer["g"] = Math.max(0, currentHifiAudioAPIData.hiFiGain);
         }
 
-        if (typeof (currentHifiAudioAPIData.userAttenuation) === "number") {
+        if (typeof (currentHifiAudioAPIData.userAttenuation) === "number") { // May be NaN
             dataForMixer["a"] = currentHifiAudioAPIData.userAttenuation;
         }
 
-        if (typeof (currentHifiAudioAPIData.userRolloff) === "number") {
+        if (typeof (currentHifiAudioAPIData.userRolloff) === "number") { // May be NaN
             dataForMixer["r"] = Math.max(0, currentHifiAudioAPIData.userRolloff);
         }
 
@@ -1272,6 +1292,7 @@ export class HiFiMixerSession {
             let commandController = this._raviSession.getCommandController();
 
             if (commandController) {
+                // Stringified NaN values get converted to null, which the mixer interprets as unset
                 let stringifiedDataForMixer = JSON.stringify(dataForMixer);
                 commandController.sendInput(stringifiedDataForMixer);
                 return {
