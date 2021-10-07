@@ -1,5 +1,7 @@
 import { HiFiMixerSession } from "../classes/HiFiMixerSession";
 import { RaviSession, STATS_WATCHER_FILTER } from "../libravi/RaviSession";
+import { apiVersion } from "../index";
+
 
 const isBrowser = typeof window !== 'undefined';
 const noop = (_:any):any => undefined;
@@ -72,7 +74,7 @@ export class Diagnostics {
         Object.assign(this, {url, label, session, ravi, fireOn});
         this.checkPersisted();
         this.reset();
-        this.fireListener = () => this.fire();
+        this.fireListener = (event:any) => this.fire(event.type);
         this.onlineListener = () => this.checkPersisted();
     }
     /** 
@@ -89,9 +91,9 @@ export class Diagnostics {
     /**
      * Call this when we get into a state that we want to know more about, e.g., when leaving the thing that caused us to prime().
      */
-    async fire() {
+    async fire(eventName:string) {
         if (!this.isPrimed()) return;
-        const reportString = this.toString();
+        const reportString = this.toString(eventName);
         this.reset();
         // When we fire on closing tab or browser, we sometimes don't have enough time to report, or
         // sometimes have enough time to report, but not enough to check the response.
@@ -137,7 +139,7 @@ export class Diagnostics {
     /**
      * Answer a single (long) log line to report.
      */
-    toString() {
+    toString(eventName:string) {
         return `${new Date().toISOString()} ${this.identifier} ` +
             this.s('logReason', 'sessionEND') +
             this.connectionStats('browserStats') +
@@ -152,6 +154,8 @@ export class Diagnostics {
             this.visibilityInfo() +
             this.connectionInfo() +
             this.s('PERSISTENCE', directSendLabel) +
+            this.s('VERSION', apiVersion) +
+            this.s('EVENT', eventName) +
             (useDebugPrefixes ? '\n' : '') +
             ` [${xNavigator.userAgent}]`;
     }

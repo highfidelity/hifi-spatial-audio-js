@@ -1011,7 +1011,7 @@ export class HiFiMixerSession {
                 this._hifiDiagnostics.prime(this.mixerInfo.visit_id_hash);
                 this._copyAudioTracksFromRavi();
             } else {
-                this._hifiDiagnostics.fire();
+                this._hifiDiagnostics.fire(state.toString());
             }
         }
 
@@ -1070,7 +1070,7 @@ export class HiFiMixerSession {
     onRAVISessionStateChanged = (async function(event:any) : Promise<void> {
         HiFiLogger.log(`New RAVI session state: \`${event.state}\``);
         let message = undefined;
-        this._raviDiagnostics.fire();
+        this._raviDiagnostics.fire(event.state.toString());
         switch (event.state) {
             case RaviSessionStates.CONNECTED:
                 HiFiLogger.log(`RaviSession connected; waiting for results of audionet.init`);
