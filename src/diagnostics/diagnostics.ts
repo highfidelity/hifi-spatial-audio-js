@@ -237,7 +237,8 @@ export class Diagnostics {
             method: 'POST',
             headers: { 'Content-Type': 'text/plain' },
             body: reportString
-        }).then((response:Response) => response.ok);
+        }).then((response:Response) => response.ok)
+          .catch((err) => { console.log(`Could not send diagnostics report for ${this.label} to ${this.url}: ${err}`); return false; });
     }
     /**
      * Add reportString to the set of data being saved for later reporting.
