@@ -19,6 +19,8 @@ if (!isBrowser) {
     }
 }
 
+const MAX_DIAGNOSTICS_STORAGE_LENGTH = 5000;
+
 const nonOperative = "non-operative";
 
 STATS_WATCHER_FILTER.set('remote-inbound-rtp',
@@ -241,7 +243,8 @@ export class Diagnostics {
             method: 'POST',
             headers: { 'Content-Type': 'text/plain' },
             body: reportString
-        }).then((response:Response) => response.ok);
+        }).then((response:Response) => response.ok)
+          .catch((err) => { console.log(`Could not send diagnostics report for ${this.label} to ${this.url}: ${err}`); return false; });
     }
     /**
      * Add reportString to the set of data being saved for later reporting.
@@ -252,7 +255,14 @@ export class Diagnostics {
         // there is a bug, or if the application site limits the connect-src (or default-src)
         // in its Content-Security-Policy header without allowing this.url.
         // If it is more than a line, we are accumulating stuff and really ought to phone home through the mixer when connected.
-        if (existing) existing += "\n";
+        if (existing) {
+            if (existing.length > MAX_DIAGNOSTICS_STORAGE_LENGTH) {
+                // If it is many lines, we may be in a web context where we cannot send diagnostics lines, and are better off discarding them to conserve web storage
+                console.log(`Diagnostics for ${this.label} truncated`);
+                existing = "";
+            }
+            existing += "\n";
+        }
         // The reportString is generated as through it will be sent directly. Here we replace that label with a reason why we're persisting.
         reportString = reportString.replace(directSendLabel, reason);
         xStorage.setItem(this.label, existing + reportString);
