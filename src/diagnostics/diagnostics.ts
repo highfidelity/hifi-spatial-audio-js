@@ -1,5 +1,7 @@
 import { HiFiMixerSession } from "../classes/HiFiMixerSession";
 import { RaviSession, STATS_WATCHER_FILTER } from "../libravi/RaviSession";
+import { apiVersion } from "../index";
+
 
 const isBrowser = typeof window !== 'undefined';
 const noop = (_:any):any => undefined;
@@ -16,6 +18,8 @@ if (!isBrowser) {
         ; // Remains falsey. Don't report, don't log
     }
 }
+
+const MAX_DIAGNOSTICS_STORAGE_LENGTH = 5000;
 
 const nonOperative = "non-operative";
 
@@ -72,7 +76,7 @@ export class Diagnostics {
         Object.assign(this, {url, label, session, ravi, fireOn});
         this.checkPersisted();
         this.reset();
-        this.fireListener = () => this.fire();
+        this.fireListener = (event:any) => this.fire(event.type);
         this.onlineListener = () => this.checkPersisted();
     }
     /** 
@@ -89,9 +93,9 @@ export class Diagnostics {
     /**
      * Call this when we get into a state that we want to know more about, e.g., when leaving the thing that caused us to prime().
      */
-    async fire() {
+    async fire(eventName:string) {
         if (!this.isPrimed()) return;
-        const reportString = this.toString();
+        const reportString = this.toString(eventName);
         this.reset();
         // When we fire on closing tab or browser, we sometimes don't have enough time to report, or
         // sometimes have enough time to report, but not enough to check the response.
@@ -137,7 +141,7 @@ export class Diagnostics {
     /**
      * Answer a single (long) log line to report.
      */
-    toString() {
+    toString(eventName:string) {
         return `${new Date().toISOString()} ${this.identifier} ` +
             this.s('logReason', 'sessionEND') +
             this.connectionStats('browserStats') +
@@ -152,6 +156,8 @@ export class Diagnostics {
             this.visibilityInfo() +
             this.connectionInfo() +
             this.s('PERSISTENCE', directSendLabel) +
+            this.s('VERSION', apiVersion) +
+            this.s('EVENT', eventName) +
             (useDebugPrefixes ? '\n' : '') +
             ` [${xNavigator.userAgent}]`;
     }
@@ -237,7 +243,8 @@ export class Diagnostics {
             method: 'POST',
             headers: { 'Content-Type': 'text/plain' },
             body: reportString
-        }).then((response:Response) => response.ok);
+        }).then((response:Response) => response.ok)
+          .catch((err) => { console.log(`Could not send diagnostics report for ${this.label} to ${this.url}: ${err}`); return false; });
     }
     /**
      * Add reportString to the set of data being saved for later reporting.
@@ -248,7 +255,14 @@ export class Diagnostics {
         // there is a bug, or if the application site limits the connect-src (or default-src)
         // in its Content-Security-Policy header without allowing this.url.
         // If it is more than a line, we are accumulating stuff and really ought to phone home through the mixer when connected.
-        if (existing) existing += "\n";
+        if (existing) {
+            if (existing.length > MAX_DIAGNOSTICS_STORAGE_LENGTH) {
+                // If it is many lines, we may be in a web context where we cannot send diagnostics lines, and are better off discarding them to conserve web storage
+                console.log(`Diagnostics for ${this.label} truncated`);
+                existing = "";
+            }
+            existing += "\n";
+        }
         // The reportString is generated as through it will be sent directly. Here we replace that label with a reason why we're persisting.
         reportString = reportString.replace(directSendLabel, reason);
         xStorage.setItem(this.label, existing + reportString);

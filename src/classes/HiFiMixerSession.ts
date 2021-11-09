@@ -1053,18 +1053,24 @@ export class HiFiMixerSession {
             if (this.onConnectionStateChanged) {
                 this.onConnectionStateChanged(state, result);
             }
+        
+            if (state === HiFiConnectionStates.Connected) {
+                this._raviDiagnostics.prime(this.mixerInfo.visit_id_hash);
+                this._hifiDiagnostics.prime(this.mixerInfo.visit_id_hash);
+                this._hifiDiagnostics.fire("Connected");
+            }
         }
         
+        // in the case of a transition, we'll receive a 'Connected' from the secondary
+        // mixer when the HiFiCommunicator session state is Connected.  In that case, we must
+        // notify the primary mixer that we're ready for transition.
         if (state === HiFiConnectionStates.Connected) {
             this._raviDiagnostics.prime(this.mixerInfo.visit_id_hash);
             this._hifiDiagnostics.prime(this.mixerInfo.visit_id_hash);
             if (this.onReadyForTransition) {
                 this.onReadyForTransition();
             }
-        } else if (state === HiFiConnectionStates.Disconnected) {
-            this._hifiDiagnostics.fire();
-        } else {
-            this._hifiDiagnostics.fire();
+            this._hifiDiagnostics.fire("TransitionConnected");
         }
 
         if (state === HiFiConnectionStates.Failed) {
@@ -1138,7 +1144,7 @@ export class HiFiMixerSession {
     onRAVISessionStateChanged = (async function(event:any) : Promise<void> {
         HiFiLogger.log(`New RAVI session state: \`${event.state}\``);
         let message = undefined;
-        this._raviDiagnostics.fire();
+        this._raviDiagnostics.fire(event.state.toString());
         switch (event.state) {
             case RaviSessionStates.CONNECTED:
                 HiFiLogger.log(`RaviSession connected; waiting for results of audionet.init`);
