@@ -611,7 +611,7 @@ export class HiFiCommunicator {
                  * They should always kick off a new connection attempt, UNLESS the current state is already "Connected".
                  */
                 if (this._currentHiFiConnectionState !== HiFiConnectionStates.Connected) {
-                    HiFiLogger.log(`_manageConnection: kicking off connection attempt.`);
+                    HiFiLogger.log(`_manageConnection: kicking off connection attempt: ${newState}.`);
                     this._updateStateAndCallUserStateChangeHandler(newState, message, secondary);
                     this._connectToHiFiMixer();
                 } else {

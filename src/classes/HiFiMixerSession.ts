@@ -170,6 +170,8 @@ export class HiFiMixerSession {
      * we can advise the server to mix it appropriately
      */
     private _inputAudioMediaStreamIsStereo: boolean;
+    
+    private _currentDataToTransmitToServer: HiFiAudioAPIData;
 
     private _adminPreventsInputAudioUnmuting: boolean;
     private _lastSuccessfulInputAudioMutedValue: boolean;
@@ -339,6 +341,7 @@ export class HiFiMixerSession {
         this.onReadyForTransition = onReadyForTransition;
         this._inputAudioMediaStream = undefined;
         this._inputAudioMediaStreamIsStereo = false;
+        this._currentDataToTransmitToServer = new HiFiAudioAPIData();
         if (visitId) {
             this._visitId = visitId;
         } else {
@@ -739,6 +742,7 @@ export class HiFiMixerSession {
         })
         .then((value) => {
             HiFiLogger.log(`audionet.init run; calling state change handler for connected`);
+            this._currentDataToTransmitToServer = initData;
             return this._onConnectionStateChange(HiFiConnectionStates.Connected, value);            
         })
         .then((value) => {
@@ -848,7 +852,7 @@ export class HiFiMixerSession {
                     try {
                         this._inputAudioMediaStreamIsStereo = isStereo;
                     this._inputAudioMediaStream = inputAudioMediaStream;
-                        audionetInitResponse = await this.promiseToRunAudioInit();
+                        audionetInitResponse = await this.promiseToRunAudioInit(this._currentDataToTransmitToServer);
                     } catch (initError) {
                         // If this goes wrong, do we actually care all that much?
                         // It just means that the mixer will continue to treat the new stream as
@@ -1362,6 +1366,7 @@ export class HiFiMixerSession {
                 // Stringified NaN values get converted to null, which the mixer interprets as unset
                 let stringifiedDataForMixer = JSON.stringify(dataForMixer);
                 commandController.sendInput(stringifiedDataForMixer);
+                this._currentDataToTransmitToServer = currentHifiAudioAPIData;
                 return {
                     success: true,
                     stringifiedDataForMixer: stringifiedDataForMixer
