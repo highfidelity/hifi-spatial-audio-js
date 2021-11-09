@@ -732,6 +732,9 @@ export class HiFiMixerSession {
             });
         })
         .then((value) => {
+            // need to copy the audio tracks here as we've not yet set up the ravi
+            // state change handler, which deals with copying the tracks during
+            // reconnect and transition
             this._copyAudioTracksFromRavi();           
             HiFiLogger.log(`Session open; running audionet.init`);
             return this.promiseToRunAudioInit(initData)

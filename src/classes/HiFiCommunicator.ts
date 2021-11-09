@@ -793,7 +793,7 @@ export class HiFiCommunicator {
         // change the current state to the new state and call the user's handler.
         if (newState !== this._currentHiFiConnectionState) {
             this._currentHiFiConnectionState = newState;
-            if (!secondary && this.onConnectionStateChanged) {
+            if (this.onConnectionStateChanged) {
                 this.onConnectionStateChanged(this._currentHiFiConnectionState, message);
             }
         }
@@ -1416,7 +1416,7 @@ export class HiFiCommunicator {
         }
 
         let timeoutPerConnectionAttempt = this._connectionRetryAndTimeoutConfig.timeoutPerConnectionAttemptMS;
-        // Kick off the connection attempt. This returns a boolean, but any actual success or failure
+        // Kick off the connection attempt. Any actual success or failure
         // gets handled by the _manageConnection callback handler. (Note that calls to our _connectToHiFiMixer()
         // method get handled entirely by callback-initiated retry code, so we should never get here unless
         // a callback asked us to do it.)
