@@ -945,7 +945,7 @@ export class HiFiCommunicator {
         this._inputAudioMediaStreamIsStereo = isStereo;
         let retval = await this._mixerSession.setRAVIInputAudio(newInputAudioMediaStream, isStereo);    
         if (retval) {
-            retval = retval &&  await this._secondaryMixerSession.setRAVIInputAudio(newInputAudioMediaStream, isStereo);
+            retval = await this._secondaryMixerSession.setRAVIInputAudio(newInputAudioMediaStream, isStereo);
         }
         if (!retval){
             HiFiLogger.warn(`Error trying to setRAVIInputAudio on this._mixerSession`);

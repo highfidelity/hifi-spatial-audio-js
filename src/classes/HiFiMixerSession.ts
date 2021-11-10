@@ -344,8 +344,6 @@ export class HiFiMixerSession {
         this._currentDataToTransmitToServer = new HiFiAudioAPIData();
         if (visitId) {
             this._visitId = visitId;
-        } else {
-            RaviUtils.createUUID();
         }
 
         RaviUtils.setDebug(false);
@@ -1115,11 +1113,10 @@ export class HiFiMixerSession {
 
         if (streamController && streamController.getAudioStream()) {
             raviAudioTracks = streamController.getAudioStream().getAudioTracks();
-        }
-
-        if (raviAudioTracks) {
-            HiFiLogger.log(`Setting this._outputAudioMediaStream tracks to the current RAVI audio tracks.`);
-            raviAudioTracks.forEach(f => { this._outputAudioMediaStream.addTrack(f)});
+            if (raviAudioTracks) {
+                HiFiLogger.log(`Setting this._outputAudioMediaStream tracks to the current RAVI audio tracks.`);
+                raviAudioTracks.forEach(f => { this._outputAudioMediaStream.addTrack(f)});
+            }
         }
     }
     /**
@@ -1472,19 +1469,22 @@ export class HiFiMixerSession {
 
         let oldPeers: any = {};
         for (const mixerPeerKey of Object.keys(this._mixerPeerKeyToStateCacheDict)) {
-            oldPeers[this._mixerPeerKeyToStateCacheDict[mixerPeerKey].hashedVisitID] = this._mixerPeerKeyToStateCacheDict[mixerPeerKey];
+            let value = this._mixerPeerKeyToStateCacheDict[mixerPeerKey];
+            oldPeers[value.hashedVisitID] = value;
         }
         for (const mixerPeerKey of Object.keys(secondarySession._mixerPeerKeyToStateCacheDict)) {
-            delete oldPeers[secondarySession._mixerPeerKeyToStateCacheDict[mixerPeerKey].hashedVisitID];
-            allNewUserData.push(secondarySession._mixerPeerKeyToStateCacheDict[mixerPeerKey]);
+            let value = secondarySession._mixerPeerKeyToStateCacheDict[mixerPeerKey];
+            delete oldPeers[value.hashedVisitID];
+            allNewUserData.push(value);
         }
         
         for (const hashedVisitID of Object.keys(oldPeers)) {
             let deletedUserData = new ReceivedHiFiAudioAPIData({
                 hashedVisitID: hashedVisitID
             });
-            if (oldPeers[hashedVisitID].providedUserID) {
-                deletedUserData.providedUserID = oldPeers[hashedVisitID].providedUserID;
+            let username = oldPeers[hashedVisitID].providedUserID;
+            if (username) {
+                deletedUserData.providedUserID = username;
             }
             allDeletedUserData.push(deletedUserData);
         }
