@@ -17,6 +17,20 @@ import { HiFiCoordinateFrameUtil } from "../utilities/HiFiCoordinateFrameUtil";
 import { HiFiHandedness, WorldFrameConfiguration } from "./HiFiAxisConfiguration";
 import { HiFiMixerSession, SetOtherUserGainForThisConnectionResponse, SetOtherUserGainsForThisConnectionResponse, OnMuteChangedCallback } from "./HiFiMixerSession";
 import { AvailableUserDataSubscriptionComponents, UserDataSubscription } from "./HiFiUserDataSubscription";
+import { RaviUtils } from "../libravi/RaviUtils";
+
+const isBrowser = typeof window !== 'undefined';
+// Since we're initializing a MediaStream, we need to
+// do it using the correct cross-platform class (node or browser)
+let xMediaStream = isBrowser && window.MediaStream;
+if (!isBrowser) {
+    try {
+        xMediaStream = require('wrtc').MediaStream;
+    } catch (e) {
+        ; // Remains falsey. Don't report, don't log
+    }
+}
+
 
 /**
  * When the state of the connection to the High Fidelity Audio Server changes, the new state will be one of these values.
@@ -199,6 +213,11 @@ export class HiFiCommunicator {
     // This is usually the `MediaStream` associated with a user's audio input device,
     // but it could be any `MediaStream`.
     private _inputAudioMediaStream: MediaStream;
+    
+    private _inputAudioMediaStreamIsStereo: boolean;
+
+    // This is usually the `MediaStream` associated with a user's audio output device
+    private _outputAudioMediaStream: MediaStream;
 
     // These next two member variables are used for keeping track of what to send to the mixer.
     // The client only sends data that the mixer doesn't already know about.
@@ -238,6 +257,7 @@ export class HiFiCommunicator {
 
     // This contains data dealing with the mixer session, such as the RAVI session, WebRTC address, etc.
     private _mixerSession: HiFiMixerSession;
+    private _secondaryMixerSession: HiFiMixerSession;
 
     private _webRTCSessionParams?: WebRTCSessionParams;
     private _customSTUNandTURNConfig?: CustomSTUNandTURNConfig;
@@ -249,6 +269,10 @@ export class HiFiCommunicator {
     // These store a reference to the `resolve()` and `reject()` methods until they need to be called.
     private _resolveOpen: Function;
     private _rejectOpen: Function;
+    
+    // uniquely identify this session
+    private _visitId: string;
+    
 
     /**
      * If the World coordinate system is NOT compatible with the HiFi coordindate frame used by the mixer              
@@ -309,6 +333,9 @@ export class HiFiCommunicator {
         onMuteChanged?: OnMuteChangedCallback,
         connectionRetryAndTimeoutConfig?: ConnectionRetryAndTimeoutConfig
     } = {}) {
+        
+        this._visitId = RaviUtils.createUUID();
+        
         // If user passed in their own stun/turn config, make sure it matches our interface (ish).
         // (I do so wish that TypeScript could just do this for us based on the interface definition, but it seems that it can not.)
         if (customSTUNandTURNConfig) {
@@ -373,6 +400,8 @@ export class HiFiCommunicator {
             }
         }
 
+        this._outputAudioMediaStream = new xMediaStream();
+
         this._mixerSession = new HiFiMixerSession({
             "userDataStreamingScope": userDataStreamingScope,
             "onUserDataUpdated": (data: Array<ReceivedHiFiAudioAPIData>) => { this._handleUserDataUpdates(data); },
@@ -380,10 +409,23 @@ export class HiFiCommunicator {
             "onConnectionStateChanged": (state: HiFiConnectionStates, message: HiFiConnectionAttemptResult) => { this._manageConnection(state, message); },
             "onMuteChanged": onMuteChanged,
             "getUserFacingConnectionState": this.getConnectionState.bind(this),
-            "coordFrameUtil": this._coordFrameUtil
+            "coordFrameUtil": this._coordFrameUtil,
+            "onTransitionRequested": () => { this._onTransitionRequested(); },
+            "onTransition": () => { this._onTransition(); },
+            "visitId": this._visitId,
+            "outputAudioMediaStream": this._outputAudioMediaStream
+            
+        });
+        
+        this._secondaryMixerSession = new HiFiMixerSession({
+            "onConnectionStateChanged": (state: HiFiConnectionStates, message: HiFiConnectionAttemptResult) => { this._manageConnection(state, message, true); },
+            "visitId": this._visitId,
+            "onReadyForTransition": () => { this._onReadyForTransition(); },
+            "outputAudioMediaStream": this._outputAudioMediaStream
         });
 
         this._inputAudioMediaStream = undefined;
+        this._inputAudioMediaStreamIsStereo = false;
 
         this._currentHiFiAudioAPIData = new HiFiAudioAPIData();
 
@@ -483,6 +525,7 @@ export class HiFiCommunicator {
         signalingPort = signalingPort ? signalingPort : HiFiConstants.DEFAULT_PROD_HIGH_FIDELITY_PORT;
         let webRTCSignalingAddress = `wss://${signalingHostURLSafe}:${signalingPort}/?token=`;
         this._mixerSession.webRTCAddress = `${webRTCSignalingAddress}${hifiAuthJWT}`;
+        this._secondaryMixerSession.webRTCAddress = `${webRTCSignalingAddress}${hifiAuthJWT}`;
         HiFiLogger.log(`Using WebRTC Signaling Address:\n${webRTCSignalingAddress}<token redacted>`);
 
         // When making the initial connection, this connection method's promise shouldn't
@@ -556,7 +599,7 @@ export class HiFiCommunicator {
      * @param message An optional message to include as part of the state change. This will be communicated
      * to users as part of the Reject or Resolve of the connection opening Promise.
      */
-    private _manageConnection(newState: HiFiConnectionStates, message?: HiFiConnectionAttemptResult): void {
+    private _manageConnection(newState: HiFiConnectionStates, message?: HiFiConnectionAttemptResult, secondary?: boolean): void {
         switch (newState) {
             case HiFiConnectionStates.Connecting:
             case HiFiConnectionStates.Reconnecting:
@@ -568,8 +611,8 @@ export class HiFiCommunicator {
                  * They should always kick off a new connection attempt, UNLESS the current state is already "Connected".
                  */
                 if (this._currentHiFiConnectionState !== HiFiConnectionStates.Connected) {
-                    HiFiLogger.log(`_manageConnection: kicking off connection attempt.`);
-                    this._updateStateAndCallUserStateChangeHandler(newState, message);
+                    HiFiLogger.log(`_manageConnection: kicking off connection attempt: ${newState}.`);
+                    this._updateStateAndCallUserStateChangeHandler(newState, message, secondary);
                     this._connectToHiFiMixer();
                 } else {
                     HiFiLogger.warn(`_manageConnection called for ${newState} -- but already connected; taking no action.`);
@@ -587,7 +630,7 @@ export class HiFiCommunicator {
                 this._retryTimerInProgress = null;
                 this._failureNotificationPending = undefined; // No need to let them know if we failed earlier; everything's OK now!
                 // Finally, tell the user ("message" should be set to audionet.init result by the mixer change handler)
-                this._updateStateAndCallUserStateChangeHandler(newState, message);
+                this._updateStateAndCallUserStateChangeHandler(newState, message, secondary);        
                 return;
 
             case HiFiConnectionStates.Disconnecting:
@@ -595,7 +638,7 @@ export class HiFiCommunicator {
                  * The Disconnecting state is only ever set explicitly, when the `disconnectFromHiFiAudioAPIServer()` method is called,
                  * and is just used to track the fact that the user initiated the disconnection.
                  */
-                this._updateStateAndCallUserStateChangeHandler(newState, message);
+                this._updateStateAndCallUserStateChangeHandler(newState, message, secondary);
                 return;
 
             case HiFiConnectionStates.Failed:
@@ -618,6 +661,17 @@ export class HiFiCommunicator {
                  * then this is a normal and expected disconnect, and the customer's stateChangeHandler should be called
                  * and we're all done. However, if the current state is something else, we may want to retry.
                  */
+                 
+                if (secondary) {
+                    if (!isBrowser) {
+                        // for some unknown reason, wrtc stops streaming microphone audio on the
+                        // primary session when the secondary session disconnects.  (non-browser only)
+                        // So, we reset the input audio media stream on the primary.
+                        this._mixerSession.setRAVIInputAudio(this._inputAudioMediaStream, this._inputAudioMediaStreamIsStereo);    
+                    }                     
+                    return;
+                }
+                 
                 if (this._retryTimerInProgress) {
                     HiFiLogger.log("_manageConnection: Timer active; continuing to retry connection");
 
@@ -628,7 +682,7 @@ export class HiFiCommunicator {
                                 this._currentHiFiConnectionState !== HiFiConnectionStates.Reconnecting) {
                         HiFiLogger.warn(`_manageConnection handling reconnection, but encountered unexpected state ${this._currentHiFiConnectionState}; will attempt to reconnect, but please contact High Fidelity and report this message`);
                         // Fix the state; "Reconnecting" seems the best option at this point.
-                        this._updateStateAndCallUserStateChangeHandler(HiFiConnectionStates.Reconnecting, message);
+                        this._updateStateAndCallUserStateChangeHandler(HiFiConnectionStates.Reconnecting, message, secondary);
                     }
                     // Catch our breath (the "pauseBetweenRetriesMS" setting), and then retry again
                     setTimeout(() => {
@@ -671,10 +725,10 @@ export class HiFiCommunicator {
                     // calling the customer's state change handler. Let them know about a failure if it
                     // had happened, then tell them about the disconnection.
                     if (this._failureNotificationPending) {
-                        this._updateStateAndCallUserStateChangeHandler(HiFiConnectionStates.Failed, this._failureNotificationPending);
-                        this._updateStateAndCallUserStateChangeHandler(HiFiConnectionStates.Disconnected, this._failureNotificationPending);
+                        this._updateStateAndCallUserStateChangeHandler(HiFiConnectionStates.Failed, this._failureNotificationPending, secondary);
+                        this._updateStateAndCallUserStateChangeHandler(HiFiConnectionStates.Disconnected, this._failureNotificationPending, secondary);
                     } else {
-                        this._updateStateAndCallUserStateChangeHandler(HiFiConnectionStates.Disconnected, message);
+                        this._updateStateAndCallUserStateChangeHandler(HiFiConnectionStates.Disconnected, message, secondary);
                     }
                     this._failureNotificationPending = undefined;
                     return;
@@ -690,7 +744,7 @@ export class HiFiCommunicator {
 
                     if (this._currentHiFiConnectionState === HiFiConnectionStates.Connected) {
                         // Set the state to "Reconnecting" if it's the first failure from a connected state.
-                        this._updateStateAndCallUserStateChangeHandler(HiFiConnectionStates.Reconnecting, message);
+                        this._updateStateAndCallUserStateChangeHandler(HiFiConnectionStates.Reconnecting, message, secondary);
                         setTimeout(() => {
                                 this._manageConnection(HiFiConnectionStates.Reconnecting);
                         }, this._connectionRetryAndTimeoutConfig.pauseBetweenRetriesMS);
@@ -709,7 +763,7 @@ export class HiFiCommunicator {
                  * "Unavailable" means there isn't any room on the server; this is itself a
                  * "failure" and "disconnected" state and so no additional state changes should get called after this.
                  */
-                this._updateStateAndCallUserStateChangeHandler(newState, message);
+                this._updateStateAndCallUserStateChangeHandler(newState, message, secondary);
                 return;
 
             default:
@@ -725,7 +779,10 @@ export class HiFiCommunicator {
      * All updates to `this._currentHiFiConnectionState` should go through this method
      * unless there's a really good reason (e.g. `_cancelRetriedConnectionAttempts`)
      */
-    private _updateStateAndCallUserStateChangeHandler(newState: HiFiConnectionStates, message?: HiFiConnectionAttemptResult): void {
+    private _updateStateAndCallUserStateChangeHandler(newState: HiFiConnectionStates, message?: HiFiConnectionAttemptResult, secondary?: boolean): void {
+        if (secondary) {
+            return;
+        }
         if (newState === HiFiConnectionStates.Connected) {
             // Always reset last transmitted, and transmit current data as soon as we connect, just to be sure
             this._lastTransmittedHiFiAudioAPIData = new HiFiAudioAPIData();
@@ -795,6 +852,7 @@ export class HiFiCommunicator {
 
         this._lastTransmittedHiFiAudioAPIData = new HiFiAudioAPIData();
 
+        await this._secondaryMixerSession.disconnectFromHiFiMixer();
         return this._mixerSession.disconnectFromHiFiMixer();
     }
 
@@ -861,11 +919,7 @@ export class HiFiCommunicator {
      * @returns The final mixed audio `MediaStream` coming from the High Fidelity Audio Server.
      */
     getOutputAudioMediaStream(): MediaStream {
-        if (this._mixerSession) {
-            return this._mixerSession.getOutputAudioMediaStream();
-        } else {
-            return null;
-        }
+        return this._outputAudioMediaStream;
     }
 
     /**
@@ -887,10 +941,13 @@ export class HiFiCommunicator {
      * @returns `true` if the new `MediaStream` was successfully set, `false` otherwise.
      */
     async setInputAudioMediaStream(newInputAudioMediaStream: MediaStream, isStereo: boolean = false): Promise<boolean> {
-        const retval = await this._mixerSession.setRAVIInputAudio(newInputAudioMediaStream, isStereo);
+        this._inputAudioMediaStream = newInputAudioMediaStream;
+        this._inputAudioMediaStreamIsStereo = isStereo;
+        let retval = await this._mixerSession.setRAVIInputAudio(newInputAudioMediaStream, isStereo);    
         if (retval) {
-            this._inputAudioMediaStream = newInputAudioMediaStream;
-        } else {
+            retval = await this._secondaryMixerSession.setRAVIInputAudio(newInputAudioMediaStream, isStereo);
+        }
+        if (!retval){
             HiFiLogger.warn(`Error trying to setRAVIInputAudio on this._mixerSession`);
         }
         return retval;
@@ -1149,6 +1206,10 @@ export class HiFiCommunicator {
             // The function will return the raw data that it sent to the mixer.
             let transmitRetval = this._mixerSession._transmitHiFiAudioAPIDataToServer(this._currentHiFiAudioAPIData, this._lastTransmittedHiFiAudioAPIData);
             if (transmitRetval.success) {
+                // send data to secondary session if it's connected.
+                if(this._secondaryMixerSession.isConnected()) {
+                    this._secondaryMixerSession._transmitHiFiAudioAPIDataToServer(this._currentHiFiAudioAPIData, this._lastTransmittedHiFiAudioAPIData);
+                }
                 // Now we have to update our "last transmitted" `HiFiAudioAPIData` object
                 // to contain the data that we just transmitted.
                 this._updateLastTransmittedHiFiAudioAPIData(this._currentHiFiAudioAPIData);
@@ -1336,5 +1397,55 @@ export class HiFiCommunicator {
 
         HiFiLogger.log(`Adding new User Data Subscription:\n${JSON.stringify(newSubscription)}`);
         this._userDataSubscriptions.push(newSubscription);
+    }
+    
+    /**
+     * Connects to the secondary mixer in preparation to move seamlessly to that mixer.
+     */
+    private _onTransitionRequested() {
+        HiFiLogger.debug("Transition requested.");
+        if (!this._secondaryMixerSession || !this._secondaryMixerSession.webRTCAddress) {
+            this._manageConnection(HiFiConnectionStates.Failed, { success: false, error: "_secondaryMixerSession misconfigured" }, true);
+            return;
+        }
+        // This should never get called unless we are reasonably certain that the session is
+        // NOT connected, but just in case.
+        if (this._secondaryMixerSession.isConnected()) {
+            let msg = `Secondary Mixer Session is already connected!`;
+            throw new Error(msg);
+        }
+
+        let timeoutPerConnectionAttempt = this._connectionRetryAndTimeoutConfig.timeoutPerConnectionAttemptMS;
+        // Kick off the connection attempt. Any actual success or failure
+        // gets handled by the _manageConnection callback handler. (Note that calls to our _connectToHiFiMixer()
+        // method get handled entirely by callback-initiated retry code, so we should never get here unless
+        // a callback asked us to do it.)
+        HiFiLogger.debug("Connecting to secondary mixer.");
+        this._secondaryMixerSession.connectToHiFiMixer({ webRTCSessionParams: this._webRTCSessionParams,
+                                                         customSTUNandTURNConfig: this._customSTUNandTURNConfig,
+                                                         timeout: timeoutPerConnectionAttempt,
+                                                         initData: this._currentHiFiAudioAPIData });   
+    }
+
+    /**
+     * Sends a audionet.transition-ready to the primary mixer.
+     */
+    private _onReadyForTransition() {
+        this._mixerSession.transitionReady();
+    }
+
+    /**
+     * Switches microphone and data streaming to the secondary mixer, and makes that mixer
+     * the primary mixer.
+     */
+    private async _onTransition() {
+        HiFiLogger.debug("Transitioning.");
+        let primaryMixerSession = this._mixerSession;
+        let secondaryMixerSession = this._secondaryMixerSession;
+        await primaryMixerSession.transitionToSecondarySession(secondaryMixerSession);
+        this._mixerSession = secondaryMixerSession;
+        this._secondaryMixerSession = primaryMixerSession;
+
+        primaryMixerSession.transitionComplete();
     }
 }

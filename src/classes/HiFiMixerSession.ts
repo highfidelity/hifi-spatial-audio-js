@@ -18,18 +18,6 @@ import { RaviSignalingConnection, RaviSignalingStates } from "../libravi/RaviSig
 import { Diagnostics } from "../diagnostics/diagnostics";
 import pako from 'pako'
 
-const isBrowser = typeof window !== 'undefined';
-// Since we're initializing a MediaStream, we need to
-// do it using the correct cross-platform class (node or browser)
-let xMediaStream = isBrowser && window.MediaStream;
-if (!isBrowser) {
-    try {
-        xMediaStream = require('wrtc').MediaStream;
-    } catch (e) {
-        ; // Remains falsey. Don't report, don't log
-    }
-}
-
 const INIT_TIMEOUT_MS = 5000;
 const PERSONAL_VOLUME_ADJUST_TIMEOUT_MS = 5000;
 
@@ -174,16 +162,22 @@ export class HiFiMixerSession {
      */
     private _mixerPeerKeyToStateCacheDict: any;
 
+
+    private _inputAudioMediaStream: MediaStream;
+
     /**
      * We will track whether or not the input stream is stereo, so that
      * we can advise the server to mix it appropriately
      */
     private _inputAudioMediaStreamIsStereo: boolean;
+    
+    private _currentDataToTransmitToServer: HiFiAudioAPIData;
 
     private _adminPreventsInputAudioUnmuting: boolean;
     private _lastSuccessfulInputAudioMutedValue: boolean;
 
     private onMuteChanged: OnMuteChangedCallback;
+
 
     /**
      * A MediaStream that persists across reconnection attempts; we add the
@@ -223,6 +217,24 @@ export class HiFiMixerSession {
      * This function is called when the "connection state" changes.
      */
     onConnectionStateChanged: ConnectionStateChangeHandler;
+
+    /**
+     * This function is called when the mixer need to pass us off to another mixer
+     * as part of autoscaling.  It indicates the secondary connections should connect.
+     */
+    onTransitionRequested: Function;
+
+    /**
+     * This function is called when the communicator should start streaming microphone data
+     * to the new primary mixer and should start receiving streaming data from the
+     * new mixer as part of autoscaling.
+     */
+    onTransition: Function;
+    
+    /**
+     * Tell the HiFiCommunicator to send an audionet.transition-ready on the primary mixer
+     */
+    onReadyForTransition: Function;
 
     /**
      * If the World coordinate system is NOT compatible with the HiFi coordindate frame used by the mixer
@@ -266,6 +278,7 @@ export class HiFiMixerSession {
     private _getUserFacingConnectionState: Function;
     private _raviDiagnostics: Diagnostics;
     private _hifiDiagnostics: Diagnostics;
+    private _visitId: string;
 
     /**
      * 
@@ -293,7 +306,12 @@ export class HiFiMixerSession {
         onConnectionStateChanged,
         onMuteChanged,
         getUserFacingConnectionState,
-        coordFrameUtil
+        coordFrameUtil,
+        onTransitionRequested,
+        onTransition,
+        onReadyForTransition,
+        visitId,
+        outputAudioMediaStream
     }: {
         userDataStreamingScope?: HiFiUserDataStreamingScopes,
         onUserDataUpdated?: Function,
@@ -301,7 +319,12 @@ export class HiFiMixerSession {
         onConnectionStateChanged?: ConnectionStateChangeHandler,
         onMuteChanged?: OnMuteChangedCallback,
         getUserFacingConnectionState?: Function,
-        coordFrameUtil?: HiFiCoordinateFrameUtil
+        coordFrameUtil?: HiFiCoordinateFrameUtil,
+        onTransitionRequested?: Function,
+        onTransition?: Function,
+        onReadyForTransition?: Function,
+        visitId?: string,
+        outputAudioMediaStream?: MediaStream
     }) {
         this.webRTCAddress = undefined;
         this.userDataStreamingScope = userDataStreamingScope;
@@ -313,6 +336,15 @@ export class HiFiMixerSession {
         this._getUserFacingConnectionState = getUserFacingConnectionState;
         this._disableReconnect = false;
         this._coordFrameUtil = coordFrameUtil;
+        this.onTransitionRequested = onTransitionRequested;
+        this.onTransition = onTransition;
+        this.onReadyForTransition = onReadyForTransition;
+        this._inputAudioMediaStream = undefined;
+        this._inputAudioMediaStreamIsStereo = false;
+        this._currentDataToTransmitToServer = new HiFiAudioAPIData();
+        if (visitId) {
+            this._visitId = visitId;
+        }
 
         RaviUtils.setDebug(false);
 
@@ -324,8 +356,7 @@ export class HiFiMixerSession {
 
         this.onConnectionStateChanged = onConnectionStateChanged;
 
-        // Create an empty output media stream that will persist across reconnects
-        this._outputAudioMediaStream = new xMediaStream();
+        this._outputAudioMediaStream = outputAudioMediaStream;
 
         this._tryingToConnect = false;
         this._resetMixerInfo();
@@ -347,7 +378,7 @@ export class HiFiMixerSession {
             let initData = {
                 primary: true,
                 // The mixer will hash this randomly-generated UUID, then disseminate it to all clients via `peerData.e`.
-                visit_id: this._raviSession.getUUID(),
+                visit_id: this._visitId,
                 session: this._raviSession.getUUID(), // Still required for old mixers. Will eventually go away.
                 streaming_scope: this.userDataStreamingScope,
                 is_input_stream_stereo: this._inputAudioMediaStreamIsStereo
@@ -603,7 +634,6 @@ export class HiFiMixerSession {
                 if (!Array.isArray(instruction) || !instruction.length) {
                     continue;
                 }
-
                 let instructionName = instruction[0];
                 let instructionArguments = instruction.slice(1);
                 if (instructionName === "mute") {
@@ -617,11 +647,15 @@ export class HiFiMixerSession {
                         this._setMutedByAdmin(shouldBeMuted, MuteReason.ADMIN);
                     }
                 } else if (instructionName === "terminate") {
-                    // all reasons for termination currently should result in a disconnect
-                    // so that the client doesn't try to automatically reconnect.  Reasons
-                    // will be either kick or user timeout.
-                    this._disableReconnect = true;
+                    if (instructionArguments[0] === "terminate" ||
+                        instructionArguments[0] === "transition") {
+                        this._disableReconnect = true;
+                    }
                     this._disconnectFromHiFiMixer();
+                } else if (instructionName === "transition-requested") {
+                    this._onTransitionRequested();
+                } else if (instructionName === "transition") {
+                    this._onTransition();
                 }
             }
         }
@@ -696,6 +730,10 @@ export class HiFiMixerSession {
             });
         })
         .then((value) => {
+            // need to copy the audio tracks here as we've not yet set up the ravi
+            // state change handler, which deals with copying the tracks during
+            // reconnect and transition
+            this._copyAudioTracksFromRavi();           
             HiFiLogger.log(`Session open; running audionet.init`);
             return this.promiseToRunAudioInit(initData)
             .catch((errorRunningAudionetInit) => {
@@ -705,7 +743,8 @@ export class HiFiMixerSession {
         })
         .then((value) => {
             HiFiLogger.log(`audionet.init run; calling state change handler for connected`);
-            this._onConnectionStateChange(HiFiConnectionStates.Connected, value);
+            this._currentDataToTransmitToServer = initData;
+            return this._onConnectionStateChange(HiFiConnectionStates.Connected, value);            
         })
         .then((value) => {
             // We're done with the connection process and can now set the state change handlers
@@ -716,6 +755,7 @@ export class HiFiMixerSession {
             this._raviSession.addStateChangeHandler(this.onRAVISessionStateChanged);
         })
         .catch((error) => {
+            HiFiLogger.warn(error);
             // No matter what happens up there, we want to go to a failed state
             // and pass along the error message. `this._onConnectionStateChange`
             // will disconnect and clean up for us.
@@ -781,6 +821,7 @@ export class HiFiMixerSession {
      * @param isStereo - `true` if the input stream should be treated as stereo. Defaults to `false`.
      * @returns `true` if the new stream was successfully set; `false` otherwise.
      */
+
     async setRAVIInputAudio(inputAudioMediaStream: MediaStream, isStereo: boolean = false): Promise<boolean> {
 
         let retval = false;
@@ -790,7 +831,11 @@ export class HiFiMixerSession {
                 HiFiLogger.warn(`Couldn't set input audio on _raviSession.streamController: No \`streamController\`!`);
                 retval = false;
             } else {
-                streamController.setInputAudio(inputAudioMediaStream, isStereo);
+                if (inputAudioMediaStream) {
+                    streamController.setInputAudio(inputAudioMediaStream.clone(), isStereo);
+                } else {
+                    streamController.setInputAudio(null, isStereo);
+                }
                 HiFiLogger.log(`Successfully set input audio on _raviSession.streamController!`);
                 retval = true;
             }
@@ -807,7 +852,8 @@ export class HiFiMixerSession {
                     let audionetInitResponse;
                     try {
                         this._inputAudioMediaStreamIsStereo = isStereo;
-                        audionetInitResponse = await this.promiseToRunAudioInit();
+                    this._inputAudioMediaStream = inputAudioMediaStream;
+                        audionetInitResponse = await this.promiseToRunAudioInit(this._currentDataToTransmitToServer);
                     } catch (initError) {
                         // If this goes wrong, do we actually care all that much?
                         // It just means that the mixer will continue to treat the new stream as
@@ -820,6 +866,7 @@ export class HiFiMixerSession {
                     // If we haven't already connected, it'll just pick up the right stereo value when we
                     // call it the first time.
                     this._inputAudioMediaStreamIsStereo = isStereo;
+                    this._inputAudioMediaStream = inputAudioMediaStream;
                 }
             }
         }
@@ -1002,17 +1049,29 @@ export class HiFiMixerSession {
      * @param state
      */
     async _onConnectionStateChange(state: HiFiConnectionStates, result: HiFiConnectionAttemptResult): Promise<void> {
+        
         if (this.getCurrentHiFiConnectionState() !== state) {
             if (this.onConnectionStateChanged) {
                 this.onConnectionStateChanged(state, result);
             }
+        
             if (state === HiFiConnectionStates.Connected) {
                 this._raviDiagnostics.prime(this.mixerInfo.visit_id_hash);
                 this._hifiDiagnostics.prime(this.mixerInfo.visit_id_hash);
-                this._copyAudioTracksFromRavi();
-            } else {
-                this._hifiDiagnostics.fire(state.toString());
+                this._hifiDiagnostics.fire("Connected");
             }
+        }
+        
+        // in the case of a transition, we'll receive a 'Connected' from the secondary
+        // mixer when the HiFiCommunicator session state is Connected.  In that case, we must
+        // notify the primary mixer that we're ready for transition.
+        if (state === HiFiConnectionStates.Connected) {
+            this._raviDiagnostics.prime(this.mixerInfo.visit_id_hash);
+            this._hifiDiagnostics.prime(this.mixerInfo.visit_id_hash);
+            if (this.onReadyForTransition) {
+                this.onReadyForTransition();
+            }
+            this._hifiDiagnostics.fire("TransitionConnected");
         }
 
         if (state === HiFiConnectionStates.Failed) {
@@ -1049,7 +1108,22 @@ export class HiFiMixerSession {
      * and replaces them with the tracks that are currently on the RAVI stream controller.
      */
     _copyAudioTracksFromRavi() {
-        let currentAudioTracks = this._outputAudioMediaStream.getAudioTracks();
+        let raviAudioTracks = undefined;
+        let streamController = this._raviSession.getStreamController();
+
+        if (streamController && streamController.getAudioStream()) {
+            raviAudioTracks = streamController.getAudioStream().getAudioTracks();
+            if (raviAudioTracks) {
+                HiFiLogger.log(`Setting this._outputAudioMediaStream tracks to the current RAVI audio tracks.`);
+                raviAudioTracks.forEach(f => { this._outputAudioMediaStream.addTrack(f)});
+            }
+        }
+    }
+    /**
+     * This method is meant to be called once the connection state reaches "Disconnected".
+     * It removes any existing tracks from the persistent `this._outputAudioMediaStream.`
+     */
+    _removeAudioTracksFromRavi() {
         let raviAudioTracks = undefined;
         let streamController = this._raviSession.getStreamController();
 
@@ -1058,11 +1132,11 @@ export class HiFiMixerSession {
         }
 
         if (raviAudioTracks) {
-            HiFiLogger.log(`Resetting this._outputAudioMediaStream tracks to the current RAVI audio tracks.`);
-            currentAudioTracks.forEach(f => this._outputAudioMediaStream.removeTrack(f));
-            raviAudioTracks.forEach(f => this._outputAudioMediaStream.addTrack(f));
+            HiFiLogger.log(`Removing this._outputAudioMediaStream tracks to the current RAVI audio tracks.`);
+            raviAudioTracks.forEach(f => this._outputAudioMediaStream.removeTrack(f));
         }
     }
+
     /**
      * Fires when the RAVI Session State changes.
      * @param event
@@ -1075,16 +1149,19 @@ export class HiFiMixerSession {
             case RaviSessionStates.CONNECTED:
                 HiFiLogger.log(`RaviSession connected; waiting for results of audionet.init`);
                 this._copyAudioTracksFromRavi();
+                await this.setRAVIInputAudio(this._inputAudioMediaStream, this._inputAudioMediaStreamIsStereo);
                 break;
             case RaviSessionStates.CLOSED:
+                this._removeAudioTracksFromRavi();
                 message = "RaviSession has been closed; connection to High Fidelity servers has been disconnected";
-                this._onConnectionStateChange(HiFiConnectionStates.Disconnected, { success: true, error: message, disableReconnect: this._disableReconnect });
+                this._onConnectionStateChange(HiFiConnectionStates.Disconnected, { success: true, error: message, disableReconnect: this._disableReconnect });     
                 break;
             case RaviSessionStates.DISCONNECTED:
             case RaviSessionStates.FAILED:
                 message = "RaviSession has disconnected unexpectedly";
                 this._onConnectionStateChange(HiFiConnectionStates.Failed, { success: false, error: message, disableReconnect: this._disableReconnect });
                 try {
+                    this._removeAudioTracksFromRavi();
                     await this._disconnectFromHiFiMixer();
                 } catch (errorClosing) {
                     HiFiLogger.log(`Error encountered while trying to close the connection. Error:\n${RaviUtils.safelyPrintable(errorClosing)}`);
@@ -1295,6 +1372,7 @@ export class HiFiMixerSession {
                 // Stringified NaN values get converted to null, which the mixer interprets as unset
                 let stringifiedDataForMixer = JSON.stringify(dataForMixer);
                 commandController.sendInput(stringifiedDataForMixer);
+                this._currentDataToTransmitToServer = currentHifiAudioAPIData;
                 return {
                     success: true,
                     stringifiedDataForMixer: stringifiedDataForMixer
@@ -1316,5 +1394,108 @@ export class HiFiMixerSession {
             "connected": false,
         };
         this._mixerPeerKeyToStateCacheDict = {};
+    }
+    
+    /**
+     * Calls HiFiCommunicator callback instructing it to perform a transition.
+     */
+    private _onTransitionRequested(): void {
+        if (this.onTransitionRequested) {
+            this.onTransitionRequested();
+        }
+    }
+
+   /**
+     * Sends the command `audionet.transition-ready` to the mixer.
+     */
+    transitionReady() {
+        let commandController = this._raviSession.getCommandController();
+        if (!commandController) {
+            HiFiLogger.log(`Could not retrieve command controller during transitionReady`);
+            return;
+        }
+        commandController.queueCommand("audionet.transition-ready", {}, () => {});
+    }
+
+    /**
+     * Calls HiFiCommunicator callback instructing it to perform a transition.
+     */
+    private _onTransition(): void {
+        if (this.onTransition) {
+            this.onTransition();
+        }
+    }
+
+   /**
+     * Notifies the mixer that this client has completed transition.
+     */
+    transitionComplete() {
+        let commandController = this._raviSession.getCommandController();
+        if (!commandController) {
+            HiFiLogger.log(`Could not retrieve command controller during transitionComplete`);
+            return;
+        }
+        commandController.queueCommand("audionet.transition-complete", {}, () => {});
+    }
+
+   /**
+     * Swaps primary and secondary callbacks, and mutes the old primary mixer session, and unmutes the new primary mixer session.
+     */    
+    async transitionToSecondarySession(secondarySession: HiFiMixerSession) {
+        
+        [this.onConnectionStateChanged, secondarySession.onConnectionStateChanged] = [secondarySession.onConnectionStateChanged, this.onConnectionStateChanged];
+        [this.userDataStreamingScope, secondarySession.userDataStreamingScope] = [secondarySession.userDataStreamingScope, this.userDataStreamingScope];
+        [this.onUserDataUpdated, secondarySession.onUserDataUpdated] = [secondarySession.onUserDataUpdated, this.onUserDataUpdated];
+        [this.onUsersDisconnected, secondarySession.onUsersDisconnected] = [secondarySession.onUsersDisconnected, this.onUsersDisconnected];
+        [this.onMuteChanged, secondarySession.onMuteChanged] = [secondarySession.onMuteChanged, this.onMuteChanged];
+        [this.onTransitionRequested, secondarySession.onTransitionRequested] = [secondarySession.onTransitionRequested, this.onTransitionRequested];
+        [this.onTransition, secondarySession.onTransition] = [secondarySession.onTransition, this.onTransition];
+        [this.onReadyForTransition, secondarySession.onReadyForTransition] = [secondarySession.onReadyForTransition, this.onReadyForTransition];
+        [this._lastSuccessfulInputAudioMutedValue, secondarySession._lastSuccessfulInputAudioMutedValue] = [secondarySession._lastSuccessfulInputAudioMutedValue, this._lastSuccessfulInputAudioMutedValue];
+
+        this._disableReconnect = true;
+        secondarySession._disableReconnect = false;
+
+        HiFiLogger.debug("Setting new primary/old secondary session mute to communicator mute value.");
+        await secondarySession._trySetInputAudioMuted(secondarySession._lastSuccessfulInputAudioMutedValue, false);     
+        HiFiLogger.debug("Muting old primary/new secondary mixer session.");
+        await this._trySetInputAudioMuted(true, false);
+
+        // send deleted peer notifications for any peers that didn't make it over to the new mixer
+        // and send new peer data notifications for all peers that are on the new mixer.
+        let allDeletedUserData: Array<ReceivedHiFiAudioAPIData> = [];
+        let allNewUserData: Array<ReceivedHiFiAudioAPIData> = [];
+            
+
+        let oldPeers: any = {};
+        for (const mixerPeerKey of Object.keys(this._mixerPeerKeyToStateCacheDict)) {
+            let value = this._mixerPeerKeyToStateCacheDict[mixerPeerKey];
+            oldPeers[value.hashedVisitID] = value;
+        }
+        for (const mixerPeerKey of Object.keys(secondarySession._mixerPeerKeyToStateCacheDict)) {
+            let value = secondarySession._mixerPeerKeyToStateCacheDict[mixerPeerKey];
+            delete oldPeers[value.hashedVisitID];
+            allNewUserData.push(value);
+        }
+        
+        for (const hashedVisitID of Object.keys(oldPeers)) {
+            let deletedUserData = new ReceivedHiFiAudioAPIData({
+                hashedVisitID: hashedVisitID
+            });
+            let username = oldPeers[hashedVisitID].providedUserID;
+            if (username) {
+                deletedUserData.providedUserID = username;
+            }
+            allDeletedUserData.push(deletedUserData);
+        }
+
+        if (secondarySession.onUsersDisconnected && allDeletedUserData.length > 0) {
+            secondarySession.onUsersDisconnected(allDeletedUserData);
+        }
+        if (secondarySession.onUserDataUpdated && allNewUserData.length > 0) {
+            secondarySession.onUserDataUpdated(allNewUserData);
+        }
+        this._mixerPeerKeyToStateCacheDict = {};
+        this.concurrency = 0;        
     }
 }
