@@ -12,6 +12,7 @@
     │   └── auth.json.gpg  (An encrypted version of `auth.json` for the `staging-latest` stack used by GHA.)  
     ├── testUtilities  
     │   ├── globalTeardown.js  (A file used to ensure all `HiFiCommunicator` instances get shut down after testing.)
+    |   ├── rtcAudioSourceSineWave.js 
     │   ├── testUser.ts  (A test user class.)
     │   └── testUtils.ts  
     ├── unit  
@@ -20,7 +21,6 @@
     │       │   ├── HiFiAudioAPIData.unit.test.ts  
     │       │   ├── HiFiCommunicator.unit.test.ts  
     │       │   └── HiFiMixerSession.unit.test.ts  
-    │       ├── libravi  
     │       └── utilities  
     │           ├── HiFiCoordinateFrameUtil.unit.test.ts  
     │           ├── HiFiLogger.unit.test.ts  
@@ -35,6 +35,7 @@
 | pro      | api-pro.highfidelity.com, api-pro-latest.highfidelity.com            |
 | east     | api-pro-east.highfidelity.com, api-pro-latest-east.highfidelity.com  |
 | hobby    | api.highfidelity.com, api-hobby-latest.highfidelity.com              |
+| eu       | api-pro-eu.highfidelity.com, api-pro-eu-latest.highfidelity.com              |
 
 ## Unit Tests
 
@@ -96,7 +97,7 @@ GHA needs access to the `auth.json` file, so we encrypt that file and upload to 
 #### Workflows
 There is a workflow dispatch in GHA that allows you to manually run tests against a specified stack and branch. This will work as long as the specified stack data is included in the branch's auth file.
 
-#### TO UPDATE THE REPO WITH NEW APP IDS:
+#### TO UPDATE THE REPO WITH NEW APP IDS OR SPACE INFO:
 1. Create the apps in the QA [HiFi dev account page](https://api-staging-latest.highfidelity.com) The username and password are in [1pass](https://1password.com).
 
 2. Update your `auth.json` file with the new app IDs/secrets and update the file in 1pass.
