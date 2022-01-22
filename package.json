@@ -45,7 +45,7 @@
     "jest-stare": "^2.0.1",
     "jose": "^3.11.0",
     "minimist": "^1.2.5",
-    "node-fetch": "^2.6.1",
+    "node-fetch": "^3.1.1",
     "puppeteer": "^9.0.0",
     "ts-jest": "^26.4.4",
     "ts-loader": "^8.0.14",
